@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { AppNavbar } from "../../components/ui";
 
 type Question = {
   id: string;
@@ -213,6 +214,7 @@ export default function QuizPage() {
   }
 
   const answered = selectedAnswer !== null || timeUp;
+
   const isCorrect =
     selectedAnswer !== null &&
     selectedAnswer === question.correct_answer;
@@ -246,38 +248,16 @@ export default function QuizPage() {
       }}
     >
       <div className="sq-container">
-        {/* TOP NAVIGATION */}
-        <nav className="sq-nav" style={{ borderRadius: "18px" }}>
-          <div className="sq-logo">Sahaba Quest</div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <span className="sq-badge">
-              Level {question.level}
-            </span>
-
-            <span
-              style={{
-                fontSize: "13px",
-                color: "var(--muted)",
-                fontWeight: 600,
-              }}
-            >
-              Quiz Mode
-            </span>
-          </div>
-        </nav>
+        {/* SHARED NAVIGATION */}
+        <div style={{ marginBottom: "28px" }}>
+          <AppNavbar />
+        </div>
 
         {/* GAME HEADER */}
         <div
           style={{
             maxWidth: "820px",
-            margin: "32px auto 0",
+            margin: "0 auto",
             display: "grid",
             gridTemplateColumns: "1fr auto",
             gap: "20px",
@@ -427,6 +407,7 @@ export default function QuizPage() {
           >
             {options.map((option) => {
               const isSelected = selectedAnswer === option.value;
+
               const isCorrectOption =
                 option.value === question.correct_answer;
 

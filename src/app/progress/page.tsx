@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { AppNavbar } from "../../components/ui";
 
 type ProgressData = {
   current_level: number;
@@ -37,11 +38,12 @@ export default function ProgressPage() {
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", user.id)
-      .single();
+    const { data: profile, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single();
 
     if (profileError) {
       setMessage(profileError.message);
@@ -49,13 +51,14 @@ export default function ProgressPage() {
       return;
     }
 
-    const { data: playerProgress, error: progressError } = await supabase
-      .from("player_progress")
-      .select(
-        "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
-      )
-      .eq("user_id", user.id)
-      .single();
+    const { data: playerProgress, error: progressError } =
+      await supabase
+        .from("player_progress")
+        .select(
+          "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
+        )
+        .eq("user_id", user.id)
+        .single();
 
     if (progressError) {
       setMessage(progressError.message);
@@ -71,12 +74,21 @@ export default function ProgressPage() {
   const accuracy =
     progress && progress.questions_answered > 0
       ? Math.round(
-          (progress.correct_answers / progress.questions_answered) * 100
+          (progress.correct_answers /
+            progress.questions_answered) *
+            100
         )
       : 0;
 
-  const xpIntoLevel = progress ? progress.total_xp % 1000 : 0;
-  const levelProgress = Math.min((xpIntoLevel / 1000) * 100, 100);
+  const xpIntoLevel = progress
+    ? progress.total_xp % 1000
+    : 0;
+
+  const levelProgress = Math.min(
+    (xpIntoLevel / 1000) * 100,
+    100
+  );
+
   const xpToNextLevel = 1000 - xpIntoLevel;
 
   if (loading) {
@@ -104,7 +116,9 @@ export default function ProgressPage() {
               ✦
             </div>
 
-            <h2 style={{ margin: 0 }}>Loading your progress...</h2>
+            <h2 style={{ margin: 0 }}>
+              Loading your progress...
+            </h2>
 
             <p className="sq-subtitle">
               We're getting your latest learning statistics.
@@ -136,7 +150,9 @@ export default function ProgressPage() {
               textAlign: "center",
             }}
           >
-            <h2 style={{ marginTop: 0 }}>Unable to load progress</h2>
+            <h2 style={{ marginTop: 0 }}>
+              Unable to load progress
+            </h2>
 
             <p className="sq-subtitle">{message}</p>
 
@@ -154,55 +170,29 @@ export default function ProgressPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: "var(--background)" }}>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "var(--background)",
+      }}
+    >
       {/* NAVIGATION */}
-      <nav className="sq-nav">
-        <Link href="/dashboard" className="sq-logo">
-          Sahaba Quest
-        </Link>
-
-        <div className="sq-nav-links">
-          <Link href="/dashboard" className="sq-nav-link">
-            Home
-          </Link>
-
-          <Link href="/quiz" className="sq-nav-link">
-            Play
-          </Link>
-
-          <Link
-            href="/progress"
-            className="sq-nav-link"
-            style={{
-              background: "var(--primary-light)",
-              color: "var(--primary-dark)",
-            }}
-          >
-            Progress
-          </Link>
-
-          <Link href="/leaderboard" className="sq-nav-link">
-            Leaderboard
-          </Link>
-
-          <Link href="/challenges" className="sq-nav-link">
-            Challenges
-          </Link>
-
-          <Link href="/profile" className="sq-nav-link">
-            Profile
-          </Link>
-        </div>
-      </nav>
+      <AppNavbar />
 
       {/* MAIN CONTENT */}
       <div className="sq-page">
         <div className="sq-container">
+
           {/* HEADER */}
           <section style={{ marginBottom: "32px" }}>
-            <span className="sq-badge">Your learning journey</span>
+            <span className="sq-badge">
+              Your learning journey
+            </span>
 
-            <h1 className="sq-title" style={{ marginTop: "16px" }}>
+            <h1
+              className="sq-title"
+              style={{ marginTop: "16px" }}
+            >
               Your Progress, {displayName} 📈
             </h1>
 
@@ -213,6 +203,7 @@ export default function ProgressPage() {
 
           {/* STAT CARDS */}
           <section
+            className="progress-stats"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4, 1fr)",
@@ -221,7 +212,9 @@ export default function ProgressPage() {
             }}
           >
             <div className="sq-stat">
-              <div className="sq-stat-label">Total XP</div>
+              <div className="sq-stat-label">
+                Total XP
+              </div>
 
               <div className="sq-stat-value">
                 {progress?.total_xp.toLocaleString()}
@@ -240,7 +233,9 @@ export default function ProgressPage() {
             </div>
 
             <div className="sq-stat">
-              <div className="sq-stat-label">Current Level</div>
+              <div className="sq-stat-label">
+                Current Level
+              </div>
 
               <div className="sq-stat-value">
                 {progress?.current_level}
@@ -259,9 +254,13 @@ export default function ProgressPage() {
             </div>
 
             <div className="sq-stat">
-              <div className="sq-stat-label">Accuracy</div>
+              <div className="sq-stat-label">
+                Accuracy
+              </div>
 
-              <div className="sq-stat-value">{accuracy}%</div>
+              <div className="sq-stat-value">
+                {accuracy}%
+              </div>
 
               <div
                 style={{
@@ -276,7 +275,9 @@ export default function ProgressPage() {
             </div>
 
             <div className="sq-stat">
-              <div className="sq-stat-label">Current Streak</div>
+              <div className="sq-stat-label">
+                Current Streak
+              </div>
 
               <div className="sq-stat-value">
                 {progress?.current_streak} 🔥
@@ -313,7 +314,9 @@ export default function ProgressPage() {
               }}
             >
               <div>
-                <span className="sq-badge">Level {progress?.current_level}</span>
+                <span className="sq-badge">
+                  Level {progress?.current_level}
+                </span>
 
                 <h2
                   style={{
@@ -361,7 +364,9 @@ export default function ProgressPage() {
             <div className="sq-progress">
               <div
                 className="sq-progress-bar"
-                style={{ width: `${levelProgress}%` }}
+                style={{
+                  width: `${levelProgress}%`,
+                }}
               />
             </div>
 
@@ -375,16 +380,23 @@ export default function ProgressPage() {
                 fontWeight: 600,
               }}
             >
-              <span>Level {progress?.current_level}</span>
+              <span>
+                Level {progress?.current_level}
+              </span>
 
-              <span>{xpToNextLevel} XP to next level</span>
+              <span>
+                {xpToNextLevel} XP to next level
+              </span>
 
-              <span>Level {(progress?.current_level ?? 1) + 1}</span>
+              <span>
+                Level {(progress?.current_level ?? 1) + 1}
+              </span>
             </div>
           </section>
 
           {/* PERFORMANCE */}
           <section
+            className="progress-performance"
             style={{
               display: "grid",
               gridTemplateColumns: "1.2fr 0.8fr",
@@ -398,7 +410,9 @@ export default function ProgressPage() {
                 padding: "28px",
               }}
             >
-              <div className="sq-badge">Performance</div>
+              <div className="sq-badge">
+                Performance
+              </div>
 
               <h2
                 style={{
@@ -507,7 +521,9 @@ export default function ProgressPage() {
                 <div className="sq-progress">
                   <div
                     className="sq-progress-bar"
-                    style={{ width: `${accuracy}%` }}
+                    style={{
+                      width: `${accuracy}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -627,17 +643,17 @@ export default function ProgressPage() {
 
       <style jsx>{`
         @media (max-width: 900px) {
-          .sq-container > section:first-of-type {
+          .progress-stats {
             grid-template-columns: repeat(2, 1fr) !important;
           }
 
-          .sq-container > section:last-of-type {
+          .progress-performance {
             grid-template-columns: 1fr !important;
           }
         }
 
         @media (max-width: 600px) {
-          .sq-container > section:first-of-type {
+          .progress-stats {
             grid-template-columns: 1fr !important;
           }
         }

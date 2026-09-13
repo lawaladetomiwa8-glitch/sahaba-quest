@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { AppNavbar } from "../../components/ui";
 
 type LeaderboardRow = {
   user_id: string;
@@ -65,7 +66,8 @@ export default function LeaderboardPage() {
     const formattedPlayers: LeaderboardRow[] = (data ?? []).map(
       (player: any) => ({
         user_id: player.user_id,
-        display_name: player.profiles?.display_name || "Player",
+        display_name:
+          player.profiles?.display_name || "Player",
         username: player.profiles?.username || "",
         total_xp: player.total_xp || 0,
         current_level: player.current_level || 1,
@@ -82,7 +84,9 @@ export default function LeaderboardPage() {
   );
 
   const currentUserRank =
-    currentUserIndex >= 0 ? currentUserIndex + 1 : null;
+    currentUserIndex >= 0
+      ? currentUserIndex + 1
+      : null;
 
   const topThree = players.slice(0, 3);
 
@@ -111,7 +115,9 @@ export default function LeaderboardPage() {
               🏆
             </div>
 
-            <h2 style={{ margin: 0 }}>Loading leaderboard...</h2>
+            <h2 style={{ margin: 0 }}>
+              Loading leaderboard...
+            </h2>
 
             <p className="sq-subtitle">
               We're getting the latest rankings.
@@ -169,49 +175,16 @@ export default function LeaderboardPage() {
         background: "var(--background)",
       }}
     >
-      <nav className="sq-nav">
-        <Link href="/dashboard" className="sq-logo">
-          Sahaba Quest
-        </Link>
-
-        <div className="sq-nav-links">
-          <Link href="/dashboard" className="sq-nav-link">
-            Home
-          </Link>
-
-          <Link href="/quiz" className="sq-nav-link">
-            Play
-          </Link>
-
-          <Link href="/progress" className="sq-nav-link">
-            Progress
-          </Link>
-
-          <Link
-            href="/leaderboard"
-            className="sq-nav-link"
-            style={{
-              background: "var(--primary-light)",
-              color: "var(--primary-dark)",
-            }}
-          >
-            Leaderboard
-          </Link>
-
-          <Link href="/challenges" className="sq-nav-link">
-            Challenges
-          </Link>
-
-          <Link href="/profile" className="sq-nav-link">
-            Profile
-          </Link>
-        </div>
-      </nav>
+      {/* NAVIGATION */}
+      <AppNavbar />
 
       <div className="sq-page">
         <div className="sq-container">
+
           <section style={{ marginBottom: "32px" }}>
-            <span className="sq-badge">Compete & grow</span>
+            <span className="sq-badge">
+              Compete & grow
+            </span>
 
             <h1
               className="sq-title"
@@ -265,7 +238,8 @@ export default function LeaderboardPage() {
                 className="leaderboard-podium"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gridTemplateColumns:
+                    "repeat(3, 1fr)",
                   gap: "18px",
                   alignItems: "end",
                   marginBottom: "28px",
@@ -394,7 +368,8 @@ export default function LeaderboardPage() {
                 <div
                   style={{
                     padding: "24px 26px",
-                    borderBottom: "1px solid var(--border)",
+                    borderBottom:
+                      "1px solid var(--border)",
                   }}
                 >
                   <h2

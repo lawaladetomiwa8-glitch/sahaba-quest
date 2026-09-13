@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { AppNavbar } from "../../components/ui";
 
 type ProfileData = {
   username: string;
@@ -41,10 +42,11 @@ export default function ProfilePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error" | "">(
-    ""
-  );
+  const [messageType, setMessageType] = useState<
+    "success" | "error" | ""
+  >("");
 
   useEffect(() => {
     loadProfile();
@@ -111,10 +113,14 @@ export default function ProfilePage() {
       setProgress({
         current_level: progressResult.data.current_level ?? 1,
         total_xp: progressResult.data.total_xp ?? 0,
-        questions_answered: progressResult.data.questions_answered ?? 0,
-        correct_answers: progressResult.data.correct_answers ?? 0,
-        current_streak: progressResult.data.current_streak ?? 0,
-        best_streak: progressResult.data.best_streak ?? 0,
+        questions_answered:
+          progressResult.data.questions_answered ?? 0,
+        correct_answers:
+          progressResult.data.correct_answers ?? 0,
+        current_streak:
+          progressResult.data.current_streak ?? 0,
+        best_streak:
+          progressResult.data.best_streak ?? 0,
       });
     }
 
@@ -176,7 +182,9 @@ export default function ProfilePage() {
         setMessage(
           "That username is already taken. Please choose another username."
         );
-      } else if (errorMessage.includes("profiles_display_name_unique")) {
+      } else if (
+        errorMessage.includes("profiles_display_name_unique")
+      ) {
         setMessage(
           "That display name is already in use. Please choose another display name."
         );
@@ -210,7 +218,9 @@ export default function ProfilePage() {
   const accuracy =
     progress.questions_answered > 0
       ? Math.round(
-          (progress.correct_answers / progress.questions_answered) * 100
+          (progress.correct_answers /
+            progress.questions_answered) *
+            100
         )
       : 0;
 
@@ -256,48 +266,11 @@ export default function ProfilePage() {
 
   return (
     <>
-      <nav className="sq-nav">
-        <Link href="/dashboard" className="sq-logo">
-          Sahaba Quest
-        </Link>
-
-        <div className="sq-nav-links">
-          <Link href="/dashboard" className="sq-nav-link">
-            Home
-          </Link>
-
-          <Link href="/quiz" className="sq-nav-link">
-            Play
-          </Link>
-
-          <Link href="/progress" className="sq-nav-link">
-            Progress
-          </Link>
-
-          <Link href="/leaderboard" className="sq-nav-link">
-            Leaderboard
-          </Link>
-
-          <Link href="/challenges" className="sq-nav-link">
-            Challenges
-          </Link>
-
-          <Link
-            href="/profile"
-            className="sq-nav-link"
-            style={{
-              background: "var(--primary-light)",
-              color: "var(--primary-dark)",
-            }}
-          >
-            Profile
-          </Link>
-        </div>
-      </nav>
+      <AppNavbar />
 
       <main className="sq-page">
         <div className="sq-container">
-          {/* Header */}
+          {/* Profile Header */}
           <section
             className="sq-card"
             style={{
@@ -344,7 +317,9 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <span className="sq-badge">Player Profile</span>
+                  <span className="sq-badge">
+                    Player Profile
+                  </span>
 
                   <h1
                     className="sq-title"
@@ -385,6 +360,7 @@ export default function ProfilePage() {
 
           {/* Statistics */}
           <section
+            className="profile-stats"
             style={{
               display: "grid",
               gridTemplateColumns:
@@ -392,7 +368,6 @@ export default function ProfilePage() {
               gap: "16px",
               marginBottom: "24px",
             }}
-            className="profile-stats"
           >
             <div className="sq-stat">
               <div className="sq-stat-label">
@@ -435,6 +410,7 @@ export default function ProfilePage() {
             </div>
           </section>
 
+          {/* Main Profile Grid */}
           <div
             className="profile-grid"
             style={{
@@ -444,8 +420,11 @@ export default function ProfilePage() {
               gap: "24px",
             }}
           >
-            {/* Edit profile */}
-            <section className="sq-card" style={{ padding: "30px" }}>
+            {/* Personal Information */}
+            <section
+              className="sq-card"
+              style={{ padding: "30px" }}
+            >
               <div style={{ marginBottom: "24px" }}>
                 <h2
                   style={{
@@ -546,12 +525,17 @@ export default function ProfilePage() {
                 onClick={saveProfile}
                 disabled={saving}
               >
-                {saving ? "Saving changes..." : "Save Changes"}
+                {saving
+                  ? "Saving changes..."
+                  : "Save Changes"}
               </button>
             </section>
 
             {/* Account */}
-            <section className="sq-card" style={{ padding: "30px" }}>
+            <section
+              className="sq-card"
+              style={{ padding: "30px" }}
+            >
               <h2
                 style={{
                   margin: 0,
@@ -644,7 +628,7 @@ export default function ProfilePage() {
             </section>
           </div>
 
-          {/* Player activity */}
+          {/* Player Activity */}
           <section
             className="sq-card"
             style={{
@@ -669,13 +653,13 @@ export default function ProfilePage() {
             </div>
 
             <div
+              className="profile-activity"
               style={{
                 display: "grid",
                 gridTemplateColumns:
                   "repeat(3, minmax(0, 1fr))",
                 gap: "16px",
               }}
-              className="profile-activity"
             >
               <div
                 style={{
@@ -761,7 +745,10 @@ export default function ProfilePage() {
           }
 
           .profile-stats {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            grid-template-columns: repeat(
+              2,
+              minmax(0, 1fr)
+            ) !important;
           }
 
           .profile-grid {

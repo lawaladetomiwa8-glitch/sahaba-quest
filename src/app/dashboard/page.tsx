@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { AppNavbar } from "../../components/ui";
 
 type Profile = {
   username: string | null;
@@ -36,24 +37,26 @@ export default function DashboardPage() {
       return;
     }
 
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("username, display_name")
-      .eq("id", user.id)
-      .single();
+    const { data: profileData, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("username, display_name")
+        .eq("id", user.id)
+        .single();
 
     if (profileError) {
       setMessage(profileError.message);
       return;
     }
 
-    const { data: progressData, error: progressError } = await supabase
-      .from("player_progress")
-      .select(
-        "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
-      )
-      .eq("user_id", user.id)
-      .single();
+    const { data: progressData, error: progressError } =
+      await supabase
+        .from("player_progress")
+        .select(
+          "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
+        )
+        .eq("user_id", user.id)
+        .single();
 
     if (progressError) {
       setMessage(progressError.message);
@@ -98,7 +101,10 @@ export default function DashboardPage() {
 
             <h1 className="sq-title">Sahaba Quest</h1>
 
-            <p className="sq-subtitle" style={{ marginTop: "12px" }}>
+            <p
+              className="sq-subtitle"
+              style={{ marginTop: "12px" }}
+            >
               {message}
             </p>
           </div>
@@ -136,65 +142,9 @@ export default function DashboardPage() {
       <div className="sq-container">
 
         {/* NAVIGATION */}
-        <nav
-          className="sq-nav"
-          style={{
-            borderRadius: "20px",
-            marginBottom: "28px",
-          }}
-        >
-          <div className="sq-logo">
-            Sahaba Quest
-          </div>
-
-          <div className="sq-nav-links">
-            <a
-              href="/dashboard"
-              className="sq-nav-link"
-              style={{
-                background: "var(--primary-light)",
-                color: "var(--primary-dark)",
-              }}
-            >
-              Home
-            </a>
-
-            <a
-              href="/quiz"
-              className="sq-nav-link"
-            >
-              Play
-            </a>
-
-            <a
-              href="/progress"
-              className="sq-nav-link"
-            >
-              Progress
-            </a>
-
-            <a
-              href="/leaderboard"
-              className="sq-nav-link"
-            >
-              Leaderboard
-            </a>
-
-            <a
-              href="/challenges"
-              className="sq-nav-link"
-            >
-              Challenges
-            </a>
-
-            <a
-              href="/profile"
-              className="sq-nav-link"
-            >
-              Profile
-            </a>
-          </div>
-        </nav>
+        <div style={{ marginBottom: "28px" }}>
+          <AppNavbar />
+        </div>
 
         {/* WELCOME HERO */}
         <section
@@ -395,7 +345,6 @@ export default function DashboardPage() {
             marginTop: "20px",
           }}
         >
-
           {/* PROGRESS CARD */}
           <div
             className="sq-card"
