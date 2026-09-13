@@ -1,13 +1,481 @@
 @import "tailwindcss";
 
+/* =========================================================
+   SAHABA QUEST — GLOBAL DESIGN SYSTEM
+   ========================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f9f8;
+  --foreground: #17221d;
+
+  --primary: #0f766e;
+  --primary-dark: #115e59;
+  --primary-light: #ccfbf1;
+
+  --secondary: #d4a72c;
+  --secondary-light: #fef3c7;
+
+  --success: #16a34a;
+  --success-light: #dcfce7;
+
+  --danger: #dc2626;
+  --danger-light: #fee2e2;
+
+  --white: #ffffff;
+  --border: #e2e8e5;
+  --muted: #64748b;
+  --muted-light: #94a3b8;
+
+  --card-shadow:
+    0 10px 30px rgba(15, 118, 110, 0.08);
+
+  --card-shadow-hover:
+    0 18px 40px rgba(15, 118, 110, 0.14);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+}
+
+/* =========================================================
+   RESET
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/* =========================================================
+   SHARED LAYOUT
+   ========================================================= */
+
+.sq-page {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.sq-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* =========================================================
+   PREMIUM CARD
+   ========================================================= */
+
+.sq-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+}
+
+/* =========================================================
+   PRIMARY BUTTON
+   ========================================================= */
+
+.sq-button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 48px;
+  padding: 0 22px;
+
+  border: none;
+  border-radius: 14px;
+
+  background: var(--primary);
+  color: var(--white);
+
+  font-weight: 700;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.sq-button-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.2);
+}
+
+/* =========================================================
+   SECONDARY BUTTON
+   ========================================================= */
+
+.sq-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 48px;
+  padding: 0 22px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background: var(--white);
+  color: var(--foreground);
+
+  font-weight: 700;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.sq-button-secondary:hover {
+  background: #f8faf9;
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow);
+}
+
+/* =========================================================
+   PAGE TITLE
+   ========================================================= */
+
+.sq-title {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+.sq-subtitle {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   STAT CARD
+   ========================================================= */
+
+.sq-stat {
+  padding: 22px;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  border: 1px solid var(--border);
+  box-shadow: var(--card-shadow);
+}
+
+.sq-stat-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sq-stat-value {
+  margin-top: 6px;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   BADGE
+   ========================================================= */
+
+.sq-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 12px;
+
+  border-radius: 999px;
+
+  background: var(--primary-light);
+  color: var(--primary-dark);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   PROGRESS BAR
+   ========================================================= */
+
+.sq-progress {
+  width: 100%;
+  height: 10px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+  background: #e2e8e5;
+}
+
+.sq-progress-bar {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: var(--primary);
+
+  transition: width 0.4s ease;
+}
+
+/* =========================================================
+   FORM ELEMENTS
+   ========================================================= */
+
+.sq-label {
+  display: block;
+  margin-bottom: 8px;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sq-input {
+  width: 100%;
+  height: 50px;
+
+  padding: 0 15px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background: var(--white);
+  color: var(--foreground);
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sq-input:focus {
+  border-color: var(--primary);
+
+  box-shadow:
+    0 0 0 4px rgba(15, 118, 110, 0.1);
+}
+
+/* =========================================================
+   QUIZ ANSWER CARD
+   ========================================================= */
+
+.sq-answer {
+  width: 100%;
+
+  padding: 18px 20px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: var(--white);
+  color: var(--foreground);
+
+  text-align: left;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sq-answer:hover {
+  border-color: var(--primary);
+  background: #f0fdfa;
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow);
+}
+
+.sq-answer-letter {
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: #f1f5f3;
+  color: var(--primary);
+
+  font-weight: 800;
+}
+
+/* =========================================================
+   QUIZ FEEDBACK
+   ========================================================= */
+
+.sq-correct {
+  border-color: var(--success);
+  background: var(--success-light);
+}
+
+.sq-wrong {
+  border-color: var(--danger);
+  background: var(--danger-light);
+}
+
+/* =========================================================
+   TIMER
+   ========================================================= */
+
+.sq-timer {
+  width: 72px;
+  height: 72px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--primary-light);
+  color: var(--primary-dark);
+
+  font-size: 22px;
+  font-weight: 800;
+
+  border: 5px solid var(--primary);
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+.sq-nav {
+  min-height: 72px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 28px;
+
+  background: var(--white);
+
+  border-bottom: 1px solid var(--border);
+}
+
+.sq-logo {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--primary);
+}
+
+.sq-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sq-nav-link {
+  padding: 10px 14px;
+
+  border-radius: 10px;
+
+  color: var(--muted);
+
+  font-size: 14px;
+  font-weight: 700;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.sq-nav-link:hover {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .sq-page {
+    padding: 20px 16px;
+  }
+
+  .sq-title {
+    font-size: 26px;
+  }
+
+  .sq-nav {
+    padding: 0 16px;
+  }
+
+  .sq-nav-links {
+    display: none;
+  }
+
+  .sq-card {
+    border-radius: 20px;
+  }
+
+  .sq-stat {
+    padding: 18px;
+  }
 }
