@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
 export default function Home() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -53,9 +56,9 @@ export default function Home() {
       setLoading(false);
       return;
     }
-
-    setMessage("Login successful! 🎉");
+    
     setLoading(false);
+    router.push("/dashboard");
   }
 
   async function handleLogout() {
