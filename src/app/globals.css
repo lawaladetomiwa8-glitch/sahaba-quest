@@ -659,3 +659,20 @@ select {
     padding-right: 14px !important;
   }
 }
+
+/* ---------------------------------------------------------
+   Dashboard Mobile Layout Fix
+--------------------------------------------------------- */
+
+@media (max-width: 800px) {
+  .dashboard-main-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .dashboard-main-grid > * {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}

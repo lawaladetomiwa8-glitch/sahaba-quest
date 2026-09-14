@@ -11,8 +11,12 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<
+    "error" | "success"
+  >("error");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -39,6 +43,7 @@ export default function Home() {
 
   async function handleLogin() {
     if (!email || !password) {
+      setMessageType("error");
       setMessage("Please enter your email and password.");
       return;
     }
@@ -52,13 +57,47 @@ export default function Home() {
     });
 
     if (error) {
+      setMessageType("error");
       setMessage(error.message);
       setLoading(false);
       return;
     }
-    
+
     setLoading(false);
     router.push("/dashboard");
+  }
+
+  async function handleForgotPassword() {
+    if (!email) {
+      setMessageType("error");
+      setMessage("Please enter your email address first.");
+      return;
+    }
+
+    setResetLoading(true);
+    setMessage("");
+
+    const redirectTo = `${window.location.origin}/update-password`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo,
+      }
+    );
+
+    setResetLoading(false);
+
+    if (error) {
+      setMessageType("error");
+      setMessage(error.message);
+      return;
+    }
+
+    setMessageType("success");
+    setMessage(
+      "If an account exists with this email, a password reset link has been sent. Please check your inbox."
+    );
   }
 
   async function handleLogout() {
@@ -67,6 +106,7 @@ export default function Home() {
     await supabase.auth.signOut();
 
     setMessage("You have been logged out.");
+    setMessageType("success");
     setLoading(false);
   }
 
@@ -632,13 +672,12 @@ export default function Home() {
                         fontSize: "13px",
                         fontWeight: 700,
                       }}
-                      onClick={() =>
-                        setMessage(
-                          "Password reset will be available soon."
-                        )
-                      }
+                      onClick={handleForgotPassword}
+                      disabled={resetLoading}
                     >
-                      Forgot password?
+                      {resetLoading
+                        ? "Sending reset link..."
+                        : "Forgot password?"}
                     </button>
                   </div>
 
@@ -649,10 +688,18 @@ export default function Home() {
                         marginBottom: "18px",
                         padding: "13px 15px",
                         borderRadius: "13px",
-                        background: "var(--danger-light)",
+                        background:
+                          messageType === "success"
+                            ? "var(--success-light)"
+                            : "var(--danger-light)",
                         border:
-                          "1px solid rgba(220, 38, 38, 0.15)",
-                        color: "var(--danger)",
+                          messageType === "success"
+                            ? "1px solid rgba(22, 163, 74, 0.15)"
+                            : "1px solid rgba(220, 38, 38, 0.15)",
+                        color:
+                          messageType === "success"
+                            ? "var(--success)"
+                            : "var(--danger)",
                         fontSize: "13px",
                         lineHeight: 1.5,
                       }}

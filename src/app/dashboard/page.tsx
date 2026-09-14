@@ -337,6 +337,7 @@ export default function DashboardPage() {
 
         {/* MAIN CONTENT GRID */}
         <section
+          className="dashboard-main-grid"
           style={{
             display: "grid",
             gridTemplateColumns:
@@ -691,17 +692,44 @@ export default function DashboardPage() {
         </footer>
       </div>
 
-      {/* RESPONSIVE GRID OVERRIDE */}
+      {/* RESPONSIVE DASHBOARD FIX */}
       <style jsx>{`
         @media (max-width: 800px) {
-          section[style*="minmax(0, 1.5fr)"] {
+          .dashboard-main-grid {
             grid-template-columns: 1fr !important;
+            gap: 16px !important;
+            width: 100% !important;
+          }
+
+          .dashboard-main-grid > * {
+            width: 100% !important;
+            min-width: 0 !important;
           }
         }
 
         @media (max-width: 600px) {
           nav {
             margin-bottom: 18px !important;
+          }
+
+          .dashboard-main-grid {
+            gap: 16px !important;
+          }
+
+          .dashboard-main-grid .sq-card {
+            padding: 22px !important;
+          }
+
+          .dashboard-main-grid .sq-card > div:first-child {
+            min-width: 0;
+          }
+
+          .dashboard-main-grid .sq-card h2 {
+            line-height: 1.25 !important;
+          }
+
+          .dashboard-main-grid .sq-card p {
+            max-width: 100% !important;
           }
         }
       `}</style>
