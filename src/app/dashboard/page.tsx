@@ -18,56 +18,222 @@ type Progress = {
   best_streak: number;
 };
 
+type SubscriptionPlan = {
+  plan_type: "plus" | "family" | "school";
+  display_name: string;
+};
+
+type Subscription = {
+  status: string;
+  current_period_end: string;
+  plan: SubscriptionPlan | null;
+};
+
+type SubscriptionQueryResult = {
+  status: string;
+  current_period_end: string;
+  subscription_plans:
+    | SubscriptionPlan
+    | SubscriptionPlan[]
+    | null;
+};
+
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [progress, setProgress] = useState<Progress | null>(null);
-  const [message, setMessage] = useState("Loading your dashboard...");
+  const [profile, setProfile] =
+    useState<Profile | null>(null);
+
+  const [progress, setProgress] =
+    useState<Progress | null>(null);
+
+  const [subscription, setSubscription] =
+    useState<Subscription | null>(null);
+
+  const [message, setMessage] = useState(
+    "Loading your dashboard..."
+  );
 
   useEffect(() => {
     loadDashboard();
   }, []);
 
   async function loadDashboard() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (!user) {
-      setMessage("You are not logged in.");
-      return;
-    }
+      if (userError) {
+        console.error(
+          "User lookup error:",
+          userError
+        );
 
-    const { data: profileData, error: profileError } =
-      await supabase
+        setMessage(
+          "We could not load your account."
+        );
+
+        return;
+      }
+
+      if (!user) {
+        setMessage("You are not logged in.");
+        return;
+      }
+
+      /*
+       * PROFILE
+       */
+      const {
+        data: profileData,
+        error: profileError,
+      } = await supabase
         .from("profiles")
-        .select("username, display_name")
+        .select(
+          "username, display_name"
+        )
         .eq("id", user.id)
         .single();
 
-    if (profileError) {
-      setMessage(profileError.message);
-      return;
-    }
+      if (profileError) {
+        console.error(
+          "Profile lookup error:",
+          profileError
+        );
 
-    const { data: progressData, error: progressError } =
-      await supabase
+        setMessage(
+          "We could not load your profile."
+        );
+
+        return;
+      }
+
+      /*
+       * PLAYER PROGRESS
+       */
+      const {
+        data: progressData,
+        error: progressError,
+      } = await supabase
         .from("player_progress")
         .select(
-          "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
+          `
+          current_level,
+          total_xp,
+          questions_answered,
+          correct_answers,
+          current_streak,
+          best_streak
+          `
         )
         .eq("user_id", user.id)
         .single();
 
-    if (progressError) {
-      setMessage(progressError.message);
-      return;
-    }
+      if (progressError) {
+        console.error(
+          "Progress lookup error:",
+          progressError
+        );
 
-    setProfile(profileData);
-    setProgress(progressData);
-    setMessage("");
+        setMessage(
+          "We could not load your game progress."
+        );
+
+        return;
+      }
+
+      /*
+       * ACTIVE SUBSCRIPTION
+       *
+       * We only retrieve active subscriptions.
+       * The newest ending subscription is selected.
+       */
+      const {
+        data: subscriptionData,
+        error: subscriptionError,
+      } = await supabase
+        .from("subscriptions")
+        .select(
+          `
+          status,
+          current_period_end,
+          subscription_plans (
+            plan_type,
+            display_name
+          )
+          `
+        )
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("current_period_end", {
+          ascending: false,
+        })
+        .limit(1)
+        .maybeSingle();
+
+      if (subscriptionError) {
+        /*
+         * A subscription lookup failure should not
+         * prevent the rest of the dashboard from loading.
+         */
+        console.error(
+          "Subscription lookup error:",
+          subscriptionError
+        );
+
+        setSubscription(null);
+      } else if (subscriptionData) {
+        const subscriptionResult =
+          subscriptionData as unknown as SubscriptionQueryResult;
+
+        let plan: SubscriptionPlan | null =
+          null;
+
+        if (
+          Array.isArray(
+            subscriptionResult.subscription_plans
+          )
+        ) {
+          plan =
+            subscriptionResult.subscription_plans[0] ||
+            null;
+        } else {
+          plan =
+            subscriptionResult.subscription_plans ||
+            null;
+        }
+
+        setSubscription({
+          status:
+            subscriptionResult.status,
+
+          current_period_end:
+            subscriptionResult.current_period_end,
+
+          plan,
+        });
+      } else {
+        setSubscription(null);
+      }
+
+      setProfile(profileData);
+      setProgress(progressData);
+      setMessage("");
+    } catch (error) {
+      console.error(
+        "Dashboard loading error:",
+        error
+      );
+
+      setMessage(
+        "Something went wrong while loading your dashboard."
+      );
+    }
   }
 
+  /*
+   * LOADING / ERROR STATE
+   */
   if (!profile || !progress) {
     return (
       <main className="sq-page">
@@ -87,7 +253,8 @@ export default function DashboardPage() {
                 height: "64px",
                 margin: "0 auto 20px",
                 borderRadius: "20px",
-                background: "var(--primary-light)",
+                background:
+                  "var(--primary-light)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -99,11 +266,15 @@ export default function DashboardPage() {
               SQ
             </div>
 
-            <h1 className="sq-title">Sahaba Quest</h1>
+            <h1 className="sq-title">
+              Sahaba Quest
+            </h1>
 
             <p
               className="sq-subtitle"
-              style={{ marginTop: "12px" }}
+              style={{
+                marginTop: "12px",
+              }}
             >
               {message}
             </p>
@@ -113,9 +284,17 @@ export default function DashboardPage() {
     );
   }
 
+  /*
+   * PLAYER NAME
+   */
   const playerName =
-    profile.display_name || profile.username || "Player";
+    profile.display_name ||
+    profile.username ||
+    "Player";
 
+  /*
+   * ACCURACY
+   */
   const accuracy =
     progress.questions_answered > 0
       ? Math.round(
@@ -125,10 +304,57 @@ export default function DashboardPage() {
         )
       : 0;
 
-  const levelProgress = Math.min(
-    (progress.total_xp % 1000) / 10,
+  /*
+   * CURRENT LEVEL QUESTION PROGRESS
+   *
+   * A level requires 50 questions.
+   *
+   * We use the player's total answered/correct
+   * values here as the dashboard summary.
+   *
+   * The actual level/session rules remain enforced
+   * by the database quiz function.
+   */
+  const questionsInCurrentLevel =
+    progress.questions_answered % 50;
+
+  const correctInCurrentLevel =
+    progress.correct_answers % 50;
+
+  /*
+   * If the player has completed exactly 50 questions,
+   * show 100% rather than 0%.
+   */
+  const levelQuestionProgress =
+    questionsInCurrentLevel === 0 &&
+    progress.questions_answered > 0
+      ? 100
+      : Math.min(
+          (questionsInCurrentLevel / 50) * 100,
+          100
+        );
+
+  /*
+   * REQUIRED CORRECT ANSWERS TO PASS
+   */
+  const levelCorrectProgress = Math.min(
+    (correctInCurrentLevel / 25) * 100,
     100
   );
+
+  /*
+   * DISPLAY DATE
+   */
+  const subscriptionEndDate =
+    subscription?.current_period_end
+      ? new Date(
+          subscription.current_period_end
+        ).toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "";
 
   return (
     <main
@@ -142,7 +368,11 @@ export default function DashboardPage() {
       <div className="sq-container">
 
         {/* NAVIGATION */}
-        <div style={{ marginBottom: "28px" }}>
+        <div
+          style={{
+            marginBottom: "28px",
+          }}
+        >
           <AppNavbar />
         </div>
 
@@ -165,7 +395,8 @@ export default function DashboardPage() {
               width: "220px",
               height: "220px",
               borderRadius: "50%",
-              background: "var(--primary-light)",
+              background:
+                "var(--primary-light)",
               opacity: 0.6,
             }}
           />
@@ -184,16 +415,21 @@ export default function DashboardPage() {
             <h1
               style={{
                 margin: "18px 0 8px",
-                fontSize: "clamp(30px, 5vw, 48px)",
+                fontSize:
+                  "clamp(30px, 5vw, 48px)",
                 lineHeight: 1.1,
                 letterSpacing: "-1.2px",
                 fontWeight: 900,
               }}
             >
               Assalamu alaikum,{" "}
-              <span style={{ color: "var(--primary)" }}>
+              <span
+                style={{
+                  color: "var(--primary)",
+                }}
+              >
                 {playerName}
-              </span>
+              </span>{" "}
               👋
             </h1>
 
@@ -206,9 +442,10 @@ export default function DashboardPage() {
                 lineHeight: 1.7,
               }}
             >
-              Ready to continue your Sahaba journey?
-              Test your knowledge, build your streak,
-              and learn something valuable today.
+              Ready to continue your Sahaba
+              journey? Test your knowledge,
+              build your streak, and learn
+              something valuable today.
             </p>
 
             <div
@@ -335,6 +572,134 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {/* SUBSCRIPTION */}
+        <section
+          className="sq-card"
+          style={{
+            marginTop: "20px",
+            padding: "26px 28px",
+            background: subscription
+              ? "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)"
+              : "linear-gradient(135deg, #ffffff 0%, #f8faf9 100%)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent:
+                "space-between",
+              alignItems: "center",
+              gap: "20px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems:
+                  "flex-start",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  flexShrink: 0,
+                  borderRadius: "14px",
+                  background:
+                    "var(--primary-light)",
+                  color:
+                    "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "21px",
+                  fontWeight: 900,
+                }}
+              >
+                {subscription
+                  ? "✓"
+                  : "✦"}
+              </div>
+
+              <div>
+                <div className="sq-badge">
+                  Your Subscription
+                </div>
+
+                <h2
+                  style={{
+                    margin:
+                      "10px 0 5px",
+                    fontSize: "22px",
+                    fontWeight: 900,
+                  }}
+                >
+                  {subscription?.plan
+                    ?.display_name ||
+                    "Sahaba Quest Free"}
+                </h2>
+
+                <p
+                  style={{
+                    margin: 0,
+                    color:
+                      "var(--muted)",
+                    fontSize: "13px",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {subscription
+                    ? "Your subscription is active and your premium access is available."
+                    : "You are currently on the free plan. Continue your journey or unlock more levels."}
+                </p>
+
+                {subscription &&
+                  subscriptionEndDate && (
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        color:
+                          "var(--success)",
+                        fontSize: "12px",
+                        fontWeight: 800,
+                      }}
+                    >
+                      Active until{" "}
+                      {
+                        subscriptionEndDate
+                      }
+                    </div>
+                  )}
+              </div>
+            </div>
+
+            {!subscription && (
+              <a
+                href="/pricing"
+                className="sq-button-primary"
+                style={{
+                  minHeight: "46px",
+                  padding: "0 20px",
+                  display:
+                    "inline-flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "center",
+                  textDecoration:
+                    "none",
+                  whiteSpace:
+                    "nowrap",
+                }}
+              >
+                View Plans →
+              </a>
+            )}
+          </div>
+        </section>
+
         {/* MAIN CONTENT GRID */}
         <section
           className="dashboard-main-grid"
@@ -349,13 +714,17 @@ export default function DashboardPage() {
           {/* PROGRESS CARD */}
           <div
             className="sq-card"
-            style={{ padding: "28px" }}
+            style={{
+              padding: "28px",
+            }}
           >
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
+                justifyContent:
+                  "space-between",
+                alignItems:
+                  "flex-start",
                 gap: "20px",
               }}
             >
@@ -366,23 +735,30 @@ export default function DashboardPage() {
 
                 <h2
                   style={{
-                    margin: "16px 0 6px",
+                    margin:
+                      "16px 0 6px",
                     fontSize: "24px",
                     fontWeight: 800,
                   }}
                 >
-                  Level {progress.current_level}
+                  Level{" "}
+                  {
+                    progress.current_level
+                  }
                 </h2>
 
                 <p
                   style={{
                     margin: 0,
-                    color: "var(--muted)",
+                    color:
+                      "var(--muted)",
                     lineHeight: 1.6,
                   }}
                 >
-                  Keep answering questions to
-                  strengthen your knowledge.
+                  Keep answering
+                  questions to
+                  strengthen your
+                  knowledge.
                 </p>
               </div>
 
@@ -390,18 +766,27 @@ export default function DashboardPage() {
                 style={{
                   fontSize: "34px",
                   fontWeight: 900,
-                  color: "var(--primary)",
+                  color:
+                    "var(--primary)",
                 }}
               >
-                {progress.total_xp}
+                {
+                  progress.total_xp
+                }
               </div>
             </div>
 
-            <div style={{ marginTop: "28px" }}>
+            {/* QUESTIONS PROGRESS */}
+            <div
+              style={{
+                marginTop: "28px",
+              }}
+            >
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
+                  justifyContent:
+                    "space-between",
                   marginBottom: "9px",
                 }}
               >
@@ -409,20 +794,25 @@ export default function DashboardPage() {
                   style={{
                     fontSize: "13px",
                     fontWeight: 700,
-                    color: "var(--muted)",
+                    color:
+                      "var(--muted)",
                   }}
                 >
-                  Level progress
+                  Level questions
                 </span>
 
                 <span
                   style={{
                     fontSize: "13px",
                     fontWeight: 800,
-                    color: "var(--primary)",
+                    color:
+                      "var(--primary)",
                   }}
                 >
-                  {Math.round(levelProgress)}%
+                  {
+                    questionsInCurrentLevel
+                  }
+                  /50
                 </span>
               </div>
 
@@ -430,12 +820,63 @@ export default function DashboardPage() {
                 <div
                   className="sq-progress-bar"
                   style={{
-                    width: `${levelProgress}%`,
+                    width: `${levelQuestionProgress}%`,
                   }}
                 />
               </div>
             </div>
 
+            {/* PASS PROGRESS */}
+            <div
+              style={{
+                marginTop: "20px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  marginBottom: "9px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    color:
+                      "var(--muted)",
+                  }}
+                >
+                  Correct answers needed
+                </span>
+
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 800,
+                    color:
+                      "var(--primary)",
+                  }}
+                >
+                  {
+                    correctInCurrentLevel
+                  }
+                  /25
+                </span>
+              </div>
+
+              <div className="sq-progress">
+                <div
+                  className="sq-progress-bar"
+                  style={{
+                    width: `${levelCorrectProgress}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* SMALL PROGRESS STATS */}
             <div
               style={{
                 display: "grid",
@@ -449,13 +890,16 @@ export default function DashboardPage() {
                 style={{
                   padding: "16px",
                   borderRadius: "16px",
-                  background: "#f8faf9",
-                  border: "1px solid var(--border)",
+                  background:
+                    "#f8faf9",
+                  border:
+                    "1px solid var(--border)",
                 }}
               >
                 <div
                   style={{
-                    color: "var(--muted)",
+                    color:
+                      "var(--muted)",
                     fontSize: "12px",
                     fontWeight: 700,
                   }}
@@ -470,7 +914,9 @@ export default function DashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {progress.questions_answered}
+                  {
+                    progress.questions_answered
+                  }
                 </div>
               </div>
 
@@ -478,13 +924,16 @@ export default function DashboardPage() {
                 style={{
                   padding: "16px",
                   borderRadius: "16px",
-                  background: "#f8faf9",
-                  border: "1px solid var(--border)",
+                  background:
+                    "#f8faf9",
+                  border:
+                    "1px solid var(--border)",
                 }}
               >
                 <div
                   style={{
-                    color: "var(--muted)",
+                    color:
+                      "var(--muted)",
                     fontSize: "12px",
                     fontWeight: 700,
                   }}
@@ -499,7 +948,9 @@ export default function DashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {progress.correct_answers}
+                  {
+                    progress.correct_answers
+                  }
                 </div>
               </div>
             </div>
@@ -508,7 +959,9 @@ export default function DashboardPage() {
           {/* QUICK ACTIONS */}
           <div
             className="sq-card"
-            style={{ padding: "28px" }}
+            style={{
+              padding: "28px",
+            }}
           >
             <div className="sq-badge">
               Quick Actions
@@ -516,12 +969,14 @@ export default function DashboardPage() {
 
             <h2
               style={{
-                margin: "16px 0 18px",
+                margin:
+                  "16px 0 18px",
                 fontSize: "24px",
                 fontWeight: 800,
               }}
             >
-              What do you want to do?
+              What do you want to
+              do?
             </h2>
 
             <div
@@ -535,15 +990,23 @@ export default function DashboardPage() {
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
-                  background: "var(--primary)",
+                  background:
+                    "var(--primary)",
                   color: "white",
                   fontWeight: 800,
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "space-between",
+                  textDecoration:
+                    "none",
                 }}
               >
-                <span>🎮 Play Quiz</span>
+                <span>
+                  🎮 Play Quiz
+                </span>
+
                 <span>→</span>
               </a>
 
@@ -552,15 +1015,23 @@ export default function DashboardPage() {
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
-                  background: "var(--secondary-light)",
+                  background:
+                    "var(--secondary-light)",
                   color: "#7c5d00",
                   fontWeight: 800,
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "space-between",
+                  textDecoration:
+                    "none",
                 }}
               >
-                <span>🏆 Leaderboard</span>
+                <span>
+                  🏆 Leaderboard
+                </span>
+
                 <span>→</span>
               </a>
 
@@ -569,15 +1040,24 @@ export default function DashboardPage() {
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
-                  background: "#f1f5f3",
-                  color: "var(--foreground)",
+                  background:
+                    "#f1f5f3",
+                  color:
+                    "var(--foreground)",
                   fontWeight: 800,
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "space-between",
+                  textDecoration:
+                    "none",
                 }}
               >
-                <span>🎯 Challenges</span>
+                <span>
+                  🎯 Challenges
+                </span>
+
                 <span>→</span>
               </a>
 
@@ -586,15 +1066,24 @@ export default function DashboardPage() {
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
-                  background: "#f1f5f3",
-                  color: "var(--foreground)",
+                  background:
+                    "#f1f5f3",
+                  color:
+                    "var(--foreground)",
                   fontWeight: 800,
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "space-between",
+                  textDecoration:
+                    "none",
                 }}
               >
-                <span>👤 My Profile</span>
+                <span>
+                  👤 My Profile
+                </span>
+
                 <span>→</span>
               </a>
             </div>
@@ -616,19 +1105,25 @@ export default function DashboardPage() {
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
+              justifyContent:
+                "space-between",
               alignItems: "center",
               gap: "24px",
               flexWrap: "wrap",
             }}
           >
-            <div style={{ maxWidth: "700px" }}>
+            <div
+              style={{
+                maxWidth: "700px",
+              }}
+            >
               <div
                 style={{
                   fontSize: "13px",
                   fontWeight: 800,
                   letterSpacing: "1px",
-                  textTransform: "uppercase",
+                  textTransform:
+                    "uppercase",
                   opacity: 0.8,
                 }}
               >
@@ -637,13 +1132,15 @@ export default function DashboardPage() {
 
               <h2
                 style={{
-                  margin: "10px 0 8px",
+                  margin:
+                    "10px 0 8px",
                   fontSize: "26px",
                   fontWeight: 900,
                 }}
               >
-                Learn about those who walked
-                with the Prophet ﷺ.
+                Learn about those
+                who walked with the
+                Prophet ﷺ.
               </h2>
 
               <p
@@ -653,9 +1150,11 @@ export default function DashboardPage() {
                   opacity: 0.85,
                 }}
               >
-                Every question is an opportunity
-                to increase your knowledge and
-                strengthen your connection with the
+                Every question is an
+                opportunity to increase
+                your knowledge and
+                strengthen your
+                connection with the
                 lives of the Sahabah.
               </p>
             </div>
@@ -667,11 +1166,17 @@ export default function DashboardPage() {
                 padding: "0 22px",
                 borderRadius: "14px",
                 background: "white",
-                color: "var(--primary-dark)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
+                color:
+                  "var(--primary-dark)",
+                display:
+                  "inline-flex",
+                alignItems:
+                  "center",
+                justifyContent:
+                  "center",
                 fontWeight: 800,
+                textDecoration:
+                  "none",
               }}
             >
               Start Learning →
@@ -682,13 +1187,16 @@ export default function DashboardPage() {
         {/* FOOTER */}
         <footer
           style={{
-            padding: "28px 0 8px",
+            padding:
+              "28px 0 8px",
             textAlign: "center",
-            color: "var(--muted-light)",
+            color:
+              "var(--muted-light)",
             fontSize: "12px",
           }}
         >
-          Sahaba Quest • Learn. Remember. Compete.
+          Sahaba Quest • Learn.
+          Remember. Compete.
         </footer>
       </div>
 
@@ -720,15 +1228,21 @@ export default function DashboardPage() {
             padding: 22px !important;
           }
 
-          .dashboard-main-grid .sq-card > div:first-child {
+          .dashboard-main-grid
+            .sq-card
+            > div:first-child {
             min-width: 0;
           }
 
-          .dashboard-main-grid .sq-card h2 {
+          .dashboard-main-grid
+            .sq-card
+            h2 {
             line-height: 1.25 !important;
           }
 
-          .dashboard-main-grid .sq-card p {
+          .dashboard-main-grid
+            .sq-card
+            p {
             max-width: 100% !important;
           }
         }
