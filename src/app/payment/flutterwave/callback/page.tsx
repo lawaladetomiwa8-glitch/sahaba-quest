@@ -1,559 +1,153 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
-export default function FlutterwaveCallbackPage() {
-  const searchParams =
-    useSearchParams();
+function PaymentCallbackContent() {
+  const searchParams = useSearchParams();
 
-  const [status, setStatus] =
-    useState<
-      "verifying" |
-      "success" |
-      "failed"
-    >("verifying");
-
-  const [message, setMessage] =
-    useState(
-      "We are verifying your payment..."
-    );
-
-  const [planType, setPlanType] =
-    useState("");
+  const [status, setStatus] = useState<"verifying" | "success" | "failed">(
+    "verifying"
+  );
+  const [message, setMessage] = useState("Verifying your payment...");
+  const [planType, setPlanType] = useState("");
 
   useEffect(() => {
-    async function verifyPayment() {
-      const paymentStatus =
-        searchParams.get(
-          "status"
-        );
+    const verifyPayment = async () => {
+      const paymentStatus = searchParams.get("status");
+      const txRef = searchParams.get("tx_ref");
+      const transactionId = searchParams.get("transaction_id");
 
-      const txRef =
-        searchParams.get(
-          "tx_ref"
-        );
-
-      const transactionId =
-        searchParams.get(
-          "transaction_id"
-        );
-
-      if (
-        !txRef ||
-        !transactionId
-      ) {
+      if (paymentStatus !== "successful" || !txRef || !transactionId) {
         setStatus("failed");
-
-        setMessage(
-          "We could not find the payment details needed to verify this transaction."
-        );
-
-        return;
-      }
-
-      if (
-        paymentStatus !==
-        "successful"
-      ) {
-        setStatus("failed");
-
-        setMessage(
-          "The payment was not completed successfully."
-        );
-
+        setMessage("Payment was not completed successfully.");
         return;
       }
 
       try {
-        const response =
-          await fetch(
-            "/api/payments/flutterwave/verify",
-            {
-              method: "POST",
+        const response = await fetch("/api/payments/flutterwave/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tx_ref: txRef,
+            transaction_id: transactionId,
+          }),
+        });
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
+        const data = await response.json();
 
-              body: JSON.stringify({
-                tx_ref:
-                  txRef,
-
-                transaction_id:
-                  transactionId,
-              }),
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-              "Payment verification failed."
-          );
+        if (!response.ok || !data.success) {
+          setStatus("failed");
+          setMessage(data.error || "We could not verify your payment.");
+          return;
         }
 
-        setPlanType(
-          result.plan_type ||
-            ""
-        );
-
-        setStatus(
-          "success"
-        );
-
-        setMessage(
-          "Your payment has been verified successfully. Your Sahaba Quest subscription is now active."
-        );
+        setStatus("success");
+        setPlanType(data.plan_type || "");
+        setMessage("Your payment was verified successfully.");
       } catch (error) {
-        console.error(
-          "Callback verification error:",
-          error
-        );
+        console.error("Payment verification error:", error);
 
-        setStatus(
-          "failed"
-        );
-
+        setStatus("failed");
         setMessage(
-          error instanceof Error
-            ? error.message
-            : "We could not verify your payment."
+          "Something went wrong while verifying your payment. Please contact support if you were charged."
         );
       }
-    }
+    };
 
     verifyPayment();
   }, [searchParams]);
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-
-        display: "flex",
-
-        alignItems:
-          "center",
-
-        justifyContent:
-          "center",
-
-        padding:
-          "24px",
-
-        background:
-          "radial-gradient(circle at top left, rgba(204, 251, 241, 0.8), transparent 35%), var(--background)",
-      }}
-    >
-      <div
-        className="sq-card"
-        style={{
-          width:
-            "100%",
-
-          maxWidth:
-            "560px",
-
-          padding:
-            "42px 30px",
-
-          textAlign:
-            "center",
-        }}
-      >
-        {status ===
-          "verifying" && (
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg text-center">
+        {status === "verifying" && (
           <>
-            <div
-              style={{
-                width:
-                  "56px",
+            <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-black" />
 
-                height:
-                  "56px",
-
-                margin:
-                  "0 auto 24px",
-
-                borderRadius:
-                  "50%",
-
-                border:
-                  "4px solid var(--primary-light)",
-
-                borderTopColor:
-                  "var(--primary)",
-
-                animation:
-                  "spin 1s linear infinite",
-              }}
-            />
-
-            <h1
-              style={{
-                margin:
-                  0,
-
-                fontSize:
-                  "28px",
-
-                fontWeight:
-                  900,
-
-                color:
-                  "var(--primary-dark)",
-              }}
-            >
-              Verifying payment
+            <h1 className="text-2xl font-bold text-gray-900">
+              Verifying Payment
             </h1>
 
-            <p
-              style={{
-                marginTop:
-                  "14px",
-
-                color:
-                  "var(--muted)",
-
-                lineHeight:
-                  1.7,
-
-                fontSize:
-                  "14px",
-              }}
-            >
-              {message}
-            </p>
+            <p className="mt-3 text-gray-600">{message}</p>
           </>
         )}
 
-        {status ===
-          "success" && (
+        {status === "success" && (
           <>
-            <div
-              style={{
-                width:
-                  "64px",
-
-                height:
-                  "64px",
-
-                margin:
-                  "0 auto 24px",
-
-                borderRadius:
-                  "50%",
-
-                display:
-                  "flex",
-
-                alignItems:
-                  "center",
-
-                justifyContent:
-                  "center",
-
-                background:
-                  "var(--primary-light)",
-
-                color:
-                  "var(--primary)",
-
-                fontSize:
-                  "30px",
-
-                fontWeight:
-                  900,
-              }}
-            >
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl text-green-600">
               ✓
             </div>
 
-            <h1
-              style={{
-                margin:
-                  0,
-
-                fontSize:
-                  "30px",
-
-                fontWeight:
-                  900,
-
-                color:
-                  "var(--primary-dark)",
-              }}
-            >
-              Payment successful
+            <h1 className="text-2xl font-bold text-gray-900">
+              Payment Successful
             </h1>
 
-            <p
-              style={{
-                marginTop:
-                  "14px",
-
-                color:
-                  "var(--muted)",
-
-                lineHeight:
-                  1.7,
-
-                fontSize:
-                  "14px",
-              }}
-            >
-              {message}
-            </p>
+            <p className="mt-3 text-gray-600">{message}</p>
 
             {planType && (
-              <div
-                style={{
-                  marginTop:
-                    "20px",
-
-                  padding:
-                    "12px 16px",
-
-                  borderRadius:
-                    "12px",
-
-                  background:
-                    "var(--primary-light)",
-
-                  color:
-                    "var(--primary-dark)",
-
-                  fontSize:
-                    "13px",
-
-                  fontWeight:
-                    800,
-
-                  textTransform:
-                    "capitalize",
-                }}
-              >
-                {planType} plan activated
-              </div>
+              <p className="mt-2 text-sm font-medium text-gray-800">
+                Your {planType} subscription is now active.
+              </p>
             )}
 
-            <div
-              style={{
-                display:
-                  "flex",
-
-                gap:
-                  "12px",
-
-                justifyContent:
-                  "center",
-
-                flexWrap:
-                  "wrap",
-
-                marginTop:
-                  "28px",
-              }}
+            <Link
+              href="/dashboard"
+              className="mt-6 inline-block rounded-lg bg-black px-6 py-3 font-semibold text-white transition hover:bg-gray-800"
             >
-              <a
-                href="/dashboard"
-                className="sq-button-primary"
-                style={{
-                  minHeight:
-                    "48px",
-
-                  padding:
-                    "0 22px",
-
-                  display:
-                    "inline-flex",
-
-                  alignItems:
-                    "center",
-
-                  justifyContent:
-                    "center",
-
-                  textDecoration:
-                    "none",
-                }}
-              >
-                Go to Dashboard →
-              </a>
-
-              <a
-                href="/"
-                style={{
-                  minHeight:
-                    "48px",
-
-                  padding:
-                    "0 22px",
-
-                  display:
-                    "inline-flex",
-
-                  alignItems:
-                    "center",
-
-                  justifyContent:
-                    "center",
-
-                  border:
-                    "1px solid var(--border)",
-
-                  borderRadius:
-                    "12px",
-
-                  textDecoration:
-                    "none",
-
-                  color:
-                    "var(--primary-dark)",
-
-                  fontSize:
-                    "13px",
-
-                  fontWeight:
-                    800,
-
-                  background:
-                    "var(--white)",
-                }}
-              >
-                Back Home
-              </a>
-            </div>
+              Go to Dashboard
+            </Link>
           </>
         )}
 
-        {status ===
-          "failed" && (
+        {status === "failed" && (
           <>
-            <div
-              style={{
-                width:
-                  "64px",
-
-                height:
-                  "64px",
-
-                margin:
-                  "0 auto 24px",
-
-                borderRadius:
-                  "50%",
-
-                display:
-                  "flex",
-
-                alignItems:
-                  "center",
-
-                justifyContent:
-                  "center",
-
-                background:
-                  "var(--danger-light)",
-
-                color:
-                  "var(--danger)",
-
-                fontSize:
-                  "28px",
-
-                fontWeight:
-                  900,
-              }}
-            >
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl text-red-600">
               !
             </div>
 
-            <h1
-              style={{
-                margin:
-                  0,
-
-                fontSize:
-                  "28px",
-
-                fontWeight:
-                  900,
-              }}
-            >
-              Payment verification issue
+            <h1 className="text-2xl font-bold text-gray-900">
+              Payment Verification Failed
             </h1>
 
-            <p
-              style={{
-                marginTop:
-                  "14px",
+            <p className="mt-3 text-gray-600">{message}</p>
 
-                color:
-                  "var(--muted)",
-
-                lineHeight:
-                  1.7,
-
-                fontSize:
-                  "14px",
-              }}
+            <Link
+              href="/dashboard"
+              className="mt-6 inline-block rounded-lg bg-black px-6 py-3 font-semibold text-white transition hover:bg-gray-800"
             >
-              {message}
-            </p>
-
-            <div
-              style={{
-                marginTop:
-                  "28px",
-              }}
-            >
-              <a
-                href="/pricing"
-                className="sq-button-primary"
-                style={{
-                  minHeight:
-                    "48px",
-
-                  padding:
-                    "0 22px",
-
-                  display:
-                    "inline-flex",
-
-                  alignItems:
-                    "center",
-
-                  justifyContent:
-                    "center",
-
-                  textDecoration:
-                    "none",
-                }}
-              >
-                Return to Pricing
-              </a>
-            </div>
+              Return to Dashboard
+            </Link>
           </>
         )}
       </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
     </main>
+  );
+}
+
+export default function PaymentCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg text-center">
+            <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-black" />
+
+            <h1 className="text-2xl font-bold text-gray-900">
+              Loading Payment
+            </h1>
+
+            <p className="mt-3 text-gray-600">
+              Please wait while we prepare your payment verification.
+            </p>
+          </div>
+        </main>
+      }
+    >
+      <PaymentCallbackContent />
+    </Suspense>
   );
 }
