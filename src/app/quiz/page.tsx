@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
@@ -16,21 +16,77 @@ type Question = {
   explanation: string;
 };
 
+type QuizOption = {
+  value: string;
+};
+
+type QuizResult = {
+  is_correct: boolean;
+  correct_answer: string;
+  xp_earned: number;
+  current_streak: number;
+  best_streak: number;
+  level_completed: boolean;
+  level_passed: boolean;
+  current_level: number;
+  questions_answered_in_level: number;
+  correct_answers_in_attempt: number;
+  questions_required: number;
+  correct_required_to_pass: number;
+};
+
 export default function QuizPage() {
   const [question, setQuestion] = useState<Question | null>(null);
   const [message, setMessage] = useState("Starting game...");
   const [sessionId, setSessionId] = useState<string | null>(null);
+
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState(10);
+
+  // 15 seconds per question
+  const [timeLeft, setTimeLeft] = useState(15);
+
   const [timeUp, setTimeUp] = useState(false);
+
   const [questionStartedAt, setQuestionStartedAt] = useState<number | null>(
     null
   );
 
+  const [options, setOptions] = useState<QuizOption[]>([]);
+
+  /*
+   * Current 50-question attempt progress.
+   *
+   * These reset whenever a new game session starts.
+   */
+  const [attemptQuestions, setAttemptQuestions] = useState(0);
+  const [attemptCorrect, setAttemptCorrect] = useState(0);
+
+  /*
+   * Stores the result returned by submit_quiz_answer().
+   */
+  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+
+  /*
+   * Prevent React development mode from starting
+   * two game sessions.
+   */
+  const gameStarted = useRef(false);
+
+  /*
+   * Start the game once when the page loads.
+   */
   useEffect(() => {
+    if (gameStarted.current) {
+      return;
+    }
+
+    gameStarted.current = true;
     startGame();
   }, []);
 
+  /*
+   * 15-second question timer.
+   */
   useEffect(() => {
     if (!question || selectedAnswer || timeUp) {
       return;
@@ -48,8 +104,22 @@ export default function QuizPage() {
     return () => clearTimeout(timer);
   }, [question, selectedAnswer, timeLeft, timeUp]);
 
+  /*
+   * Start a completely new 50-question attempt.
+   *
+   * This works for every level.
+   */
   async function startGame() {
     setMessage("Starting game...");
+
+    // Reset current attempt progress
+    setAttemptQuestions(0);
+    setAttemptCorrect(0);
+    setQuizResult(null);
+    setQuestion(null);
+    setOptions([]);
+    setSelectedAnswer(null);
+    setTimeUp(false);
 
     const {
       data: { user },
@@ -60,11 +130,30 @@ export default function QuizPage() {
       return;
     }
 
+    /*
+     * Get the player's actual current level.
+     */
+    const { data: progress, error: progressError } = await supabase
+      .from("player_progress")
+      .select("current_level")
+      .eq("user_id", user.id)
+      .single();
+
+    if (progressError) {
+      setMessage(progressError.message);
+      return;
+    }
+
+    const currentLevel = progress.current_level;
+
+    /*
+     * Create a new game session for this attempt.
+     */
     const { data: session, error: sessionError } = await supabase
       .from("game_sessions")
       .insert({
         user_id: user.id,
-        level: 1,
+        level: currentLevel,
       })
       .select("id")
       .single();
@@ -76,35 +165,107 @@ export default function QuizPage() {
 
     setSessionId(session.id);
 
-    await loadQuestion();
+    await loadQuestion(user.id);
   }
 
-  async function loadQuestion() {
+  /*
+   * Load the next unanswered question.
+   */
+  async function loadQuestion(userId?: string) {
     setMessage("Loading question...");
+    setQuestion(null);
+    setOptions([]);
+    setSelectedAnswer(null);
+    setTimeUp(false);
 
-    const { data, error } = await supabase
-      .from("questions")
-      .select(
-        "id, level, question, option_a, option_b, option_c, option_d, correct_answer, explanation"
-      )
-      .eq("is_published", true)
-      .eq("level", 1)
-      .limit(1)
-      .single();
+    let currentUserId = userId;
+
+    /*
+     * Get the logged-in user if an ID wasn't supplied.
+     */
+    if (!currentUserId) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setMessage("You must be logged in to play.");
+        return;
+      }
+
+      currentUserId = user.id;
+    }
+
+    /*
+     * Get the next unanswered question
+     * from the player's current level.
+     */
+    const { data, error } = await supabase.rpc(
+      "get_next_quiz_question",
+      {
+        p_user_id: currentUserId,
+      }
+    );
 
     if (error) {
       setMessage(error.message);
       return;
     }
 
-    setQuestion(data);
+    if (!data || data.length === 0) {
+      setMessage(
+        "You have answered all available questions for your current level."
+      );
+      return;
+    }
+
+    const nextQuestion = data[0] as Question;
+
+    /*
+     * Create the four answer options.
+     */
+    const shuffledOptions: QuizOption[] = [
+      {
+        value: nextQuestion.option_a,
+      },
+      {
+        value: nextQuestion.option_b,
+      },
+      {
+        value: nextQuestion.option_c,
+      },
+      {
+        value: nextQuestion.option_d,
+      },
+    ];
+
+    /*
+     * Fisher-Yates shuffle.
+     */
+    for (let i = shuffledOptions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+
+      [shuffledOptions[i], shuffledOptions[j]] = [
+        shuffledOptions[j],
+        shuffledOptions[i],
+      ];
+    }
+
+    setQuestion(nextQuestion);
+    setOptions(shuffledOptions);
     setSelectedAnswer(null);
-    setTimeLeft(10);
+
+    // Reset timer to 15 seconds
+    setTimeLeft(15);
+
     setTimeUp(false);
     setQuestionStartedAt(Date.now());
     setMessage("");
   }
 
+  /*
+   * Submit a normal answer.
+   */
   async function handleAnswer(answer: string) {
     if (selectedAnswer || timeUp || !question || !sessionId) {
       return;
@@ -139,13 +300,31 @@ export default function QuizPage() {
 
     setSelectedAnswer(answer);
 
-    console.log("Quiz result:", data);
+    /*
+     * Update live attempt progress.
+     */
+    const result = data as QuizResult;
+
+    setAttemptQuestions(result.questions_answered_in_level);
+    setAttemptCorrect(result.correct_answers_in_attempt);
+
+    /*
+     * Store complete result.
+     */
+    setQuizResult(result);
+
+    console.log("Quiz result:", result);
 
     setMessage("");
   }
 
+  /*
+   * Handle timeout.
+   *
+   * Timeout is recorded as an incorrect answer.
+   */
   async function handleTimeout() {
-    if (selectedAnswer || !question || !sessionId) {
+    if (selectedAnswer || timeUp || !question || !sessionId) {
       return;
     }
 
@@ -154,7 +333,7 @@ export default function QuizPage() {
 
     const responseTime = questionStartedAt
       ? Date.now() - questionStartedAt
-      : 10000;
+      : 15000;
 
     const { data, error } = await supabase.rpc("submit_quiz_answer", {
       p_session_id: sessionId,
@@ -168,9 +347,225 @@ export default function QuizPage() {
       return;
     }
 
-    console.log("Timeout result:", data);
+    /*
+     * Update live attempt progress after timeout.
+     */
+    const result = data as QuizResult;
+
+    setAttemptQuestions(result.questions_answered_in_level);
+    setAttemptCorrect(result.correct_answers_in_attempt);
+
+    setQuizResult(result);
+
+    console.log("Timeout result:", result);
   }
 
+  /*
+   * ---------------------------------------------------------
+   * LEVEL RESULT SCREEN
+   * ---------------------------------------------------------
+   *
+   * Appears after question 50.
+   *
+   * 25–50 correct = PASS
+   * 0–24 correct = FAIL
+   */
+  if (quizResult?.level_completed) {
+    const passed = quizResult.level_passed;
+
+    const completedLevel =
+      question?.level ?? quizResult.current_level;
+
+    const isFinalLevel =
+      passed &&
+      completedLevel === 10 &&
+      quizResult.current_level === 10;
+
+    return (
+      <main
+        className="sq-page"
+        style={{
+          minHeight: "100vh",
+          background:
+            "radial-gradient(circle at top left, rgba(204, 251, 241, 0.8), transparent 35%), var(--background)",
+        }}
+      >
+        <div className="sq-container">
+          <div style={{ marginBottom: "28px" }}>
+            <AppNavbar />
+          </div>
+
+          <div
+            className="sq-card"
+            style={{
+              maxWidth: "700px",
+              margin: "80px auto",
+              padding: "48px",
+              textAlign: "center",
+            }}
+          >
+            {/* RESULT ICON */}
+            <div
+              style={{
+                width: "76px",
+                height: "76px",
+                margin: "0 auto 24px",
+                borderRadius: "24px",
+                background: passed
+                  ? "var(--primary-light)"
+                  : "var(--danger-light)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: passed
+                  ? "var(--primary)"
+                  : "var(--danger)",
+                fontSize: "32px",
+                fontWeight: 800,
+              }}
+            >
+              {passed ? "✓" : "↻"}
+            </div>
+
+            {/* RESULT LABEL */}
+            <div
+              style={{
+                color: passed
+                  ? "var(--primary)"
+                  : "var(--danger)",
+                fontSize: "13px",
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                marginBottom: "10px",
+              }}
+            >
+              {isFinalLevel
+                ? "Sahaba Quest Complete"
+                : passed
+                ? "Level Passed"
+                : "Level Not Passed"}
+            </div>
+
+            {/* TITLE */}
+            <h1
+              className="sq-title"
+              style={{
+                marginBottom: "14px",
+              }}
+            >
+              {isFinalLevel
+                ? "You mastered Level 10!"
+                : passed
+                ? `Level ${completedLevel} complete!`
+                : `Keep going with Level ${completedLevel}`}
+            </h1>
+
+            {/* DESCRIPTION */}
+            <p
+              className="sq-subtitle"
+              style={{
+                maxWidth: "520px",
+                margin: "0 auto",
+              }}
+            >
+              {passed
+                ? isFinalLevel
+                  ? "You have successfully completed the highest level of Sahaba Quest."
+                  : `You passed Level ${completedLevel} and unlocked Level ${quizResult.current_level}.`
+                : `You scored ${quizResult.correct_answers_in_attempt} out of 50. You need at least 25 correct answers to pass.`}
+            </p>
+
+            {/* FINAL SCORE */}
+            <div
+              style={{
+                marginTop: "28px",
+                padding: "24px",
+                borderRadius: "18px",
+                background: passed
+                  ? "var(--primary-light)"
+                  : "var(--danger-light)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "13px",
+                  color: "var(--muted)",
+                  marginBottom: "6px",
+                }}
+              >
+                Final Score
+              </div>
+
+              <div
+                style={{
+                  fontSize: "42px",
+                  fontWeight: 900,
+                  color: passed
+                    ? "var(--primary-dark)"
+                    : "var(--danger)",
+                }}
+              >
+                {quizResult.correct_answers_in_attempt} / 50
+              </div>
+
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "13px",
+                  color: "var(--muted)",
+                }}
+              >
+                {passed
+                  ? "You reached the 25/50 passing mark."
+                  : "25/50 is required to pass."}
+              </div>
+            </div>
+
+            {/* ACTION */}
+            {!isFinalLevel && (
+              <button
+                className="sq-button-primary"
+                onClick={() => {
+                  setQuizResult(null);
+                  startGame();
+                }}
+                style={{
+                  width: "100%",
+                  marginTop: "28px",
+                }}
+              >
+                {passed
+                  ? `Continue to Level ${quizResult.current_level} →`
+                  : `Retry Level ${completedLevel} →`}
+              </button>
+            )}
+
+            {/* LEVEL 10 */}
+            {isFinalLevel && (
+              <button
+                className="sq-button-primary"
+                onClick={() => {
+                  setQuizResult(null);
+                  startGame();
+                }}
+                style={{
+                  width: "100%",
+                  marginTop: "28px",
+                }}
+              >
+                Play Level 10 Again →
+              </button>
+            )}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * Loading / initial screen.
+   */
   if (!question) {
     return (
       <main className="sq-page">
@@ -202,9 +597,16 @@ export default function QuizPage() {
               SQ
             </div>
 
-            <h1 className="sq-title">Sahaba Quest</h1>
+            <h1 className="sq-title">
+              Sahaba Quest
+            </h1>
 
-            <p className="sq-subtitle" style={{ marginTop: "12px" }}>
+            <p
+              className="sq-subtitle"
+              style={{
+                marginTop: "12px",
+              }}
+            >
               {message}
             </p>
           </div>
@@ -213,30 +615,27 @@ export default function QuizPage() {
     );
   }
 
-  const answered = selectedAnswer !== null || timeUp;
+  /*
+   * Whether the current question has already been answered.
+   */
+  const answered =
+    selectedAnswer !== null || timeUp;
 
+  /*
+   * Check whether the selected answer is correct.
+   */
   const isCorrect =
     selectedAnswer !== null &&
     selectedAnswer === question.correct_answer;
 
-  const options = [
-    {
-      letter: "A",
-      value: question.option_a,
-    },
-    {
-      letter: "B",
-      value: question.option_b,
-    },
-    {
-      letter: "C",
-      value: question.option_c,
-    },
-    {
-      letter: "D",
-      value: question.option_d,
-    },
-  ];
+  /*
+   * Current question number.
+   *
+   * attemptQuestions represents questions already submitted,
+   * so the question currently on screen is +1.
+   */
+  const currentQuestionNumber =
+    Math.min(attemptQuestions + 1, 50);
 
   return (
     <main
@@ -248,6 +647,7 @@ export default function QuizPage() {
       }}
     >
       <div className="sq-container">
+
         {/* SHARED NAVIGATION */}
         <div style={{ marginBottom: "28px" }}>
           <AppNavbar />
@@ -265,6 +665,8 @@ export default function QuizPage() {
           }}
         >
           <div>
+
+            {/* LEVEL LABEL */}
             <div
               style={{
                 display: "flex",
@@ -285,7 +687,13 @@ export default function QuizPage() {
                 Sahaba Quest
               </span>
 
-              <span style={{ color: "var(--muted-light)" }}>•</span>
+              <span
+                style={{
+                  color: "var(--muted-light)",
+                }}
+              >
+                •
+              </span>
 
               <span
                 style={{
@@ -298,7 +706,9 @@ export default function QuizPage() {
               </span>
             </div>
 
-            <h1 className="sq-title">Test your knowledge</h1>
+            <h1 className="sq-title">
+              Test your knowledge
+            </h1>
 
             <p className="sq-subtitle">
               Choose the best answer before the timer runs out.
@@ -340,15 +750,58 @@ export default function QuizPage() {
             padding: "32px",
           }}
         >
-          {/* PROGRESS */}
-          <div style={{ marginBottom: "28px" }}>
+
+          {/* PROGRESS + LIVE SCORE */}
+          <div
+            style={{
+              marginBottom: "28px",
+            }}
+          >
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "8px",
+                alignItems: "center",
+                gap: "12px",
+                flexWrap: "wrap",
+                marginBottom: "10px",
               }}
             >
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  color: "var(--muted)",
+                }}
+              >
+                Question {currentQuestionNumber} / 50
+              </span>
+
+              <span
+                style={{
+                  color: "var(--muted-light)",
+                }}
+              >
+                •
+              </span>
+
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  color: "var(--primary)",
+                }}
+              >
+                Score {attemptCorrect} / {attemptQuestions}
+              </span>
+
+              <span
+                style={{
+                  color: "var(--muted-light)",
+                }}
+              >
+                •
+              </span>
+
               <span
                 style={{
                   fontSize: "13px",
@@ -356,36 +809,61 @@ export default function QuizPage() {
                   color: "var(--muted)",
                 }}
               >
-                Question
-              </span>
-
-              <span
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: "var(--primary)",
-                }}
-              >
                 Level {question.level}
               </span>
             </div>
 
-            <div className="sq-progress">
+            {/* QUESTION NUMBER PROGRESS */}
+            <div
+              style={{
+                width: "100%",
+                height: "7px",
+                background: "var(--border)",
+                borderRadius: "999px",
+                overflow: "hidden",
+                marginBottom: "8px",
+              }}
+            >
               <div
-                className="sq-progress-bar"
                 style={{
-                  width: `${(timeLeft / 10) * 100}%`,
-                  background:
-                    timeLeft <= 3
-                      ? "var(--danger)"
-                      : "var(--primary)",
+                  width: `${(attemptQuestions / 50) * 100}%`,
+                  height: "100%",
+                  background: "var(--primary)",
+                  borderRadius: "999px",
+                  transition: "width 0.3s ease",
                 }}
               />
             </div>
+
+            {/* TIMER PROGRESS */}
+            {!answered && (
+              <div
+                className="sq-progress"
+                style={{
+                  height: "4px",
+                }}
+              >
+                <div
+                  className="sq-progress-bar"
+                  style={{
+                    width: `${(timeLeft / 15) * 100}%`,
+                    background:
+                      timeLeft <= 3
+                        ? "var(--danger)"
+                        : "var(--primary)",
+                    transition: "width 1s linear",
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* QUESTION */}
-          <div style={{ marginBottom: "30px" }}>
+          <div
+            style={{
+              marginBottom: "30px",
+            }}
+          >
             <h2
               style={{
                 margin: 0,
@@ -405,15 +883,19 @@ export default function QuizPage() {
               gap: "14px",
             }}
           >
-            {options.map((option) => {
-              const isSelected = selectedAnswer === option.value;
+            {options.map((option, index) => {
+              const isSelected =
+                selectedAnswer === option.value;
 
               const isCorrectOption =
                 option.value === question.correct_answer;
 
               let answerClass = "sq-answer";
 
-              if (answered && isCorrectOption) {
+              if (
+                answered &&
+                isCorrectOption
+              ) {
                 answerClass += " sq-correct";
               }
 
@@ -427,13 +909,15 @@ export default function QuizPage() {
 
               return (
                 <button
-                  key={option.letter}
+                  key={`${question.id}-${option.value}`}
                   className={answerClass}
-                  onClick={() => handleAnswer(option.value)}
+                  onClick={() =>
+                    handleAnswer(option.value)
+                  }
                   disabled={answered}
                 >
                   <span className="sq-answer-letter">
-                    {option.letter}
+                    {String.fromCharCode(65 + index)}
                   </span>
 
                   <span
@@ -447,16 +931,17 @@ export default function QuizPage() {
                     {option.value}
                   </span>
 
-                  {answered && isCorrectOption && (
-                    <span
-                      style={{
-                        fontSize: "20px",
-                        color: "var(--success)",
-                      }}
-                    >
-                      ✓
-                    </span>
-                  )}
+                  {answered &&
+                    isCorrectOption && (
+                      <span
+                        style={{
+                          fontSize: "20px",
+                          color: "var(--success)",
+                        }}
+                      >
+                        ✓
+                      </span>
+                    )}
 
                   {answered &&
                     isSelected &&
@@ -496,6 +981,8 @@ export default function QuizPage() {
                 }`,
               }}
             >
+
+              {/* FEEDBACK HEADER */}
               <div
                 style={{
                   display: "flex",
@@ -516,7 +1003,11 @@ export default function QuizPage() {
                     fontSize: "20px",
                   }}
                 >
-                  {isCorrect ? "✓" : timeUp ? "⏱" : "!"}
+                  {isCorrect
+                    ? "✓"
+                    : timeUp
+                    ? "⏱"
+                    : "!"}
                 </div>
 
                 <div>
@@ -548,11 +1039,79 @@ export default function QuizPage() {
                 </div>
               </div>
 
+              {/* CURRENT SCORE */}
               <div
                 style={{
                   padding: "16px",
                   borderRadius: "14px",
-                  background: "rgba(255, 255, 255, 0.7)",
+                  background:
+                    "rgba(255, 255, 255, 0.7)",
+                  marginBottom: "16px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.8px",
+                      fontWeight: 800,
+                      color: "var(--muted)",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Current Score
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "24px",
+                      fontWeight: 900,
+                    }}
+                  >
+                    {attemptCorrect} /{" "}
+                    {attemptQuestions}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    textAlign: "right",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--muted)",
+                    }}
+                  >
+                    Need to pass
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 800,
+                      color: "var(--primary)",
+                    }}
+                  >
+                    25 / 50
+                  </div>
+                </div>
+              </div>
+
+              {/* CORRECT ANSWER */}
+              <div
+                style={{
+                  padding: "16px",
+                  borderRadius: "14px",
+                  background:
+                    "rgba(255, 255, 255, 0.7)",
                   marginBottom: "16px",
                 }}
               >
@@ -579,6 +1138,7 @@ export default function QuizPage() {
                 </div>
               </div>
 
+              {/* EXPLANATION */}
               <div>
                 <div
                   style={{
@@ -604,9 +1164,12 @@ export default function QuizPage() {
                 </p>
               </div>
 
+              {/* NEXT QUESTION */}
               <button
                 className="sq-button-primary"
-                onClick={loadQuestion}
+                onClick={() =>
+                  loadQuestion()
+                }
                 style={{
                   width: "100%",
                   marginTop: "22px",
@@ -630,6 +1193,7 @@ export default function QuizPage() {
             flexWrap: "wrap",
           }}
         >
+          {/* STREAK */}
           <div
             style={{
               display: "flex",
@@ -643,6 +1207,7 @@ export default function QuizPage() {
             <span>Keep your streak alive</span>
           </div>
 
+          {/* SESSION */}
           <div
             style={{
               color: "var(--muted-light)",
