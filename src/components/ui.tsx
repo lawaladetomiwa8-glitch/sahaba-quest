@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const navigation = [
   { label: "Home", href: "/dashboard", icon: "⌂" },
@@ -9,14 +10,21 @@ const navigation = [
   { label: "Progress", href: "/progress", icon: "↗" },
   { label: "Leaderboard", href: "/leaderboard", icon: "★" },
   { label: "Challenges", href: "/challenges", icon: "◆" },
+  { label: "Pricing", href: "/pricing", icon: "₦" },
   { label: "Profile", href: "/profile", icon: "●" },
 ];
 
 export function AppNavbar() {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
 
   return (
     <>
+      {/* Desktop Navigation */}
       <nav className="sq-nav">
         <Link href="/dashboard" className="sq-logo">
           Sahaba Quest
@@ -47,26 +55,52 @@ export function AppNavbar() {
         </div>
       </nav>
 
+      {/* Mobile Navigation */}
       <nav className="sq-mobile-nav">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href;
+        <div className="sq-mobile-header">
+          <Link
+            href="/dashboard"
+            className="sq-mobile-logo"
+            onClick={closeMobileMenu}
+          >
+            Sahaba Quest
+          </Link>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`sq-mobile-nav-item ${
-                isActive ? "sq-mobile-nav-item-active" : ""
-              }`}
-            >
-              <span className="sq-mobile-nav-icon">
-                {item.icon}
-              </span>
+          <button
+            type="button"
+            className="sq-mobile-menu-button"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? "✕" : "☰"}
+          </button>
+        </div>
 
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+        {mobileMenuOpen && (
+          <div className="sq-mobile-menu">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`sq-mobile-menu-item ${
+                    isActive ? "sq-mobile-menu-item-active" : ""
+                  }`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="sq-mobile-menu-icon">
+                    {item.icon}
+                  </span>
+
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </nav>
     </>
   );
