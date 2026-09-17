@@ -1,18 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { AppNavbar } from "../../components/ui";
+
+type PlanType = "plus" | "family" | "school";
+type BillingInterval = "monthly" | "annual";
+type Currency = "NGN" | "USD" | "GBP" | "EUR";
 
 type Plan = {
   id: string;
-  plan_type: "plus" | "family" | "school";
-  billing_interval: "monthly" | "annual";
-  currency: "NGN" | "USD" | "GBP" | "EUR";
+  plan_type: PlanType;
+  billing_interval: BillingInterval;
+  currency: Currency;
   amount: number;
   display_name: string;
 };
 
-const currencyInfo = {
+const PLAN_INFO: Record<
+  PlanType,
+  {
+    name: string;
+    description: string;
+    features: string[];
+  }
+> = {
+  plus: {
+    name: "Sahaba Quest Plus",
+    description:
+      "For individual learners who want to go deeper into their Sahaba journey.",
+    features: [
+      "Access to premium quiz levels",
+      "Detailed progress tracking",
+      "Personal performance statistics",
+      "Compete on the leaderboard",
+    ],
+  },
+
+  family: {
+    name: "Family",
+    description:
+      "Make learning about the Sahabah a shared family experience.",
+    features: [
+      "Everything in Plus",
+      "Family leaderboard",
+      "Multiple family members",
+      "Family progress tracking",
+    ],
+  },
+
+  school: {
+    name: "School",
+    description:
+      "Structured Islamic learning and competition for schools.",
+    features: [
+      "Everything in Plus",
+      "Student accounts",
+      "School leaderboard",
+      "School performance dashboard",
+      "Inter-school competition support",
+    ],
+  },
+};
+
+const CURRENCY_INFO: Record<
+  Currency,
+  {
+    symbol: string;
+    divisor: number;
+  }
+> = {
   NGN: {
     symbol: "₦",
     divisor: 1,
@@ -31,149 +88,140 @@ const currencyInfo = {
   },
 };
 
-const planDescriptions = {
-  plus: {
-    title: "Sahaba Quest Plus",
-    description:
-      "For individual learners who want full access to the Sahaba Quest journey.",
-    features: [
-      "Access to all 10 levels",
-      "Unlimited quiz attempts",
-      "Advanced statistics",
-      "Challenges and tournaments",
-      "Badges and achievements",
-    ],
-  },
+function formatAmount(
+  amount: number,
+  currency: Currency
+): string {
+  const currencyInfo = CURRENCY_INFO[currency];
 
-  family: {
-    title: "Sahaba Quest Family",
-    description:
-      "Bring your family together and make learning about the Sahabah a shared journey.",
-    features: [
-      "Family leaderboard",
-      "Multiple family members",
-      "Individual member accounts",
-      "Family progress tracking",
-      "Family competitions",
-    ],
-  },
+  const actualAmount =
+    Number(amount) / currencyInfo.divisor;
 
-  school: {
-    title: "Sahaba Quest School",
-    description:
-      "Give your school a structured and engaging way to build Islamic knowledge.",
-    features: [
-      "School dashboard",
-      "Student accounts",
-      "Class management",
-      "Student performance tracking",
-      "School leaderboard",
-    ],
-  },
-};
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits:
+      currency === "NGN" ? 0 : 2,
+    maximumFractionDigits:
+      currency === "NGN" ? 0 : 2,
+  }).format(actualAmount);
+}
 
 export default function PricingPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-
-  const [billingInterval, setBillingInterval] = useState<
-    "monthly" | "annual"
-  >("monthly");
+  const [billingInterval, setBillingInterval] =
+    useState<BillingInterval>("monthly");
 
   const [currency, setCurrency] =
-    useState<keyof typeof currencyInfo>("NGN");
+    useState<Currency>("NGN");
 
-  const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState<Plan[]>([]);
+
+  const [loadingPlans, setLoadingPlans] =
+    useState(true);
+
+  const [processingPlan, setProcessingPlan] =
+    useState<PlanType | null>(null);
 
   const [error, setError] = useState("");
 
-  const [paymentError, setPaymentError] =
+  const [successMessage, setSuccessMessage] =
     useState("");
-
-  const [processingPlan, setProcessingPlan] =
-    useState<string | null>(null);
 
   useEffect(() => {
     async function loadPlans() {
-      setLoading(true);
+      setLoadingPlans(true);
       setError("");
 
-      const { data, error } = await supabase
+      const {
+        data,
+        error: plansError,
+      } = await supabase
         .from("subscription_plans")
         .select(
           "id, plan_type, billing_interval, currency, amount, display_name"
         )
-        .eq("is_active", true)
-        .eq("billing_interval", billingInterval)
+        .eq(
+          "billing_interval",
+          billingInterval
+        )
         .eq("currency", currency)
+        .eq("is_active", true)
         .order("amount", {
           ascending: true,
         });
 
-      if (error) {
+      if (plansError) {
         console.error(
-          "Error loading plans:",
-          error
+          "Could not load subscription plans:",
+          plansError
         );
 
         setError(
-          "Unable to load subscription plans."
+          "We could not load the subscription plans. Please refresh the page."
         );
 
         setPlans([]);
-      } else {
-        setPlans((data || []) as Plan[]);
+        setLoadingPlans(false);
+
+        return;
       }
 
-      setLoading(false);
+      setPlans((data ?? []) as Plan[]);
+      setLoadingPlans(false);
     }
 
     loadPlans();
   }, [billingInterval, currency]);
 
-  function formatPrice(amount: number) {
-    const info = currencyInfo[currency];
+  const plansByType = useMemo(() => {
+    const result: Record<
+      PlanType,
+      Plan | null
+    > = {
+      plus: null,
+      family: null,
+      school: null,
+    };
 
-    const actualAmount =
-      amount / info.divisor;
-
-    return `${info.symbol}${actualAmount.toLocaleString(
-      "en-US",
-      {
-        minimumFractionDigits:
-          currency === "NGN" ? 0 : 2,
-
-        maximumFractionDigits:
-          currency === "NGN" ? 0 : 2,
+    for (const plan of plans) {
+      if (plan.plan_type in result) {
+        result[plan.plan_type] = plan;
       }
-    )}`;
-  }
-
-  async function handleSubscribe(
-    plan: Plan
-  ) {
-    if (processingPlan) {
-      return;
     }
 
-    setProcessingPlan(plan.plan_type);
-    setPaymentError("");
+    return result;
+  }, [plans]);
+
+  async function handleSubscribe(
+    planType: PlanType
+  ) {
+    setError("");
+    setSuccessMessage("");
+    setProcessingPlan(planType);
 
     try {
       const {
         data: { session },
-        error: sessionError,
       } = await supabase.auth.getSession();
 
-      if (
-        sessionError ||
-        !session ||
-        !session.access_token
-      ) {
-        setPaymentError(
-          "Please sign in to your Sahaba Quest account before subscribing."
+      if (!session) {
+        setError(
+          "Please log in before subscribing."
         );
 
-        setProcessingPlan(null);
+        setTimeout(() => {
+          window.location.href =
+            "/login?redirect=/pricing";
+        }, 1000);
+
+        return;
+      }
+
+      const plan = plansByType[planType];
+
+      if (!plan) {
+        setError(
+          "This plan is currently unavailable for the selected currency and billing interval."
+        );
+
         return;
       }
 
@@ -183,22 +231,15 @@ export default function PricingPage() {
           method: "POST",
 
           headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
           },
 
           body: JSON.stringify({
-            plan_type:
-              plan.plan_type,
-
+            plan_type: plan.plan_type,
             billing_interval:
               plan.billing_interval,
-
-            currency:
-              plan.currency,
+            currency: plan.currency,
           }),
         }
       );
@@ -208,898 +249,939 @@ export default function PricingPage() {
 
       if (!response.ok) {
         throw new Error(
-          result.error ||
-            "Unable to start payment."
+          result?.error ||
+            "Unable to initialize payment."
         );
       }
 
-      if (!result.checkout_url) {
+      if (!result?.checkout_url) {
         throw new Error(
-          "Flutterwave did not return a checkout link."
+          "Flutterwave did not return a checkout URL."
         );
       }
+
+      setSuccessMessage(
+        "Redirecting you to secure payment..."
+      );
 
       window.location.href =
         result.checkout_url;
-    } catch (error) {
+    } catch (err: unknown) {
       console.error(
-        "Payment initialization error:",
-        error
+        "Subscription error:",
+        err
       );
 
-      setPaymentError(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while starting payment."
-      );
-
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError(
+          "Something went wrong while starting the payment."
+        );
+      }
+    } finally {
       setProcessingPlan(null);
     }
   }
 
-  const planOrder: Array<
-    "plus" | "family" | "school"
-  > = [
-    "plus",
-    "family",
-    "school",
-  ];
+  function getPlanPrice(
+    planType: PlanType
+  ): string {
+    const plan = plansByType[planType];
+
+    if (!plan) {
+      return "Unavailable";
+    }
+
+    return `${
+      CURRENCY_INFO[currency].symbol
+    }${formatAmount(
+      plan.amount,
+      currency
+    )}`;
+  }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
+    <main className="sq-page">
+      <div className="sq-container">
 
-        background:
-          "radial-gradient(circle at top left, rgba(204, 251, 241, 0.8), transparent 32%), var(--background)",
-
-        color: "var(--text)",
-      }}
-    >
-      <header className="sq-nav">
-        <a
-          href="/"
-          className="sq-logo"
-        >
-          Sahaba Quest
-        </a>
-
-        <a
-          href="/dashboard"
-          className="sq-button-primary"
-          style={{
-            minHeight: "42px",
-            padding: "0 16px",
-            fontSize: "13px",
-          }}
-        >
-          Dashboard →
-        </a>
-      </header>
-
-      <div className="sq-page">
+        {/* NAVIGATION */}
         <div
-          className="sq-container"
           style={{
-            maxWidth: "1180px",
+            marginBottom: "28px",
           }}
         >
-          <section
+          <AppNavbar />
+        </div>
+
+        {/* HERO */}
+        <section
+          className="sq-card"
+          style={{
+            padding: "40px 32px",
+            position: "relative",
+            overflow: "hidden",
+            background:
+              "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
+          }}
+        >
+          {/* Decorative circle */}
+          <div
             style={{
-              textAlign: "center",
+              position: "absolute",
+              right: "-80px",
+              top: "-100px",
+              width: "260px",
+              height: "260px",
+              borderRadius: "50%",
+              background:
+                "var(--primary-light)",
+              opacity: 0.65,
+            }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
               maxWidth: "760px",
               margin: "0 auto",
-              paddingTop: "20px",
+              textAlign: "center",
             }}
           >
             <span className="sq-badge">
-              Choose your journey
+              Sahaba Quest Plans
             </span>
 
             <h1
-              className="sq-title"
               style={{
-                marginTop: "18px",
+                margin:
+                  "18px 0 10px",
+                fontSize:
+                  "clamp(30px, 5vw, 48px)",
+                lineHeight: 1.1,
+                fontWeight: 900,
+                letterSpacing:
+                  "-1.2px",
               }}
             >
-              Unlock the full Sahaba Quest experience.
+              Continue your{" "}
+              <span
+                style={{
+                  color:
+                    "var(--primary)",
+                }}
+              >
+                Sahaba journey
+              </span>
             </h1>
 
             <p
-              className="sq-subtitle"
               style={{
+                margin: 0,
+                color: "var(--muted)",
+                fontSize: "17px",
+                lineHeight: 1.7,
                 maxWidth: "650px",
                 marginLeft: "auto",
                 marginRight: "auto",
               }}
             >
-              Learn about the Companions of the Prophet ﷺ,
-              challenge yourself, track your progress, and grow
-              together with your family or school.
+              Choose the plan that fits
+              your learning journey and
+              unlock more ways to learn,
+              remember, and compete.
             </p>
-          </section>
+          </div>
+        </section>
 
-          {/* BILLING */}
+        {/* CONTROLS */}
+        <section
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
+            marginTop: "20px",
+          }}
+        >
+          {/* Billing */}
           <div
             style={{
               display: "flex",
-              justifyContent: "center",
-              marginTop: "34px",
+              padding: "4px",
+              borderRadius: "14px",
+              background: "#ffffff",
+              border:
+                "1px solid var(--border)",
+              boxShadow:
+                "0 4px 15px rgba(15, 23, 42, 0.04)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setBillingInterval(
+                  "monthly"
+                )
+              }
+              style={{
+                border: "none",
+                borderRadius: "10px",
+                padding:
+                  "10px 18px",
+                background:
+                  billingInterval ===
+                  "monthly"
+                    ? "var(--primary)"
+                    : "transparent",
+                color:
+                  billingInterval ===
+                  "monthly"
+                    ? "#ffffff"
+                    : "var(--muted)",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              Monthly
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setBillingInterval(
+                  "annual"
+                )
+              }
+              style={{
+                border: "none",
+                borderRadius: "10px",
+                padding:
+                  "10px 18px",
+                background:
+                  billingInterval ===
+                  "annual"
+                    ? "var(--primary)"
+                    : "transparent",
+                color:
+                  billingInterval ===
+                  "annual"
+                    ? "#ffffff"
+                    : "var(--muted)",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              Annual
+            </button>
+          </div>
+
+          {/* Currency */}
+          <select
+            value={currency}
+            onChange={(event) =>
+              setCurrency(
+                event.target
+                  .value as Currency
+              )
+            }
+            style={{
+              minHeight: "46px",
+              borderRadius: "14px",
+              border:
+                "1px solid var(--border)",
+              background: "#ffffff",
+              color:
+                "var(--foreground)",
+              padding:
+                "0 14px",
+              fontSize: "14px",
+              fontWeight: 700,
+              outline: "none",
+              cursor: "pointer",
+            }}
+          >
+            <option value="NGN">
+              🇳🇬 Nigerian Naira
+            </option>
+
+            <option value="USD">
+              🇺🇸 US Dollar
+            </option>
+
+            <option value="GBP">
+              🇬🇧 British Pound
+            </option>
+
+            <option value="EUR">
+              🇪🇺 Euro
+            </option>
+          </select>
+        </section>
+
+        {/* MESSAGES */}
+        {error && (
+          <div
+            role="alert"
+            style={{
+              marginTop: "20px",
+              padding:
+                "14px 18px",
+              borderRadius: "14px",
+              background: "#fef2f2",
+              border:
+                "1px solid #fecaca",
+              color: "#b91c1c",
+              textAlign: "center",
+              fontSize: "14px",
+              lineHeight: 1.5,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {successMessage && (
+          <div
+            role="status"
+            style={{
+              marginTop: "20px",
+              padding:
+                "14px 18px",
+              borderRadius: "14px",
+              background:
+                "var(--primary-light)",
+              border:
+                "1px solid var(--border)",
+              color:
+                "var(--primary-dark)",
+              textAlign: "center",
+              fontSize: "14px",
+              fontWeight: 700,
+            }}
+          >
+            {successMessage}
+          </div>
+        )}
+
+        {/* PLANS */}
+        {loadingPlans ? (
+          <div
+            className="sq-card"
+            style={{
+              marginTop: "20px",
+              padding: "60px 30px",
+              textAlign: "center",
             }}
           >
             <div
               style={{
-                display: "inline-flex",
-                padding: "5px",
-                borderRadius: "14px",
+                width: "52px",
+                height: "52px",
+                margin:
+                  "0 auto 18px",
+                borderRadius: "16px",
                 background:
                   "var(--primary-light)",
-                border:
-                  "1px solid var(--border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color:
+                  "var(--primary)",
+                fontWeight: 900,
               }}
             >
-              <button
-                type="button"
-                onClick={() =>
-                  setBillingInterval(
-                    "monthly"
-                  )
-                }
-                style={{
-                  border: "none",
-                  borderRadius: "10px",
-                  padding:
-                    "11px 22px",
-
-                  background:
-                    billingInterval ===
-                    "monthly"
-                      ? "var(--primary)"
-                      : "transparent",
-
-                  color:
-                    billingInterval ===
-                    "monthly"
-                      ? "white"
-                      : "var(--primary-dark)",
-
-                  fontWeight: 800,
-                  fontSize: "13px",
-                }}
-              >
-                Monthly
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setBillingInterval(
-                    "annual"
-                  )
-                }
-                style={{
-                  border: "none",
-                  borderRadius: "10px",
-                  padding:
-                    "11px 22px",
-
-                  background:
-                    billingInterval ===
-                    "annual"
-                      ? "var(--primary)"
-                      : "transparent",
-
-                  color:
-                    billingInterval ===
-                    "annual"
-                      ? "white"
-                      : "var(--primary-dark)",
-
-                  fontWeight: 800,
-                  fontSize: "13px",
-                }}
-              >
-                Annual
-              </button>
+              SQ
             </div>
-          </div>
 
-          {/* CURRENCY */}
-          <div
+            <p
+              style={{
+                margin: 0,
+                color:
+                  "var(--muted)",
+              }}
+            >
+              Loading plans...
+            </p>
+          </div>
+        ) : (
+          <section
             style={{
-              display: "flex",
-              justifyContent: "center",
-              flexWrap: "wrap",
-              gap: "8px",
-              marginTop: "18px",
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "20px",
+              marginTop: "20px",
+              alignItems:
+                "stretch",
             }}
           >
             {(
               Object.keys(
-                currencyInfo
-              ) as Array<
-                keyof typeof currencyInfo
-              >
-            ).map(
-              (currencyCode) => (
-                <button
-                  key={
-                    currencyCode
-                  }
-                  type="button"
-                  onClick={() =>
-                    setCurrency(
-                      currencyCode
-                    )
-                  }
+                PLAN_INFO
+              ) as PlanType[]
+            ).map((planType) => {
+              const info =
+                PLAN_INFO[planType];
+
+              const plan =
+                plansByType[
+                  planType
+                ];
+
+              const isProcessing =
+                processingPlan ===
+                planType;
+
+              const isFamily =
+                planType ===
+                "family";
+
+              return (
+                <article
+                  key={planType}
+                  className="sq-card"
                   style={{
+                    position:
+                      "relative",
+                    display: "flex",
+                    flexDirection:
+                      "column",
+                    padding: "28px",
                     border:
-                      currency ===
-                      currencyCode
-                        ? "1px solid var(--primary)"
+                      isFamily
+                        ? "2px solid var(--primary)"
                         : "1px solid var(--border)",
-
-                    borderRadius:
-                      "10px",
-
-                    padding:
-                      "8px 15px",
-
                     background:
-                      currency ===
-                      currencyCode
-                        ? "var(--primary-light)"
-                        : "var(--white)",
-
-                    color:
-                      currency ===
-                      currencyCode
-                        ? "var(--primary-dark)"
-                        : "var(--muted)",
-
-                    fontWeight: 800,
-                    fontSize: "12px",
+                      isFamily
+                        ? "linear-gradient(180deg, #ffffff 0%, #f0fdfa 100%)"
+                        : "#ffffff",
                   }}
                 >
-                  {currencyCode}
-                </button>
-              )
-            )}
-          </div>
+                  {/* Popular badge */}
+                  {isFamily && (
+                    <div
+                      style={{
+                        position:
+                          "absolute",
+                        top: "-13px",
+                        left: "50%",
+                        transform:
+                          "translateX(-50%)",
+                        padding:
+                          "6px 15px",
+                        borderRadius:
+                          "999px",
+                        background:
+                          "var(--primary)",
+                        color:
+                          "#ffffff",
+                        fontSize:
+                          "11px",
+                        fontWeight: 900,
+                        letterSpacing:
+                          "0.5px",
+                        whiteSpace:
+                          "nowrap",
+                      }}
+                    >
+                      POPULAR
+                    </div>
+                  )}
 
-          {/* PAYMENT ERROR */}
-          {paymentError && (
-            <div
-              style={{
-                maxWidth: "650px",
-                margin:
-                  "24px auto 0",
+                  {/* Plan heading */}
+                  <div>
+                    <span className="sq-badge">
+                      {planType ===
+                      "plus"
+                        ? "Individual"
+                        : planType ===
+                            "family"
+                          ? "Family"
+                          : "Schools"}
+                    </span>
 
-                padding:
-                  "14px 16px",
+                    <h2
+                      style={{
+                        margin:
+                          "16px 0 7px",
+                        fontSize:
+                          "24px",
+                        lineHeight:
+                          1.2,
+                        fontWeight:
+                          900,
+                      }}
+                    >
+                      {info.name}
+                    </h2>
 
-                borderRadius:
-                  "13px",
+                    <p
+                      style={{
+                        margin: 0,
+                        color:
+                          "var(--muted)",
+                        fontSize:
+                          "14px",
+                        lineHeight:
+                          1.6,
+                        minHeight:
+                          "45px",
+                      }}
+                    >
+                      {
+                        info.description
+                      }
+                    </p>
+                  </div>
 
-                background:
-                  "var(--danger-light)",
-
-                border:
-                  "1px solid rgba(220, 38, 38, 0.15)",
-
-                color:
-                  "var(--danger)",
-
-                fontSize: "13px",
-
-                textAlign:
-                  "center",
-              }}
-            >
-              {paymentError}
-            </div>
-          )}
-
-          {/* DATABASE ERROR */}
-          {error && (
-            <div
-              style={{
-                maxWidth: "600px",
-                margin:
-                  "28px auto 0",
-
-                padding:
-                  "14px 16px",
-
-                borderRadius:
-                  "13px",
-
-                background:
-                  "var(--danger-light)",
-
-                border:
-                  "1px solid rgba(220, 38, 38, 0.15)",
-
-                color:
-                  "var(--danger)",
-
-                fontSize: "13px",
-
-                textAlign:
-                  "center",
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          {/* LOADING */}
-          {loading && (
-            <div
-              style={{
-                textAlign:
-                  "center",
-
-                padding:
-                  "70px 0",
-
-                color:
-                  "var(--muted)",
-
-                fontSize: "14px",
-              }}
-            >
-              Loading plans...
-            </div>
-          )}
-
-          {/* PLANS */}
-          {!loading &&
-            !error && (
-              <div
-                className="pricing-grid"
-                style={{
-                  display:
-                    "grid",
-
-                  gridTemplateColumns:
-                    "repeat(3, minmax(0, 1fr))",
-
-                  gap: "20px",
-
-                  marginTop:
-                    "42px",
-                }}
-              >
-                {planOrder.map(
-                  (planType) => {
-                    const plan =
-                      plans.find(
-                        (item) =>
-                          item.plan_type ===
-                          planType
-                      );
-
-                    const description =
-                      planDescriptions[
-                        planType
-                      ];
-
-                    const isFamily =
-                      planType ===
-                      "family";
-
-                    const isProcessing =
-                      processingPlan ===
-                      planType;
-
-                    return (
-                      <div
-                        key={
-                          planType
-                        }
-                        className="sq-card"
+                  {/* Price */}
+                  <div
+                    style={{
+                      marginTop:
+                        "24px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display:
+                          "flex",
+                        alignItems:
+                          "baseline",
+                        gap: "4px",
+                      }}
+                    >
+                      <span
                         style={{
-                          padding:
-                            "30px",
-
-                          position:
-                            "relative",
-
-                          display:
-                            "flex",
-
-                          flexDirection:
-                            "column",
-
-                          border:
-                            isFamily
-                              ? "2px solid var(--primary)"
-                              : "1px solid var(--border)",
-
-                          boxShadow:
-                            isFamily
-                              ? "0 18px 45px rgba(15, 118, 110, 0.12)"
-                              : "none",
+                          fontSize:
+                            "34px",
+                          fontWeight:
+                            900,
+                          letterSpacing:
+                            "-1px",
+                          color:
+                            "var(--foreground)",
                         }}
                       >
-                        {isFamily && (
-                          <div
-                            style={{
-                              position:
-                                "absolute",
-
-                              top:
-                                "-13px",
-
-                              left:
-                                "50%",
-
-                              transform:
-                                "translateX(-50%)",
-
-                              padding:
-                                "6px 13px",
-
-                              borderRadius:
-                                "999px",
-
-                              background:
-                                "var(--primary)",
-
-                              color:
-                                "white",
-
-                              fontSize:
-                                "11px",
-
-                              fontWeight:
-                                800,
-
-                              whiteSpace:
-                                "nowrap",
-                            }}
-                          >
-                            FAMILY LEARNING
-                          </div>
+                        {getPlanPrice(
+                          planType
                         )}
+                      </span>
+                    </div>
 
-                        <div>
-                          <span
-                            style={{
-                              display:
-                                "inline-block",
+                    <div
+                      style={{
+                        marginTop:
+                          "4px",
+                        color:
+                          "var(--muted)",
+                        fontSize:
+                          "13px",
+                      }}
+                    >
+                      {billingInterval ===
+                      "monthly"
+                        ? "per month"
+                        : "per year"}
+                    </div>
+                  </div>
 
-                              padding:
-                                "7px 10px",
+                  {/* Divider */}
+                  <div
+                    style={{
+                      height: "1px",
+                      background:
+                        "var(--border)",
+                      margin:
+                        "24px 0",
+                    }}
+                  />
 
-                              borderRadius:
-                                "9px",
-
-                              background:
-                                "var(--primary-light)",
-
-                              color:
-                                "var(--primary-dark)",
-
-                              fontSize:
-                                "11px",
-
-                              fontWeight:
-                                800,
-
-                              textTransform:
-                                "uppercase",
-
-                              letterSpacing:
-                                "0.5px",
-                            }}
-                          >
-                            {planType ===
-                            "plus"
-                              ? "Individual"
-                              : planType ===
-                                "family"
-                              ? "Family"
-                              : "School"}
-                          </span>
-
-                          <h2
-                            style={{
-                              margin:
-                                "18px 0 8px",
-
-                              fontSize:
-                                "23px",
-
-                              fontWeight:
-                                900,
-
-                              letterSpacing:
-                                "-0.4px",
-                            }}
-                          >
-                            {
-                              description.title
-                            }
-                          </h2>
-
-                          <p
-                            style={{
-                              margin: 0,
-
-                              minHeight:
-                                "72px",
-
-                              color:
-                                "var(--muted)",
-
-                              fontSize:
-                                "14px",
-
-                              lineHeight:
-                                1.65,
-                            }}
-                          >
-                            {
-                              description.description
-                            }
-                          </p>
-                        </div>
-
-                        {/* PRICE */}
-                        <div
+                  {/* Features */}
+                  <ul
+                    style={{
+                      listStyle:
+                        "none",
+                      padding: 0,
+                      margin:
+                        "0 0 28px",
+                      display:
+                        "flex",
+                      flexDirection:
+                        "column",
+                      gap: "13px",
+                    }}
+                  >
+                    {info.features.map(
+                      (feature) => (
+                        <li
+                          key={
+                            feature
+                          }
                           style={{
-                            marginTop:
-                              "24px",
-                          }}
-                        >
-                          {plan ? (
-                            <>
-                              <div
-                                style={{
-                                  display:
-                                    "flex",
-
-                                  alignItems:
-                                    "baseline",
-
-                                  gap: "6px",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    fontSize:
-                                      "38px",
-
-                                    lineHeight:
-                                      1,
-
-                                    fontWeight:
-                                      900,
-
-                                    color:
-                                      "var(--primary-dark)",
-
-                                    letterSpacing:
-                                      "-1.5px",
-                                  }}
-                                >
-                                  {formatPrice(
-                                    plan.amount
-                                  )}
-                                </span>
-
-                                <span
-                                  style={{
-                                    color:
-                                      "var(--muted)",
-
-                                    fontSize:
-                                      "13px",
-
-                                    fontWeight:
-                                      600,
-                                  }}
-                                >
-                                  /{" "}
-                                  {billingInterval ===
-                                  "monthly"
-                                    ? "month"
-                                    : "year"}
-                                </span>
-                              </div>
-
-                              {billingInterval ===
-                                "annual" && (
-                                <div
-                                  style={{
-                                    marginTop:
-                                      "9px",
-
-                                    color:
-                                      "var(--success)",
-
-                                    fontSize:
-                                      "12px",
-
-                                    fontWeight:
-                                      700,
-                                  }}
-                                >
-                                  Billed annually
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div
-                              style={{
-                                color:
-                                  "var(--muted-light)",
-
-                                fontSize:
-                                  "14px",
-                              }}
-                            >
-                              Plan unavailable
-                            </div>
-                          )}
-                        </div>
-
-                        {/* DIVIDER */}
-                        <div
-                          style={{
-                            height:
-                              "1px",
-
-                            background:
-                              "var(--border)",
-
-                            margin:
-                              "26px 0",
-                          }}
-                        />
-
-                        {/* FEATURES */}
-                        <ul
-                          style={{
-                            listStyle:
-                              "none",
-
-                            padding: 0,
-
-                            margin: 0,
-
                             display:
                               "flex",
-
-                            flexDirection:
-                              "column",
-
-                            gap: "13px",
+                            alignItems:
+                              "flex-start",
+                            gap: "10px",
+                            color:
+                              "var(--foreground)",
+                            fontSize:
+                              "14px",
+                            lineHeight:
+                              1.5,
                           }}
                         >
-                          {description.features.map(
-                            (
-                              feature
-                            ) => (
-                              <li
-                                key={
-                                  feature
-                                }
-                                style={{
-                                  display:
-                                    "flex",
-
-                                  alignItems:
-                                    "flex-start",
-
-                                  gap: "10px",
-
-                                  color:
-                                    "var(--muted)",
-
-                                  fontSize:
-                                    "13px",
-
-                                  lineHeight:
-                                    1.5,
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    width:
-                                      "21px",
-
-                                    height:
-                                      "21px",
-
-                                    flexShrink:
-                                      0,
-
-                                    display:
-                                      "flex",
-
-                                    alignItems:
-                                      "center",
-
-                                    justifyContent:
-                                      "center",
-
-                                    borderRadius:
-                                      "50%",
-
-                                    background:
-                                      "var(--primary-light)",
-
-                                    color:
-                                      "var(--primary)",
-
-                                    fontSize:
-                                      "12px",
-
-                                    fontWeight:
-                                      900,
-                                  }}
-                                >
-                                  ✓
-                                </span>
-
-                                <span>
-                                  {
-                                    feature
-                                  }
-                                </span>
-                              </li>
-                            )
-                          )}
-                        </ul>
-
-                        {/* BUTTON */}
-                        <div
-                          style={{
-                            marginTop:
-                              "auto",
-
-                            paddingTop:
-                              "28px",
-                          }}
-                        >
-                          <button
-                            type="button"
-
-                            disabled={
-                              !plan ||
-                              !!processingPlan
-                            }
-
-                            onClick={() => {
-                              if (
-                                plan
-                              ) {
-                                handleSubscribe(
-                                  plan
-                                );
-                              }
-                            }}
-
-                            className="sq-button-primary"
-
+                          <span
                             style={{
+                              flexShrink:
+                                0,
                               width:
-                                "100%",
-
-                              minHeight:
-                                "50px",
-
+                                "21px",
+                              height:
+                                "21px",
+                              borderRadius:
+                                "50%",
+                              background:
+                                "var(--primary-light)",
+                              color:
+                                "var(--primary)",
+                              display:
+                                "inline-flex",
+                              alignItems:
+                                "center",
+                              justifyContent:
+                                "center",
                               fontSize:
-                                "14px",
-
-                              opacity:
-                                processingPlan &&
-                                !isProcessing
-                                  ? 0.6
-                                  : 1,
+                                "11px",
+                              fontWeight:
+                                900,
                             }}
                           >
-                            {isProcessing
-                              ? "Starting payment..."
-                              : "Get Started →"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            )}
+                            ✓
+                          </span>
 
-          {/* BOTTOM NOTE */}
-          <section
-            className="sq-card"
-            style={{
-              marginTop:
-                "30px",
+                          <span>
+                            {
+                              feature
+                            }
+                          </span>
+                        </li>
+                      )
+                    )}
+                  </ul>
 
-              padding:
-                "30px",
-
-              textAlign:
-                "center",
-
-              background:
-                "linear-gradient(135deg, var(--primary-light), var(--white))",
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-
-                fontSize:
-                  "22px",
-
-                fontWeight:
-                  900,
-              }}
-            >
-              One journey. More ways to learn.
-            </h2>
-
-            <p
-              style={{
-                maxWidth:
-                  "650px",
-
-                margin:
-                  "10px auto 0",
-
-                color:
-                  "var(--muted)",
-
-                fontSize:
-                  "14px",
-
-                lineHeight:
-                  1.7,
-              }}
-            >
-              Whether you are learning independently,
-              learning with your family, or building a
-              learning community at school, Sahaba Quest
-              gives you a place to grow your knowledge.
-            </p>
+                  {/* Button */}
+                  <div
+                    style={{
+                      marginTop:
+                        "auto",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      disabled={
+                        !plan ||
+                        processingPlan !==
+                          null
+                      }
+                      onClick={() =>
+                        handleSubscribe(
+                          planType
+                        )
+                      }
+                      className={
+                        plan &&
+                        processingPlan ===
+                          null
+                          ? "sq-button-primary"
+                          : ""
+                      }
+                      style={{
+                        width: "100%",
+                        minHeight:
+                          "48px",
+                        borderRadius:
+                          "14px",
+                        border:
+                          plan &&
+                          processingPlan ===
+                            null
+                            ? "none"
+                            : "1px solid var(--border)",
+                        background:
+                          plan &&
+                          processingPlan ===
+                            null
+                            ? undefined
+                            : "#f1f5f3",
+                        color:
+                          plan &&
+                          processingPlan ===
+                            null
+                            ? undefined
+                            : "var(--muted)",
+                        cursor:
+                          plan &&
+                          processingPlan ===
+                            null
+                            ? "pointer"
+                            : "not-allowed",
+                        fontWeight: 800,
+                        padding:
+                          "0 18px",
+                      }}
+                    >
+                      {isProcessing
+                        ? "Preparing payment..."
+                        : plan
+                          ? `Get ${info.name}`
+                          : "Currently unavailable"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </section>
+        )}
 
-          <footer
+        {/* WHY UPGRADE */}
+        <section
+          className="sq-card"
+          style={{
+            marginTop: "20px",
+            padding: "28px",
+            background:
+              "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
+          }}
+        >
+          <div
             style={{
-              padding:
-                "34px 0 20px",
-
-              textAlign:
-                "center",
-
-              color:
-                "var(--muted-light)",
-
-              fontSize:
-                "12px",
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "20px",
             }}
           >
-            Sahaba Quest — Learn • Remember • Compete
-          </footer>
-        </div>
+            <div>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "14px",
+                  background:
+                    "var(--primary-light)",
+                  color:
+                    "var(--primary)",
+                  display: "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "center",
+                  fontSize: "20px",
+                  fontWeight: 900,
+                }}
+              >
+                📚
+              </div>
+
+              <h3
+                style={{
+                  margin:
+                    "13px 0 6px",
+                  fontSize: "18px",
+                  fontWeight: 900,
+                }}
+              >
+                Learn
+              </h3>
+
+              <p
+                style={{
+                  margin: 0,
+                  color:
+                    "var(--muted)",
+                  fontSize: "13px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Discover meaningful
+                lessons from the lives
+                of the Sahabah.
+              </p>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "14px",
+                  background:
+                    "#fff8df",
+                  color:
+                    "#8a6800",
+                  display: "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "center",
+                  fontSize: "20px",
+                  fontWeight: 900,
+                }}
+              >
+                🏆
+              </div>
+
+              <h3
+                style={{
+                  margin:
+                    "13px 0 6px",
+                  fontSize: "18px",
+                  fontWeight: 900,
+                }}
+              >
+                Compete
+              </h3>
+
+              <p
+                style={{
+                  margin: 0,
+                  color:
+                    "var(--muted)",
+                  fontSize: "13px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Challenge yourself and
+                see your progress on
+                the leaderboard.
+              </p>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "14px",
+                  background:
+                    "#f1f5f3",
+                  color:
+                    "var(--foreground)",
+                  display: "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "center",
+                  fontSize: "20px",
+                  fontWeight: 900,
+                }}
+              >
+                🌱
+              </div>
+
+              <h3
+                style={{
+                  margin:
+                    "13px 0 6px",
+                  fontSize: "18px",
+                  fontWeight: 900,
+                }}
+              >
+                Grow
+              </h3>
+
+              <p
+                style={{
+                  margin: 0,
+                  color:
+                    "var(--muted)",
+                  fontSize: "13px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Build your knowledge
+                consistently, one
+                question at a time.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* PAYMENT NOTICE */}
+        <section
+          style={{
+            marginTop: "20px",
+            padding:
+              "20px 24px",
+            borderRadius: "18px",
+            background:
+              "#f8faf9",
+            border:
+              "1px solid var(--border)",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "13px",
+              fontWeight: 800,
+              color:
+                "var(--foreground)",
+              marginBottom:
+                "5px",
+            }}
+          >
+            🔒 Secure payment
+          </div>
+
+          <p
+            style={{
+              margin: 0,
+              color:
+                "var(--muted)",
+              fontSize: "12px",
+              lineHeight: 1.6,
+            }}
+          >
+            Payments are securely
+            processed through
+            Flutterwave. Sahaba Quest
+            does not store your card
+            details.
+          </p>
+        </section>
+
+        {/* FOOTER */}
+        <footer
+          style={{
+            padding:
+              "28px 0 8px",
+            textAlign: "center",
+            color:
+              "var(--muted-light)",
+            fontSize: "12px",
+          }}
+        >
+          Sahaba Quest • Learn.
+          Remember. Compete.
+        </footer>
       </div>
 
+      {/* MOBILE */}
       <style jsx>{`
-        @media (max-width: 950px) {
-          .pricing-grid {
-            grid-template-columns: 1fr 1fr !important;
+        @media (max-width: 700px) {
+          .sq-container {
+            width: 100%;
           }
         }
 
-        @media (max-width: 650px) {
-          .pricing-grid {
-            grid-template-columns: 1fr !important;
+        @media (max-width: 600px) {
+          .sq-card {
+            border-radius: 18px;
           }
         }
       `}</style>

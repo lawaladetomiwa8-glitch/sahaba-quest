@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { supabaseServer } from "../../../../../lib/supabase-server";
+
+type PlanType = "plus" | "family" | "school";
+type BillingInterval = "monthly" | "annual";
+type Currency = "NGN" | "USD" | "GBP" | "EUR";
 
 export async function POST(request: NextRequest) {
   try {
     // ---------------------------------------------------------
     // 1. Get the user's access token
     // ---------------------------------------------------------
-    const authorization = request.headers.get("authorization");
+    const authorization = request.headers.get(
+      "authorization"
+    );
 
     if (!authorization?.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const accessToken = authorization.replace("Bearer ", "");
+    const accessToken = authorization.replace(
+      "Bearer ",
+      ""
+    );
 
     // ---------------------------------------------------------
     // 2. Verify the logged-in user
@@ -23,12 +36,18 @@ export async function POST(request: NextRequest) {
     const {
       data: { user },
       error: userError,
-    } = await supabaseServer.auth.getUser(accessToken);
+    } = await supabaseServer.auth.getUser(
+      accessToken
+    );
 
     if (userError || !user) {
       return NextResponse.json(
-        { error: "Invalid or expired session" },
-        { status: 401 }
+        {
+          error: "Invalid or expired session",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
@@ -41,74 +60,124 @@ export async function POST(request: NextRequest) {
       plan_type,
       billing_interval,
       currency,
-    } = body;
+    } = body as {
+      plan_type?: PlanType;
+      billing_interval?: BillingInterval;
+      currency?: Currency;
+    };
 
     // ---------------------------------------------------------
-    // 4. Validate payment details
+    // 4. Validate subscription details
     // ---------------------------------------------------------
-    const validPlanTypes = ["plus", "family", "school"];
-    const validBillingIntervals = ["monthly", "annual"];
-    const validCurrencies = ["NGN", "USD", "GBP", "EUR"];
+    const validPlanTypes: PlanType[] = [
+      "plus",
+      "family",
+      "school",
+    ];
 
-    if (!validPlanTypes.includes(plan_type)) {
+    const validBillingIntervals: BillingInterval[] = [
+      "monthly",
+      "annual",
+    ];
+
+    const validCurrencies: Currency[] = [
+      "NGN",
+      "USD",
+      "GBP",
+      "EUR",
+    ];
+
+    if (
+      !plan_type ||
+      !validPlanTypes.includes(plan_type)
+    ) {
       return NextResponse.json(
-        { error: "Invalid subscription plan" },
-        { status: 400 }
+        {
+          error: "Invalid subscription plan",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    if (!validBillingIntervals.includes(billing_interval)) {
+    if (
+      !billing_interval ||
+      !validBillingIntervals.includes(
+        billing_interval
+      )
+    ) {
       return NextResponse.json(
-        { error: "Invalid billing interval" },
-        { status: 400 }
+        {
+          error: "Invalid billing interval",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    if (!validCurrencies.includes(currency)) {
+    if (
+      !currency ||
+      !validCurrencies.includes(currency)
+    ) {
       return NextResponse.json(
-        { error: "Invalid currency" },
-        { status: 400 }
+        {
+          error: "Invalid currency",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     // ---------------------------------------------------------
     // 5. Get the matching subscription plan
     // ---------------------------------------------------------
-    const { data: plan, error: planError } = await supabaseServer
+    const {
+      data: plan,
+      error: planError,
+    } = await supabaseServer
       .from("subscription_plans")
       .select(
-        "id, plan_type, billing_interval, currency, amount, display_name, flutterwave_plan_id"
+        `
+        id,
+        plan_type,
+        billing_interval,
+        currency,
+        amount,
+        display_name,
+        flutterwave_plan_id
+        `
       )
       .eq("plan_type", plan_type)
-      .eq("billing_interval", billing_interval)
+      .eq(
+        "billing_interval",
+        billing_interval
+      )
       .eq("currency", currency)
       .eq("is_active", true)
       .single();
 
     if (planError || !plan) {
-      console.error("Subscription plan error:", planError);
-
-      return NextResponse.json(
-        { error: "Subscription plan not found" },
-        { status: 404 }
+      console.error(
+        "Subscription plan error:",
+        planError
       );
-    }
 
-    // ---------------------------------------------------------
-    // 6. Make sure the plan is connected to Flutterwave
-    // ---------------------------------------------------------
-    if (!plan.flutterwave_plan_id) {
       return NextResponse.json(
         {
           error:
-            "This subscription plan is not connected to Flutterwave yet.",
+            "Subscription plan not found",
         },
-        { status: 500 }
+        {
+          status: 404,
+        }
       );
     }
 
     // ---------------------------------------------------------
-    // 7. Make sure Flutterwave secret key exists
+    // 6. Make sure Flutterwave secret key exists
     // ---------------------------------------------------------
     const flutterwaveSecretKey =
       process.env.FLUTTERWAVE_SECRET_KEY;
@@ -119,69 +188,113 @@ export async function POST(request: NextRequest) {
       );
 
       return NextResponse.json(
-        { error: "Payment configuration error" },
-        { status: 500 }
+        {
+          error:
+            "Payment configuration error",
+        },
+        {
+          status: 500,
+        }
       );
     }
 
     // ---------------------------------------------------------
-    // 8. Generate unique transaction reference
+    // 7. Generate unique transaction reference
     // ---------------------------------------------------------
-    const txRef = `SQ-${Date.now()}-${crypto.randomUUID().slice(
-      0,
-      8
-    )}`;
+    const txRef = `SQ-${Date.now()}-${crypto
+      .randomUUID()
+      .slice(0, 8)}`;
 
     // ---------------------------------------------------------
-    // 9. Convert stored amount to Flutterwave amount
+    // 8. Convert stored amount to Flutterwave amount
     //
-    // NGN is stored directly in naira.
-    // USD / GBP / EUR are stored in cents/pence.
+    // NGN = naira
+    // USD / GBP / EUR = cents/pence
     // ---------------------------------------------------------
-    let flutterwaveAmount = Number(plan.amount);
+    let flutterwaveAmount = Number(
+      plan.amount
+    );
 
     if (currency !== "NGN") {
-      flutterwaveAmount = flutterwaveAmount / 100;
+      flutterwaveAmount =
+        flutterwaveAmount / 100;
+    }
+
+    if (
+      !Number.isFinite(flutterwaveAmount) ||
+      flutterwaveAmount <= 0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid subscription amount",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
     // ---------------------------------------------------------
-    // 10. Create pending payment transaction
+    // 9. Create pending payment transaction
     // ---------------------------------------------------------
-    const { data: paymentTransaction, error: transactionError } =
-      await supabaseServer
-        .from("payment_transactions")
-        .insert({
-          user_id: user.id,
-          plan_id: plan.id,
-          provider: "flutterwave",
-          transaction_reference: txRef,
-          amount: plan.amount,
-          currency: currency,
-          status: "pending",
-          payment_type: "subscription",
-          metadata: {
-            plan_type,
-            billing_interval,
-            flutterwave_plan_id: plan.flutterwave_plan_id,
-          },
-        })
-        .select("id")
-        .single();
+    const {
+      data: paymentTransaction,
+      error: transactionError,
+    } = await supabaseServer
+      .from("payment_transactions")
+      .insert({
+        user_id: user.id,
 
-    if (transactionError || !paymentTransaction) {
+        plan_id: plan.id,
+
+        provider: "flutterwave",
+
+        transaction_reference: txRef,
+
+        amount: plan.amount,
+
+        currency: currency,
+
+        status: "pending",
+
+        payment_type: "subscription",
+
+        metadata: {
+          plan_type,
+          billing_interval,
+
+          payment_mode: "one_time",
+
+          flutterwave_plan_id:
+            plan.flutterwave_plan_id,
+        },
+      })
+      .select("id")
+      .single();
+
+    if (
+      transactionError ||
+      !paymentTransaction
+    ) {
       console.error(
         "Payment transaction creation error:",
         transactionError
       );
 
       return NextResponse.json(
-        { error: "Could not create payment transaction" },
-        { status: 500 }
+        {
+          error:
+            "Could not create payment transaction",
+        },
+        {
+          status: 500,
+        }
       );
     }
 
     // ---------------------------------------------------------
-    // 11. Get application URL
+    // 10. Application URL
     // ---------------------------------------------------------
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
@@ -191,7 +304,7 @@ export async function POST(request: NextRequest) {
       `${appUrl}/payment/flutterwave/callback`;
 
     // ---------------------------------------------------------
-    // 12. Build Flutterwave recurring payment request
+    // 11. Build Flutterwave checkout payload
     // ---------------------------------------------------------
     const payload = {
       tx_ref: txRef,
@@ -202,71 +315,100 @@ export async function POST(request: NextRequest) {
 
       redirect_url: redirectUrl,
 
-      // This connects the first payment to the
-      // recurring Flutterwave Payment Plan.
-      payment_plan: Number(plan.flutterwave_plan_id),
-
-      // Flutterwave Payment Plans currently use card payments.
-      payment_options: "card",
-
       customer: {
-        email: user.email,
+        email:
+          user.email ||
+          "customer@sahabaquest.com",
       },
 
       customizations: {
         title: "Sahaba Quest",
-        description: plan.display_name,
+
+        description:
+          plan.display_name,
+
         logo: `${appUrl}/logo.png`,
       },
 
       meta: {
         user_id: user.id,
+
         plan_id: plan.id,
+
         plan_type: plan.plan_type,
-        billing_interval: plan.billing_interval,
-        flutterwave_plan_id: plan.flutterwave_plan_id,
-        payment_transaction_id: paymentTransaction.id,
+
+        billing_interval:
+          plan.billing_interval,
+
+        payment_mode: "one_time",
+
+        flutterwave_plan_id:
+          plan.flutterwave_plan_id,
+
+        payment_transaction_id:
+          paymentTransaction.id,
       },
+
+      // -------------------------------------------------------
+      // One-time checkout payment methods
+      // -------------------------------------------------------
+      payment_options:
+        currency === "NGN"
+          ? "card,banktransfer,ussd,account"
+          : "card",
     };
 
     // ---------------------------------------------------------
-    // 13. Send payment request to Flutterwave
+    // 12. Send payment request to Flutterwave
     // ---------------------------------------------------------
-    const flutterwaveResponse = await fetch(
-      "https://api.flutterwave.com/v3/payments",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${flutterwaveSecretKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    const flutterwaveResponse =
+      await fetch(
+        "https://api.flutterwave.com/v3/payments",
+        {
+          method: "POST",
+
+          headers: {
+            Authorization:
+              `Bearer ${flutterwaveSecretKey}`,
+
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify(
+            payload
+          ),
+        }
+      );
 
     const flutterwaveData =
       await flutterwaveResponse.json();
 
     // ---------------------------------------------------------
-    // 14. Handle Flutterwave error
+    // 13. Handle Flutterwave error
     // ---------------------------------------------------------
     if (
       !flutterwaveResponse.ok ||
-      flutterwaveData.status !== "success"
+      flutterwaveData.status !==
+        "success"
     ) {
       console.error(
         "Flutterwave initialization error:",
         flutterwaveData
       );
 
-      // Mark our transaction as failed
       await supabaseServer
         .from("payment_transactions")
         .update({
           status: "failed",
-          updated_at: new Date().toISOString(),
+
+          updated_at:
+            new Date().toISOString(),
         })
-        .eq("id", paymentTransaction.id);
+        .eq(
+          "id",
+          paymentTransaction.id
+        );
 
       return NextResponse.json(
         {
@@ -274,12 +416,14 @@ export async function POST(request: NextRequest) {
             flutterwaveData.message ||
             "Could not initialize Flutterwave payment",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
     // ---------------------------------------------------------
-    // 15. Return checkout URL to frontend
+    // 14. Get checkout URL
     // ---------------------------------------------------------
     const checkoutUrl =
       flutterwaveData?.data?.link;
@@ -294,20 +438,40 @@ export async function POST(request: NextRequest) {
         .from("payment_transactions")
         .update({
           status: "failed",
-          updated_at: new Date().toISOString(),
+
+          updated_at:
+            new Date().toISOString(),
         })
-        .eq("id", paymentTransaction.id);
+        .eq(
+          "id",
+          paymentTransaction.id
+        );
 
       return NextResponse.json(
-        { error: "Flutterwave did not return a checkout URL" },
-        { status: 500 }
+        {
+          error:
+            "Flutterwave did not return a checkout URL",
+        },
+        {
+          status: 500,
+        }
       );
     }
 
+    // ---------------------------------------------------------
+    // 15. Return checkout URL
+    // ---------------------------------------------------------
     return NextResponse.json({
       success: true,
-      checkout_url: checkoutUrl,
-      transaction_reference: txRef,
+
+      checkout_url:
+        checkoutUrl,
+
+      transaction_reference:
+        txRef,
+
+      payment_mode:
+        "one_time",
     });
   } catch (error) {
     console.error(
@@ -317,9 +481,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: "An unexpected error occurred while initializing payment",
+        error:
+          "An unexpected error occurred while initializing payment",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
