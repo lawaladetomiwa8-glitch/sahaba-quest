@@ -38,6 +38,95 @@ type SubscriptionQueryResult = {
     | null;
 };
 
+/*
+ * SAHABA QUEST SOCIAL LINKS
+ *
+ * Facebook and Instagram are placeholders for now.
+ * Replace "#" with the real links when they are available.
+ */
+const SOCIAL_LINKS = {
+  instagram: "#",
+  facebook: "#",
+
+  brothersWhatsApp:
+    "https://chat.whatsapp.com/HvS4ao1IsipHW44EbRZjjw?s=cl&p=a&mlu=4&ilr=4",
+
+  sistersWhatsApp:
+    "https://chat.whatsapp.com/GdfMHlXEeP16x95g454o0e?s=cl&p=a&mlu=4&ilr=4",
+};
+
+/*
+ * SOCIAL MEDIA ICONS
+ */
+
+function InstagramIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="5"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+
+      <circle
+        cx="12"
+        cy="12"
+        r="4"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+
+      <circle
+        cx="17.5"
+        cy="6.5"
+        r="1.2"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path d="M14 8h3V4.5c-.5-.1-2-.2-3.7-.2-3.7 0-6.2 2.2-6.2 6.3V14H4v4h3.1v6h3.8v-6h3.2l.5-4h-3.7v-2.9c0-1.2.3-2.1 2.1-2.1Z" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.5 0 .2 5.3.2 11.9c0 2.1.6 4.1 1.6 5.9L0 24l6.4-1.7a11.8 11.8 0 0 0 5.7 1.5h.1c6.6 0 11.8-5.3 11.8-11.9 0-3.2-1.2-6.2-3.5-8.4Zm-8.4 18.2h-.1c-1.8 0-3.6-.5-5.1-1.4l-.4-.2-3.8 1 1-3.7-.2-.4a9.7 9.7 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.7 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.6-.8-2.7-1.5-3.8-3.3-.3-.5.3-.5.8-1.7.1-.2 0-.4 0-.5 0-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.1 3c.1.2 2 3.1 4.8 4.3 1.8.8 2.5.9 3.4.8.5-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.4Z" />
+    </svg>
+  );
+}
+
 export default function DashboardPage() {
   const [profile, setProfile] =
     useState<Profile | null>(null);
@@ -118,12 +207,12 @@ export default function DashboardPage() {
         .from("player_progress")
         .select(
           `
-          current_level,
-          total_xp,
-          questions_answered,
-          correct_answers,
-          current_streak,
-          best_streak
+            current_level,
+            total_xp,
+            questions_answered,
+            correct_answers,
+            current_streak,
+            best_streak
           `
         )
         .eq("user_id", user.id)
@@ -155,12 +244,12 @@ export default function DashboardPage() {
         .from("subscriptions")
         .select(
           `
-          status,
-          current_period_end,
-          subscription_plans (
-            plan_type,
-            display_name
-          )
+            status,
+            current_period_end,
+            subscription_plans (
+              plan_type,
+              display_name
+            )
           `
         )
         .eq("user_id", user.id)
@@ -172,10 +261,6 @@ export default function DashboardPage() {
         .maybeSingle();
 
       if (subscriptionError) {
-        /*
-         * A subscription lookup failure should not
-         * prevent the rest of the dashboard from loading.
-         */
         console.error(
           "Subscription lookup error:",
           subscriptionError
@@ -306,14 +391,6 @@ export default function DashboardPage() {
 
   /*
    * CURRENT LEVEL QUESTION PROGRESS
-   *
-   * A level requires 50 questions.
-   *
-   * We use the player's total answered/correct
-   * values here as the dashboard summary.
-   *
-   * The actual level/session rules remain enforced
-   * by the database quiz function.
    */
   const questionsInCurrentLevel =
     progress.questions_answered % 50;
@@ -596,8 +673,7 @@ export default function DashboardPage() {
             <div
               style={{
                 display: "flex",
-                alignItems:
-                  "flex-start",
+                alignItems: "flex-start",
                 gap: "16px",
               }}
             >
@@ -609,8 +685,7 @@ export default function DashboardPage() {
                   borderRadius: "14px",
                   background:
                     "var(--primary-light)",
-                  color:
-                    "var(--primary)",
+                  color: "var(--primary)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -618,9 +693,7 @@ export default function DashboardPage() {
                   fontWeight: 900,
                 }}
               >
-                {subscription
-                  ? "✓"
-                  : "✦"}
+                {subscription ? "✓" : "✦"}
               </div>
 
               <div>
@@ -630,8 +703,7 @@ export default function DashboardPage() {
 
                 <h2
                   style={{
-                    margin:
-                      "10px 0 5px",
+                    margin: "10px 0 5px",
                     fontSize: "22px",
                     fontWeight: 900,
                   }}
@@ -644,8 +716,7 @@ export default function DashboardPage() {
                 <p
                   style={{
                     margin: 0,
-                    color:
-                      "var(--muted)",
+                    color: "var(--muted)",
                     fontSize: "13px",
                     lineHeight: 1.6,
                   }}
@@ -660,16 +731,13 @@ export default function DashboardPage() {
                     <div
                       style={{
                         marginTop: "8px",
-                        color:
-                          "var(--success)",
+                        color: "var(--success)",
                         fontSize: "12px",
                         fontWeight: 800,
                       }}
                     >
                       Active until{" "}
-                      {
-                        subscriptionEndDate
-                      }
+                      {subscriptionEndDate}
                     </div>
                   )}
               </div>
@@ -682,16 +750,11 @@ export default function DashboardPage() {
                 style={{
                   minHeight: "46px",
                   padding: "0 20px",
-                  display:
-                    "inline-flex",
-                  alignItems:
-                    "center",
-                  justifyContent:
-                    "center",
-                  textDecoration:
-                    "none",
-                  whiteSpace:
-                    "nowrap",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
                 }}
               >
                 View Plans →
@@ -721,10 +784,8 @@ export default function DashboardPage() {
             <div
               style={{
                 display: "flex",
-                justifyContent:
-                  "space-between",
-                alignItems:
-                  "flex-start",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
                 gap: "20px",
               }}
             >
@@ -735,23 +796,19 @@ export default function DashboardPage() {
 
                 <h2
                   style={{
-                    margin:
-                      "16px 0 6px",
+                    margin: "16px 0 6px",
                     fontSize: "24px",
                     fontWeight: 800,
                   }}
                 >
                   Level{" "}
-                  {
-                    progress.current_level
-                  }
+                  {progress.current_level}
                 </h2>
 
                 <p
                   style={{
                     margin: 0,
-                    color:
-                      "var(--muted)",
+                    color: "var(--muted)",
                     lineHeight: 1.6,
                   }}
                 >
@@ -766,13 +823,10 @@ export default function DashboardPage() {
                 style={{
                   fontSize: "34px",
                   fontWeight: 900,
-                  color:
-                    "var(--primary)",
+                  color: "var(--primary)",
                 }}
               >
-                {
-                  progress.total_xp
-                }
+                {progress.total_xp}
               </div>
             </div>
 
@@ -785,8 +839,7 @@ export default function DashboardPage() {
               <div
                 style={{
                   display: "flex",
-                  justifyContent:
-                    "space-between",
+                  justifyContent: "space-between",
                   marginBottom: "9px",
                 }}
               >
@@ -794,8 +847,7 @@ export default function DashboardPage() {
                   style={{
                     fontSize: "13px",
                     fontWeight: 700,
-                    color:
-                      "var(--muted)",
+                    color: "var(--muted)",
                   }}
                 >
                   Level questions
@@ -805,13 +857,10 @@ export default function DashboardPage() {
                   style={{
                     fontSize: "13px",
                     fontWeight: 800,
-                    color:
-                      "var(--primary)",
+                    color: "var(--primary)",
                   }}
                 >
-                  {
-                    questionsInCurrentLevel
-                  }
+                  {questionsInCurrentLevel}
                   /50
                 </span>
               </div>
@@ -835,8 +884,7 @@ export default function DashboardPage() {
               <div
                 style={{
                   display: "flex",
-                  justifyContent:
-                    "space-between",
+                  justifyContent: "space-between",
                   marginBottom: "9px",
                 }}
               >
@@ -844,8 +892,7 @@ export default function DashboardPage() {
                   style={{
                     fontSize: "13px",
                     fontWeight: 700,
-                    color:
-                      "var(--muted)",
+                    color: "var(--muted)",
                   }}
                 >
                   Correct answers needed
@@ -855,13 +902,10 @@ export default function DashboardPage() {
                   style={{
                     fontSize: "13px",
                     fontWeight: 800,
-                    color:
-                      "var(--primary)",
+                    color: "var(--primary)",
                   }}
                 >
-                  {
-                    correctInCurrentLevel
-                  }
+                  {correctInCurrentLevel}
                   /25
                 </span>
               </div>
@@ -890,16 +934,14 @@ export default function DashboardPage() {
                 style={{
                   padding: "16px",
                   borderRadius: "16px",
-                  background:
-                    "#f8faf9",
+                  background: "#f8faf9",
                   border:
                     "1px solid var(--border)",
                 }}
               >
                 <div
                   style={{
-                    color:
-                      "var(--muted)",
+                    color: "var(--muted)",
                     fontSize: "12px",
                     fontWeight: 700,
                   }}
@@ -914,9 +956,7 @@ export default function DashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {
-                    progress.questions_answered
-                  }
+                  {progress.questions_answered}
                 </div>
               </div>
 
@@ -924,16 +964,14 @@ export default function DashboardPage() {
                 style={{
                   padding: "16px",
                   borderRadius: "16px",
-                  background:
-                    "#f8faf9",
+                  background: "#f8faf9",
                   border:
                     "1px solid var(--border)",
                 }}
               >
                 <div
                   style={{
-                    color:
-                      "var(--muted)",
+                    color: "var(--muted)",
                     fontSize: "12px",
                     fontWeight: 700,
                   }}
@@ -948,9 +986,7 @@ export default function DashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {
-                    progress.correct_answers
-                  }
+                  {progress.correct_answers}
                 </div>
               </div>
             </div>
@@ -969,8 +1005,7 @@ export default function DashboardPage() {
 
             <h2
               style={{
-                margin:
-                  "16px 0 18px",
+                margin: "16px 0 18px",
                 fontSize: "24px",
                 fontWeight: 800,
               }}
@@ -995,12 +1030,9 @@ export default function DashboardPage() {
                   color: "white",
                   fontWeight: 800,
                   display: "flex",
-                  alignItems:
-                    "center",
-                  justifyContent:
-                    "space-between",
-                  textDecoration:
-                    "none",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  textDecoration: "none",
                 }}
               >
                 <span>
@@ -1020,12 +1052,9 @@ export default function DashboardPage() {
                   color: "#7c5d00",
                   fontWeight: 800,
                   display: "flex",
-                  alignItems:
-                    "center",
-                  justifyContent:
-                    "space-between",
-                  textDecoration:
-                    "none",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  textDecoration: "none",
                 }}
               >
                 <span>
@@ -1040,18 +1069,13 @@ export default function DashboardPage() {
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
-                  background:
-                    "#f1f5f3",
-                  color:
-                    "var(--foreground)",
+                  background: "#f1f5f3",
+                  color: "var(--foreground)",
                   fontWeight: 800,
                   display: "flex",
-                  alignItems:
-                    "center",
-                  justifyContent:
-                    "space-between",
-                  textDecoration:
-                    "none",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  textDecoration: "none",
                 }}
               >
                 <span>
@@ -1066,18 +1090,13 @@ export default function DashboardPage() {
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
-                  background:
-                    "#f1f5f3",
-                  color:
-                    "var(--foreground)",
+                  background: "#f1f5f3",
+                  color: "var(--foreground)",
                   fontWeight: 800,
                   display: "flex",
-                  alignItems:
-                    "center",
-                  justifyContent:
-                    "space-between",
-                  textDecoration:
-                    "none",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  textDecoration: "none",
                 }}
               >
                 <span>
@@ -1105,8 +1124,7 @@ export default function DashboardPage() {
           <div
             style={{
               display: "flex",
-              justifyContent:
-                "space-between",
+              justifyContent: "space-between",
               alignItems: "center",
               gap: "24px",
               flexWrap: "wrap",
@@ -1122,8 +1140,7 @@ export default function DashboardPage() {
                   fontSize: "13px",
                   fontWeight: 800,
                   letterSpacing: "1px",
-                  textTransform:
-                    "uppercase",
+                  textTransform: "uppercase",
                   opacity: 0.8,
                 }}
               >
@@ -1132,8 +1149,7 @@ export default function DashboardPage() {
 
               <h2
                 style={{
-                  margin:
-                    "10px 0 8px",
+                  margin: "10px 0 8px",
                   fontSize: "26px",
                   fontWeight: 900,
                 }}
@@ -1166,17 +1182,12 @@ export default function DashboardPage() {
                 padding: "0 22px",
                 borderRadius: "14px",
                 background: "white",
-                color:
-                  "var(--primary-dark)",
-                display:
-                  "inline-flex",
-                alignItems:
-                  "center",
-                justifyContent:
-                  "center",
+                color: "var(--primary-dark)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
                 fontWeight: 800,
-                textDecoration:
-                  "none",
+                textDecoration: "none",
               }}
             >
               Start Learning →
@@ -1184,14 +1195,383 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {/* STAY CONNECTED */}
+        <section
+          className="sq-card social-connect-card"
+          style={{
+            marginTop: "20px",
+            padding: "32px",
+            background:
+              "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          {/* DECORATIVE CIRCLE */}
+          <div
+            style={{
+              position: "absolute",
+              right: "-70px",
+              top: "-80px",
+              width: "220px",
+              height: "220px",
+              borderRadius: "50%",
+              background:
+                "var(--primary-light)",
+              opacity: 0.45,
+              pointerEvents: "none",
+            }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <div className="sq-badge">
+              Stay Connected
+            </div>
+
+            <h2
+              style={{
+                margin: "14px 0 8px",
+                fontSize:
+                  "clamp(24px, 4vw, 30px)",
+                fontWeight: 900,
+              }}
+            >
+              Don't miss the next
+              Sahaba episode.
+            </h2>
+
+            <p
+              style={{
+                margin: 0,
+                maxWidth: "720px",
+                color: "var(--muted)",
+                lineHeight: 1.7,
+                fontSize: "15px",
+              }}
+            >
+              Follow Sahaba Quest and join
+              our WhatsApp communities to
+              receive weekly{" "}
+              <strong>
+                Walking with the Sahaba
+              </strong>{" "}
+              episodes, platform updates,
+              new challenges and other
+              important announcements.
+            </p>
+
+            {/* SOCIAL LINKS */}
+            <div
+              className="social-connect-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(4, minmax(0, 1fr))",
+                gap: "14px",
+                marginTop: "24px",
+              }}
+            >
+              {/* INSTAGRAM */}
+              <a
+                href={SOCIAL_LINKS.instagram}
+                onClick={(event) => {
+                  if (
+                    SOCIAL_LINKS.instagram ===
+                    "#"
+                  ) {
+                    event.preventDefault();
+                  }
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-connect-item"
+                style={{
+                  textDecoration: "none",
+                  color: "var(--foreground)",
+                  padding: "20px",
+                  borderRadius: "18px",
+                  border:
+                    "1px solid var(--border)",
+                  background: "white",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: "145px",
+                  transition:
+                    "transform 0.2s ease, box-shadow 0.2s ease",
+                  cursor:
+                    SOCIAL_LINKS.instagram ===
+                    "#"
+                      ? "default"
+                      : "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background:
+                      "var(--primary-light)",
+                    color: "#E1306C",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <InstagramIcon />
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "16px",
+                  }}
+                >
+                  Instagram
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    color: "var(--muted)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Coming soon
+                </div>
+              </a>
+
+              {/* FACEBOOK */}
+              <a
+                href={SOCIAL_LINKS.facebook}
+                onClick={(event) => {
+                  if (
+                    SOCIAL_LINKS.facebook ===
+                    "#"
+                  ) {
+                    event.preventDefault();
+                  }
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-connect-item"
+                style={{
+                  textDecoration: "none",
+                  color: "var(--foreground)",
+                  padding: "20px",
+                  borderRadius: "18px",
+                  border:
+                    "1px solid var(--border)",
+                  background: "white",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: "145px",
+                  transition:
+                    "transform 0.2s ease, box-shadow 0.2s ease",
+                  cursor:
+                    SOCIAL_LINKS.facebook ===
+                    "#"
+                      ? "default"
+                      : "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background:
+                      "var(--primary-light)",
+                    color: "#1877F2",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <FacebookIcon />
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "16px",
+                  }}
+                >
+                  Facebook
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    color: "var(--muted)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Coming soon
+                </div>
+              </a>
+
+              {/* BROTHERS WHATSAPP */}
+              <a
+                href={
+                  SOCIAL_LINKS.brothersWhatsApp
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-connect-item"
+                style={{
+                  textDecoration: "none",
+                  color: "var(--foreground)",
+                  padding: "20px",
+                  borderRadius: "18px",
+                  border:
+                    "1px solid var(--border)",
+                  background: "white",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: "145px",
+                  transition:
+                    "transform 0.2s ease, box-shadow 0.2s ease",
+                }}
+              >
+                <div
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background:
+                      "var(--primary-light)",
+                    color: "#25D366",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <WhatsAppIcon />
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "16px",
+                  }}
+                >
+                  Brothers' Group
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    color: "var(--muted)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Join for weekly
+                  episodes & updates →
+                </div>
+              </a>
+
+              {/* SISTERS WHATSAPP */}
+              <a
+                href={
+                  SOCIAL_LINKS.sistersWhatsApp
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-connect-item"
+                style={{
+                  textDecoration: "none",
+                  color: "var(--foreground)",
+                  padding: "20px",
+                  borderRadius: "18px",
+                  border:
+                    "1px solid var(--border)",
+                  background: "white",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: "145px",
+                  transition:
+                    "transform 0.2s ease, box-shadow 0.2s ease",
+                }}
+              >
+                <div
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background:
+                      "var(--primary-light)",
+                    color: "#25D366",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <WhatsAppIcon />
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "16px",
+                  }}
+                >
+                  Sisters' Group
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    color: "var(--muted)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Join for weekly
+                  episodes & updates →
+                </div>
+              </a>
+            </div>
+
+            {/* WEEKLY EPISODE MESSAGE */}
+            <div
+              style={{
+                marginTop: "18px",
+                padding: "15px 18px",
+                borderRadius: "15px",
+                background:
+                  "var(--primary-light)",
+                color: "var(--primary-dark)",
+                fontSize: "13px",
+                lineHeight: 1.6,
+                fontWeight: 700,
+              }}
+            >
+              📖 New Sahaba episode every
+              week — stay connected so you
+              don't miss it.
+            </div>
+          </div>
+        </section>
+
         {/* FOOTER */}
         <footer
           style={{
-            padding:
-              "28px 0 8px",
+            padding: "28px 0 8px",
             textAlign: "center",
-            color:
-              "var(--muted-light)",
+            color: "var(--muted-light)",
             fontSize: "12px",
           }}
         >
@@ -1202,6 +1582,19 @@ export default function DashboardPage() {
 
       {/* RESPONSIVE DASHBOARD FIX */}
       <style jsx>{`
+        .social-connect-item:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 25px
+            rgba(15, 118, 110, 0.08);
+        }
+
+        @media (max-width: 1000px) {
+          .social-connect-grid {
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
         @media (max-width: 800px) {
           .dashboard-main-grid {
             grid-template-columns: 1fr !important;
@@ -1244,6 +1637,19 @@ export default function DashboardPage() {
             .sq-card
             p {
             max-width: 100% !important;
+          }
+
+          .social-connect-card {
+            padding: 22px !important;
+          }
+
+          .social-connect-grid {
+            grid-template-columns:
+              1fr !important;
+          }
+
+          .social-connect-item {
+            min-height: 120px !important;
           }
         }
       `}</style>
