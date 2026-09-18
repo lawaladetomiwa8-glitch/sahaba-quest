@@ -8,9 +8,9 @@ import { AppNavbar } from "../../components/ui";
 type Challenge = {
   id: string;
   title: string;
-  description: string;
-  icon: string;
-  challenge_type: string;
+  description: string | null;
+  icon: string | null;
+  challenge_type: string | null;
   question_count: number;
   time_per_question: number;
   is_premium: boolean;
@@ -38,13 +38,12 @@ export default function ChallengesPage() {
   const [attempts, setAttempts] = useState<
     Record<string, ChallengeAttempt>
   >({});
-
   const [isPremium, setIsPremium] = useState(false);
 
   const [loading, setLoading] = useState(true);
-  const [startingChallenge, setStartingChallenge] =
-    useState<string | null>(null);
-
+  const [startingChallenge, setStartingChallenge] = useState<string | null>(
+    null
+  );
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -52,126 +51,137 @@ export default function ChallengesPage() {
   }, []);
 
   async function loadChallenges() {
+    setLoading(true);
+    setErrorMessage("");
+
     try {
-      setLoading(true);
-      setErrorMessage("");
-
-      // ----------------------------------------
-      // GET CURRENT USER
-      // ----------------------------------------
-
       const {
         data: { user: currentUser },
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (currentUser) {
-        setUser({
-          id: currentUser.id,
-        });
+      if (userError || !currentUser) {
+        window.location.href = "/login";
+        return;
+      }
 
-        // --------------------------------------
-        // CHECK ACTIVE SUBSCRIPTION
-        // --------------------------------------
+      setUser({
+        id: currentUser.id,
+      });
 
-        const { data: subscriptionData, error: subscriptionError } =
-          await supabase
-            .from("subscriptions")
-            .select(
-              `
-                status,
-                current_period_end,
-                subscription_plans (
-                  plan_type,
-                  display_name
-                )
-              `
-            )
-            .eq("user_id", currentUser.id)
-            .eq("status", "active")
-            .order("current_period_end", {
-              ascending: false,
-            })
-            .limit(1)
-            .maybeSingle();
+      /*
+       * ---------------------------------------------------------
+       * CHECK PREMIUM SUBSCRIPTION
+       * ---------------------------------------------------------
+       */
 
-        if (!subscriptionError && subscriptionData) {
-          const plan = Array.isArray(
-            subscriptionData.subscription_plans
-          )
-            ? subscriptionData.subscription_plans[0]
-            : subscriptionData.subscription_plans;
-
-          const subscriptionIsActive =
-            subscriptionData.status === "active" &&
-            (!subscriptionData.current_period_end ||
-              new Date(subscriptionData.current_period_end) >
-                new Date());
-
-          const premiumPlan =
-            plan?.plan_type === "plus" ||
-            plan?.plan_type === "family" ||
-            plan?.plan_type === "school";
-
-          setIsPremium(
-            subscriptionIsActive && premiumPlan
-          );
-        }
-
-        // --------------------------------------
-        // LOAD USER'S CHALLENGE ATTEMPTS
-        // --------------------------------------
-
-        const {
-          data: attemptData,
-          error: attemptError,
-        } = await supabase
-          .from("challenge_attempts")
+      const { data: subscriptionData, error: subscriptionError } =
+        await supabase
+          .from("subscriptions")
           .select(
             `
               id,
-              challenge_id,
-              questions_answered,
-              correct_answers,
-              score,
               status,
-              passed
+              current_period_end,
+              subscription_plans (
+                plan_type
+              )
             `
           )
-          .eq("user_id", currentUser.id);
+          .eq("user_id", currentUser.id)
+          .eq("status", "active")
+          .order("current_period_end", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (attemptError) {
-          console.error(
-            "Error loading challenge attempts:",
-            attemptError
-          );
-        } else {
-          const attemptMap: Record<
-            string,
-            ChallengeAttempt
-          > = {};
-
-          (attemptData || []).forEach((attempt) => {
-            attemptMap[attempt.challenge_id] = attempt;
-          });
-
-          setAttempts(attemptMap);
-        }
+      if (subscriptionError) {
+        console.error(
+          "Failed to load subscription:",
+          subscriptionError
+        );
       }
 
-      // ----------------------------------------
-      // LOAD CHALLENGES
-      // ----------------------------------------
+      let premium = false;
 
-      const {
-        data: challengeData,
-        error: challengeError,
-      } = await supabase
-        .from("challenges")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order", {
-          ascending: true,
-        });
+      if (subscriptionData) {
+        const planData = Array.isArray(
+          subscriptionData.subscription_plans
+        )
+          ? subscriptionData.subscription_plans[0]
+          : subscriptionData.subscription_plans;
+
+        const planType = planData?.plan_type;
+
+        premium =
+          planType === "plus" ||
+          planType === "family" ||
+          planType === "school";
+      }
+
+      setIsPremium(premium);
+
+      /*
+       * ---------------------------------------------------------
+       * LOAD USER CHALLENGE ATTEMPTS
+       * ---------------------------------------------------------
+       *
+       * challenge_attempts DOES NOT have created_at.
+       */
+
+      const { data: attemptData, error: attemptError } = await supabase
+        .from("challenge_attempts")
+        .select(
+          `
+            id,
+            challenge_id,
+            questions_answered,
+            correct_answers,
+            score,
+            status,
+            passed
+          `
+        )
+        .eq("user_id", currentUser.id);
+
+      if (attemptError) {
+        console.error("Failed to load attempts:", attemptError);
+      }
+
+      const attemptMap: Record<string, ChallengeAttempt> = {};
+
+      (attemptData || []).forEach((attempt) => {
+        if (!attemptMap[attempt.challenge_id]) {
+          attemptMap[attempt.challenge_id] = attempt;
+        }
+      });
+
+      setAttempts(attemptMap);
+
+      /*
+       * ---------------------------------------------------------
+       * LOAD ACTIVE CHALLENGES
+       * ---------------------------------------------------------
+       */
+
+      const { data: challengeData, error: challengeError } =
+        await supabase
+          .from("challenges")
+          .select(
+            `
+              id,
+              title,
+              description,
+              icon,
+              challenge_type,
+              question_count,
+              time_per_question,
+              is_premium,
+              is_active,
+              sort_order
+            `
+          )
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true });
 
       if (challengeError) {
         throw challengeError;
@@ -179,68 +189,87 @@ export default function ChallengesPage() {
 
       setChallenges(challengeData || []);
     } catch (error) {
-      console.error(
-        "Error loading challenges:",
-        error
-      );
+      console.error("Error loading challenges:", error);
 
       setErrorMessage(
-        "We couldn't load the challenges right now. Please refresh the page and try again."
+        "We couldn't load the challenges right now. Please try again."
       );
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleStartChallenge(
-    challenge: Challenge
-  ) {
-    setErrorMessage("");
+  /*
+   * ---------------------------------------------------------
+   * SCROLL TO CHALLENGES
+   * ---------------------------------------------------------
+   */
 
-    // ----------------------------------------
-    // NOT LOGGED IN
-    // ----------------------------------------
+  function scrollToChallenges() {
+    const section = document.getElementById(
+      "available-challenges"
+    );
 
+    if (section) {
+      section.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * START CHALLENGE
+   * ---------------------------------------------------------
+   */
+
+  async function handleStartChallenge(challenge: Challenge) {
     if (!user) {
       window.location.href = "/login";
       return;
     }
 
-    // ----------------------------------------
-    // FRONTEND PREMIUM CHECK
-    // ----------------------------------------
+    /*
+     * Completed challenges cannot be retaken.
+     *
+     * Their result is viewed through the result button instead.
+     */
 
-    if (challenge.is_premium && !isPremium) {
-      window.location.href = "/pricing";
+    const existingAttempt = attempts[challenge.id];
+
+    if (existingAttempt?.status === "completed") {
       return;
     }
 
+    setErrorMessage("");
+    setStartingChallenge(challenge.id);
+
     try {
-      setStartingChallenge(challenge.id);
+      /*
+       * Premium challenge protection
+       */
 
-      // --------------------------------------
-      // SECURE SERVER-SIDE CHECK
-      // --------------------------------------
+      if (challenge.is_premium && !isPremium) {
+        window.location.href = "/pricing";
+        return;
+      }
 
-      const { data, error } = await supabase.rpc(
-        "start_challenge",
-        {
-          p_challenge_id: challenge.id,
-        }
-      );
+      /*
+       * Start challenge using Supabase RPC
+       */
+
+      const { data, error } = await supabase.rpc("start_challenge", {
+        p_challenge_id: challenge.id,
+      });
 
       if (error) {
-        console.error(
-          "Start challenge error:",
-          error
-        );
+        console.error("Failed to start challenge:", error);
 
         if (
           error.message
             ?.toLowerCase()
-            .includes(
-              "premium subscription required"
-            )
+            .includes("premium subscription required")
         ) {
           window.location.href = "/pricing";
           return;
@@ -250,827 +279,1886 @@ export default function ChallengesPage() {
       }
 
       if (!data?.success) {
-        throw new Error(
-          "Unable to start challenge."
+        setErrorMessage(
+          data?.message ||
+            "We couldn't start this challenge. Please try again."
         );
-      }
-
-      // --------------------------------------
-      // UPDATE LOCAL ATTEMPT STATE
-      // --------------------------------------
-
-      setAttempts((previous) => ({
-        ...previous,
-        [challenge.id]: {
-          id: data.attempt_id,
-          challenge_id: challenge.id,
-          questions_answered:
-            data.questions_answered ?? 0,
-          correct_answers:
-            data.correct_answers ?? 0,
-          score: data.score ?? 0,
-          status:
-            data.status === "completed"
-              ? "completed"
-              : "in_progress",
-          passed:
-            data.passed ?? null,
-        },
-      }));
-
-      // --------------------------------------
-      // COMPLETED CHALLENGE
-      // --------------------------------------
-
-      if (
-        data.action === "completed" ||
-        data.status === "completed"
-      ) {
-        window.location.href =
-          `/challenges/${challenge.id}/result?attempt=${data.attempt_id}`;
 
         return;
       }
 
-      // --------------------------------------
-      // NEW OR RESUMED CHALLENGE
-      // --------------------------------------
+      /*
+       * Save returned attempt locally
+       */
 
-      window.location.href =
-        `/challenges/${challenge.id}?attempt=${data.attempt_id}`;
+      if (data.attempt_id) {
+        setAttempts((previous) => ({
+          ...previous,
+          [challenge.id]: {
+            id: data.attempt_id,
+            challenge_id: challenge.id,
+            questions_answered: data.questions_answered || 0,
+            correct_answers: data.correct_answers || 0,
+            score: data.score || 0,
+            status:
+              data.status === "completed"
+                ? "completed"
+                : "in_progress",
+            passed:
+              typeof data.passed === "boolean"
+                ? data.passed
+                : null,
+          },
+        }));
+      }
+
+      /*
+       * If the RPC discovers an already-completed challenge,
+       * send the player to their saved result.
+       */
+
+      if (data.status === "completed") {
+        window.location.href =
+          `/challenges/${challenge.id}/result?attempt=${data.attempt_id}`;
+      } else {
+        window.location.href =
+          `/challenges/${challenge.id}?attempt=${data.attempt_id}`;
+      }
     } catch (error) {
-      console.error(
-        "Challenge start failed:",
-        error
-      );
+      console.error("Challenge start error:", error);
 
       setErrorMessage(
-        "We couldn't start this challenge. Please try again."
+        "Something went wrong while starting the challenge. Please try again."
       );
     } finally {
       setStartingChallenge(null);
     }
   }
 
+  /*
+   * ---------------------------------------------------------
+   * VIEW SAVED RESULT
+   * ---------------------------------------------------------
+   */
+
+  function viewChallengeResult(
+    challengeId: string,
+    attemptId: string
+  ) {
+    window.location.href =
+      `/challenges/${challengeId}/result?attempt=${attemptId}`;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * HELPER FUNCTIONS
+   * ---------------------------------------------------------
+   */
+
+  function getChallengeAttempt(challengeId: string) {
+    return attempts[challengeId];
+  }
+
+  function getProgressPercentage(attempt: ChallengeAttempt) {
+    const challenge = challenges.find(
+      (item) => item.id === attempt.challenge_id
+    );
+
+    if (!challenge || challenge.question_count === 0) {
+      return 0;
+    }
+
+    return Math.min(
+      100,
+      Math.round(
+        (attempt.questions_answered / challenge.question_count) * 100
+      )
+    );
+  }
+
+  /*
+   * Determine whether a completed challenge was passed.
+   *
+   * Passing requirement:
+   * 50% or higher.
+   *
+   * We use the saved `passed` value when available.
+   * For older records where passed is null, we calculate it.
+   */
+
+  function getPassedStatus(
+    attempt: ChallengeAttempt,
+    challenge: Challenge
+  ) {
+    if (typeof attempt.passed === "boolean") {
+      return attempt.passed;
+    }
+
+    if (challenge.question_count <= 0) {
+      return false;
+    }
+
+    const percentage =
+      (attempt.correct_answers / challenge.question_count) * 100;
+
+    return percentage >= 50;
+  }
+
+  function formatChallengeType(type: string | null) {
+    if (!type) return "Challenge";
+
+    return type
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  function formatTime(seconds: number) {
+    if (seconds < 60) {
+      return `${seconds}s/question`;
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    if (remainingSeconds === 0) {
+      return `${minutes}m/question`;
+    }
+
+    return `${minutes}m ${remainingSeconds}s/question`;
+  }
+
+  const completedCount = challenges.filter(
+    (challenge) =>
+      getChallengeAttempt(challenge.id)?.status === "completed"
+  ).length;
+
+  const inProgressCount = challenges.filter(
+    (challenge) =>
+      getChallengeAttempt(challenge.id)?.status === "in_progress"
+  ).length;
+
+  const timedCount = challenges.filter(
+    (challenge) => challenge.time_per_question > 0
+  ).length;
+
+  /*
+   * ---------------------------------------------------------
+   * PAGE
+   * ---------------------------------------------------------
+   */
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "var(--background)",
-      }}
-    >
-      <AppNavbar />
+    <main className="sq-page">
+      <div className="sq-container">
 
-      <div className="sq-page">
-        <div className="sq-container">
+        {/* NAVBAR */}
 
-          {/* HEADER */}
+        <div className="navbar-wrap">
+          <AppNavbar />
+        </div>
 
-          <section style={{ marginBottom: "32px" }}>
-            <span className="sq-badge">
-              Compete & grow
-            </span>
+        {/* HERO */}
 
-            <h1
-              className="sq-title"
-              style={{ marginTop: "16px" }}
-            >
-              Challenges 🏆
+        <section className="hero-card">
+          <div className="hero-content">
+            <div className="sq-badge">
+              <span>🏆</span>
+              Challenge Arena
+            </div>
+
+            <h1>
+              Test your knowledge.
+              <br />
+              <span>Push yourself further.</span>
             </h1>
 
-            <p
-              className="sq-subtitle"
-              style={{
-                maxWidth: "680px",
-              }}
-            >
-              Take on special challenges, test your
-              Sahaba knowledge, and unlock new ways
-              to compete and learn.
+            <p>
+              Take on focused Sahaba challenges, race against the clock,
+              build your score, and discover how much you really know.
             </p>
-          </section>
 
-
-          {/* PREMIUM BANNER */}
-
-          {!isPremium && (
-            <section
-              className="sq-card"
-              style={{
-                marginBottom: "28px",
-                padding: "22px 24px",
-                border:
-                  "1px solid var(--secondary-light)",
-                background:
-                  "linear-gradient(135deg, var(--secondary-light), var(--background))",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "18px",
-                  flexWrap: "wrap",
-                }}
+            <div className="hero-actions">
+              <button
+                type="button"
+                onClick={scrollToChallenges}
+                className="primary-btn"
               >
-                <div>
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 900,
-                      color: "#8a6a08",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                    }}
-                  >
-                    Premium Challenges
-                  </div>
-
-                  <h2
-                    style={{
-                      margin: "6px 0 5px",
-                      fontSize: "20px",
-                      fontWeight: 800,
-                    }}
-                  >
-                    Unlock the full Challenge Arena
-                  </h2>
-
-                  <p
-                    style={{
-                      margin: 0,
-                      color: "var(--muted)",
-                      fontSize: "13px",
-                      lineHeight: 1.6,
-                      maxWidth: "650px",
-                    }}
-                  >
-                    You can preview the challenges below
-                    for free. Upgrade your account to
-                    access Premium challenges and start
-                    competing.
-                  </p>
-                </div>
-
-                <Link
-                  href="/pricing"
-                  className="sq-button-primary"
-                  style={{
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  View Premium →
-                </Link>
-              </div>
-            </section>
-          )}
-
-
-          {/* ERROR */}
-
-          {errorMessage && (
-            <div
-              className="sq-card"
-              style={{
-                marginBottom: "24px",
-                padding: "16px 18px",
-                border:
-                  "1px solid var(--danger)",
-                color: "var(--danger)",
-                background:
-                  "var(--danger-light)",
-              }}
-            >
-              {errorMessage}
+                Explore Challenges
+                <span>→</span>
+              </button>
             </div>
-          )}
+          </div>
 
+          <div className="hero-visual">
+            <div className="hero-circle circle-one"></div>
+            <div className="hero-circle circle-two"></div>
 
-          {/* FEATURED CHALLENGE */}
+            <div className="trophy-card">
+              <div className="trophy-icon">🏆</div>
 
-          <section
-            className="sq-card"
-            style={{
-              padding: "32px",
-              marginBottom: "32px",
-              background:
-                "linear-gradient(135deg, var(--primary-dark), var(--primary))",
-              color: "white",
-              border: "none",
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                width: "240px",
-                height: "240px",
-                borderRadius: "50%",
-                background:
-                  "rgba(255,255,255,0.06)",
-                right: "-80px",
-                top: "-100px",
-              }}
-            />
-
-            <div
-              style={{
-                position: "relative",
-                maxWidth: "720px",
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: "7px 12px",
-                  borderRadius: "999px",
-                  background:
-                    "rgba(255,255,255,0.12)",
-                  color:
-                    "rgba(255,255,255,0.9)",
-                  fontSize: "11px",
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.6px",
-                }}
-              >
-                Challenge Arena
-              </span>
-
-              <h2
-                style={{
-                  margin: "18px 0 10px",
-                  fontSize: "30px",
-                  lineHeight: 1.2,
-                  fontWeight: 900,
-                }}
-              >
-                Test what you know. Push yourself
-                further.
-              </h2>
-
-              <p
-                style={{
-                  margin: 0,
-                  color:
-                    "rgba(255,255,255,0.8)",
-                  fontSize: "15px",
-                  lineHeight: 1.7,
-                }}
-              >
-                Challenges are designed to take your
-                Sahaba knowledge beyond ordinary quiz
-                sessions. More focused topics,
-                different time limits, and special
-                competitions will make every challenge
-                different.
-              </p>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "10px",
-                  marginTop: "24px",
-                }}
-              >
-                <span
-                  style={{
-                    padding: "9px 13px",
-                    borderRadius: "10px",
-                    background:
-                      "rgba(255,255,255,0.1)",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                  }}
-                >
-                  🏆 Competitions
-                </span>
-
-                <span
-                  style={{
-                    padding: "9px 13px",
-                    borderRadius: "10px",
-                    background:
-                      "rgba(255,255,255,0.1)",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                  }}
-                >
-                  ⚡ Speed
-                </span>
-
-                <span
-                  style={{
-                    padding: "9px 13px",
-                    borderRadius: "10px",
-                    background:
-                      "rgba(255,255,255,0.1)",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                  }}
-                >
-                  🕌 Sahabah
-                </span>
-
-                <span
-                  style={{
-                    padding: "9px 13px",
-                    borderRadius: "10px",
-                    background:
-                      "rgba(255,255,255,0.1)",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                  }}
-                >
-                  🔥 Special Quests
-                </span>
+              <div>
+                <strong>Challenge Mode</strong>
+                <span>Learn. Compete. Improve.</span>
               </div>
             </div>
-          </section>
 
+            <div className="floating-card floating-card-one">
+              <span>⚡</span>
 
-          {/* CHALLENGE LIST */}
-
-          <section>
-            <div
-              style={{
-                marginBottom: "18px",
-              }}
-            >
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "24px",
-                  fontWeight: 800,
-                }}
-              >
-                Available Challenges
-              </h2>
-
-              <p
-                style={{
-                  margin: "6px 0 0",
-                  color: "var(--muted)",
-                  fontSize: "14px",
-                }}
-              >
-                {isPremium
-                  ? "Your Premium access is active. Choose a challenge and begin."
-                  : "Preview the challenges below. Premium challenges require an active subscription."}
-              </p>
+              <div>
+                <strong>Speed</strong>
+                <small>Think fast</small>
+              </div>
             </div>
 
+            <div className="floating-card floating-card-two">
+              <span>🎯</span>
 
-            {loading ? (
-              <div
-                className="sq-card"
-                style={{
-                  padding: "40px",
-                  textAlign: "center",
-                  color: "var(--muted)",
-                }}
-              >
-                Loading challenges...
+              <div>
+                <strong>Accuracy</strong>
+                <small>Know your deen</small>
               </div>
-            ) : (
-              <div
-                className="challenge-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(3, 1fr)",
-                  gap: "18px",
-                }}
-              >
-                {challenges.map(
-                  (challenge) => {
-                    const locked =
-                      challenge.is_premium &&
-                      !isPremium;
+            </div>
+          </div>
+        </section>
 
-                    const starting =
-                      startingChallenge ===
-                      challenge.id;
+        {/* STATS */}
 
-                    const attempt =
-                      attempts[challenge.id];
+        <section className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">🏆</div>
 
-                    const hasAttempt =
-                      !!attempt;
-
-                    const isCompleted =
-                      attempt?.status ===
-                      "completed";
-
-                    const hasProgress =
-                      attempt?.status ===
-                        "in_progress" &&
-                      attempt.questions_answered >
-                        0;
-
-                    let buttonText =
-                      "Start Challenge →";
-
-                    if (isCompleted) {
-                      buttonText =
-                        "View Results →";
-                    } else if (hasProgress) {
-                      buttonText =
-                        "Resume Challenge →";
-                    }
-
-                    return (
-                      <div
-                        key={challenge.id}
-                        className="sq-card"
-                        style={{
-                          padding: "24px",
-                          display: "flex",
-                          flexDirection:
-                            "column",
-                          minHeight: "290px",
-                          position:
-                            "relative",
-                          overflow:
-                            "hidden",
-                        }}
-                      >
-
-                        {/* LOCK */}
-
-                        {locked && (
-                          <div
-                            style={{
-                              position:
-                                "absolute",
-                              top: "16px",
-                              right: "16px",
-                              padding:
-                                "6px 9px",
-                              borderRadius:
-                                "999px",
-                              background:
-                                "var(--secondary-light)",
-                              color:
-                                "#8a6a08",
-                              fontSize:
-                                "10px",
-                              fontWeight:
-                                900,
-                            }}
-                          >
-                            🔒 PREMIUM
-                          </div>
-                        )}
-
-
-                        {/* ICON */}
-
-                        <div
-                          style={{
-                            width: "54px",
-                            height: "54px",
-                            borderRadius:
-                              "16px",
-                            background:
-                              "var(--primary-light)",
-                            display:
-                              "flex",
-                            alignItems:
-                              "center",
-                            justifyContent:
-                              "center",
-                            fontSize: "26px",
-                          }}
-                        >
-                          {challenge.icon}
-                        </div>
-
-
-                        {/* TYPE */}
-
-                        <div
-                          style={{
-                            display:
-                              "flex",
-                            alignItems:
-                              "center",
-                            gap: "8px",
-                            marginTop:
-                              "20px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              color:
-                                "var(--muted)",
-                              fontSize:
-                                "11px",
-                              fontWeight:
-                                800,
-                              textTransform:
-                                "uppercase",
-                              letterSpacing:
-                                "0.6px",
-                            }}
-                          >
-                            {
-                              challenge.challenge_type
-                            }
-                          </span>
-
-                          {/* IN PROGRESS BADGE */}
-
-                          {hasProgress && (
-                            <span
-                              style={{
-                                padding:
-                                  "4px 7px",
-                                borderRadius:
-                                  "999px",
-                                background:
-                                  "var(--primary-light)",
-                                color:
-                                  "var(--primary-dark)",
-                                fontSize:
-                                  "9px",
-                                fontWeight:
-                                  900,
-                                textTransform:
-                                  "uppercase",
-                              }}
-                            >
-                              In Progress
-                            </span>
-                          )}
-
-                          {/* COMPLETED BADGE */}
-
-                          {isCompleted && (
-                            <span
-                              style={{
-                                padding:
-                                  "4px 7px",
-                                borderRadius:
-                                  "999px",
-                                background:
-                                  attempt.passed
-                                    ? "var(--primary-light)"
-                                    : "var(--danger-light)",
-                                color:
-                                  attempt.passed
-                                    ? "var(--primary-dark)"
-                                    : "var(--danger)",
-                                fontSize:
-                                  "9px",
-                                fontWeight:
-                                  900,
-                                textTransform:
-                                  "uppercase",
-                              }}
-                            >
-                              {attempt.passed
-                                ? "Completed"
-                                : "Finished"}
-                            </span>
-                          )}
-                        </div>
-
-
-                        {/* TITLE */}
-
-                        <h3
-                          style={{
-                            margin:
-                              "12px 0 8px",
-                            fontSize:
-                              "19px",
-                            fontWeight:
-                              800,
-                          }}
-                        >
-                          {
-                            challenge.title
-                          }
-                        </h3>
-
-
-                        {/* DESCRIPTION */}
-
-                        <p
-                          style={{
-                            margin: 0,
-                            color:
-                              "var(--muted)",
-                            fontSize:
-                              "14px",
-                            lineHeight:
-                              1.6,
-                          }}
-                        >
-                          {
-                            challenge.description
-                          }
-                        </p>
-
-
-                        {/* DETAILS */}
-
-                        <div
-                          style={{
-                            display:
-                              "flex",
-                            flexWrap:
-                              "wrap",
-                            gap: "8px",
-                            marginTop:
-                              "16px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              padding:
-                                "6px 9px",
-                              borderRadius:
-                                "8px",
-                              background:
-                                "var(--muted-light)",
-                              color:
-                                "var(--foreground)",
-                              fontSize:
-                                "11px",
-                              fontWeight:
-                                700,
-                            }}
-                          >
-                            {
-                              challenge.question_count
-                            }{" "}
-                            Questions
-                          </span>
-
-                          <span
-                            style={{
-                              padding:
-                                "6px 9px",
-                              borderRadius:
-                                "8px",
-                              background:
-                                "var(--muted-light)",
-                              color:
-                                "var(--foreground)",
-                              fontSize:
-                                "11px",
-                              fontWeight:
-                                700,
-                            }}
-                          >
-                            {
-                              challenge.time_per_question
-                            }
-                            s each
-                          </span>
-
-                          {/* PROGRESS */}
-
-                          {hasAttempt &&
-                            !locked &&
-                            !isCompleted && (
-                              <span
-                                style={{
-                                  padding:
-                                    "6px 9px",
-                                  borderRadius:
-                                    "8px",
-                                  background:
-                                    "var(--primary-light)",
-                                  color:
-                                    "var(--primary-dark)",
-                                  fontSize:
-                                    "11px",
-                                  fontWeight:
-                                    800,
-                                }}
-                              >
-                                {
-                                  attempt.questions_answered
-                                }
-                                /
-                                {
-                                  challenge.question_count
-                                }{" "}
-                                answered
-                              </span>
-                            )}
-                        </div>
-
-
-                        {/* ACTION */}
-
-                        <button
-                          onClick={() =>
-                            handleStartChallenge(
-                              challenge
-                            )
-                          }
-                          disabled={starting}
-                          className={
-                            locked
-                              ? "sq-button-secondary"
-                              : "sq-button-primary"
-                          }
-                          style={{
-                            width: "100%",
-                            marginTop:
-                              "auto",
-                            cursor: starting
-                              ? "wait"
-                              : "pointer",
-                          }}
-                        >
-                          {starting
-                            ? "Loading..."
-                            : locked
-                            ? "🔒 Upgrade to Access"
-                            : buttonText}
-                        </button>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            )}
-          </section>
-
-
-          {/* BACK TO PLAY */}
-
-          <section
-            className="sq-card"
-            style={{
-              marginTop: "28px",
-              padding: "24px",
-              display: "flex",
-              alignItems:
-                "center",
-              justifyContent:
-                "space-between",
-              gap: "20px",
-              flexWrap: "wrap",
-            }}
-          >
             <div>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "18px",
-                  fontWeight: 800,
-                }}
-              >
-                Want to keep learning?
-              </h3>
+              <span>Active Challenges</span>
+              <strong>{challenges.length}</strong>
+            </div>
+          </div>
 
-              <p
-                style={{
-                  margin:
-                    "5px 0 0",
-                  color:
-                    "var(--muted)",
-                  fontSize: "13px",
-                }}
-              >
-                Continue your regular Sahaba
-                Quest journey while exploring the
-                Challenge Arena.
+          <div className="stat-card">
+            <div className="stat-icon">⚡</div>
+
+            <div>
+              <span>In Progress</span>
+              <strong>{inProgressCount}</strong>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">✓</div>
+
+            <div>
+              <span>Completed</span>
+              <strong>{completedCount}</strong>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">⏱️</div>
+
+            <div>
+              <span>Timed</span>
+              <strong>{timedCount}</strong>
+            </div>
+          </div>
+        </section>
+
+        {/* PREMIUM NOTICE */}
+
+        {!isPremium && (
+          <section className="premium-notice">
+            <div className="premium-icon">👑</div>
+
+            <div className="premium-content">
+              <strong>
+                Unlock the full Challenge Arena
+              </strong>
+
+              <p>
+                Some challenges are reserved for Premium members.
+                Upgrade to access exclusive challenges and more ways
+                to test your knowledge.
               </p>
             </div>
 
-            <Link
-              href="/quiz"
-              className="sq-button-primary"
-            >
-              Play Quiz →
+            <Link href="/pricing" className="premium-btn">
+              View Premium
+              <span>→</span>
             </Link>
           </section>
+        )}
 
-        </div>
+        {/* ERROR */}
+
+        {errorMessage && (
+          <div className="error-card">
+            <div className="error-icon">!</div>
+
+            <div>
+              <strong>Something went wrong</strong>
+              <p>{errorMessage}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={loadChallenges}
+              className="retry-btn"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {/* AVAILABLE CHALLENGES */}
+
+        <section
+          id="available-challenges"
+          className="challenges-section"
+        >
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">
+                CHALLENGE LIBRARY
+              </span>
+
+              <h2>Choose your challenge</h2>
+
+              <p>
+                Each challenge is designed to test a different part
+                of your Sahaba knowledge.
+              </p>
+            </div>
+
+            <div className="challenge-count">
+              {challenges.length}{" "}
+              {challenges.length === 1
+                ? "challenge"
+                : "challenges"}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="loading-card">
+              <div className="loading-spinner"></div>
+
+              <strong>Loading challenges...</strong>
+
+              <p>
+                Preparing your Challenge Arena.
+              </p>
+            </div>
+          ) : challenges.length === 0 ? (
+            <div className="empty-card">
+              <div className="empty-icon">🏆</div>
+
+              <h3>No challenges available yet</h3>
+
+              <p>
+                New challenges are being prepared. Check back soon,
+                or continue learning through the main quiz.
+              </p>
+
+              <Link href="/quiz" className="primary-btn">
+                Play Main Quiz
+                <span>→</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="challenge-grid">
+              {challenges.map((challenge) => {
+                const attempt = getChallengeAttempt(
+                  challenge.id
+                );
+
+                const isLocked =
+                  challenge.is_premium && !isPremium;
+
+                const isCompleted =
+                  attempt?.status === "completed";
+
+                const isInProgress =
+                  attempt?.status === "in_progress";
+
+                const isStarting =
+                  startingChallenge === challenge.id;
+
+                const progress =
+                  isInProgress && attempt
+                    ? getProgressPercentage(attempt)
+                    : 0;
+
+                const passed =
+                  isCompleted && attempt
+                    ? getPassedStatus(attempt, challenge)
+                    : false;
+
+                return (
+                  <article
+                    key={challenge.id}
+                    className={`challenge-card ${
+                      isLocked
+                        ? "challenge-locked"
+                        : ""
+                    } ${
+                      isCompleted
+                        ? passed
+                          ? "challenge-passed"
+                          : "challenge-failed"
+                        : ""
+                    }`}
+                  >
+                    {/* CARD TOP */}
+
+                    <div className="challenge-top">
+                      <div className="challenge-icon">
+                        {challenge.icon || "🏆"}
+                      </div>
+
+                      {isLocked ? (
+                        <span className="status-badge premium-badge">
+                          👑 Premium
+                        </span>
+                      ) : isInProgress ? (
+                        <span className="status-badge progress-badge">
+                          In Progress
+                        </span>
+                      ) : isCompleted ? (
+                        passed ? (
+                          <span className="status-badge passed-badge">
+                            ✓ Passed
+                          </span>
+                        ) : (
+                          <span className="status-badge failed-badge">
+                            ✕ Failed
+                          </span>
+                        )
+                      ) : (
+                        <span className="status-badge ready-badge">
+                          Ready
+                        </span>
+                      )}
+                    </div>
+
+                    {/* TYPE */}
+
+                    <div className="challenge-type">
+                      {formatChallengeType(
+                        challenge.challenge_type
+                      )}
+                    </div>
+
+                    {/* TITLE */}
+
+                    <h3>{challenge.title}</h3>
+
+                    {/* DESCRIPTION */}
+
+                    <p className="challenge-description">
+                      {challenge.description ||
+                        "Test your knowledge with this focused Sahaba challenge."}
+                    </p>
+
+                    {/* META */}
+
+                    <div className="challenge-meta">
+                      <div className="meta-chip">
+                        <span>📝</span>
+                        {challenge.question_count} questions
+                      </div>
+
+                      <div className="meta-chip">
+                        <span>⏱️</span>
+                        {formatTime(
+                          challenge.time_per_question
+                        )}
+                      </div>
+                    </div>
+
+                    {/* IN PROGRESS */}
+
+                    {isInProgress && attempt && (
+                      <div className="progress-area">
+                        <div className="progress-header">
+                          <span>Your progress</span>
+
+                          <strong>
+                            {progress}%
+                          </strong>
+                        </div>
+
+                        <div className="progress-track">
+                          <div
+                            className="progress-fill"
+                            style={{
+                              width: `${progress}%`,
+                            }}
+                          />
+                        </div>
+
+                        <small>
+                          {attempt.questions_answered} of{" "}
+                          {challenge.question_count} questions
+                        </small>
+                      </div>
+                    )}
+
+                    {/* COMPLETED RESULT */}
+
+                    {isCompleted && attempt && (
+                      <div
+                        className={`completed-panel ${
+                          passed
+                            ? "passed-panel"
+                            : "failed-panel"
+                        }`}
+                      >
+                        <div
+                          className={`completed-check ${
+                            passed
+                              ? "passed-check"
+                              : "failed-check"
+                          }`}
+                        >
+                          {passed ? "✓" : "✕"}
+                        </div>
+
+                        <div>
+                          <strong>
+                            {passed
+                              ? "Challenge passed"
+                              : "Challenge failed"}
+                          </strong>
+
+                          <span>
+                            You answered{" "}
+                            {attempt.correct_answers} of{" "}
+                            {attempt.questions_answered}{" "}
+                            correctly.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* RESULT SUMMARY */}
+
+                    {isCompleted && attempt && (
+                      <div className="result-summary">
+                        <div>
+                          <span>Score</span>
+
+                          <strong>
+                            {attempt.score}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Correct</span>
+
+                          <strong>
+                            {attempt.correct_answers}/
+                            {attempt.questions_answered}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Result</span>
+
+                          <strong
+                            className={
+                              passed
+                                ? "result-passed"
+                                : "result-failed"
+                            }
+                          >
+                            {passed
+                              ? "Passed"
+                              : "Failed"}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ACTION */}
+
+                    {isCompleted && attempt ? (
+                      /*
+                       * Completed challenges cannot be retaken.
+                       * This button ONLY opens the saved result.
+                       */
+
+                      <button
+                        type="button"
+                        className={`completed-result-button ${
+                          passed
+                            ? "passed-result-button"
+                            : "failed-result-button"
+                        }`}
+                        onClick={() =>
+                          viewChallengeResult(
+                            challenge.id,
+                            attempt.id
+                          )
+                        }
+                      >
+                        <span>
+                          {passed ? "✓" : "✕"}
+                        </span>
+
+                        {passed
+                          ? "Passed — View Result"
+                          : "Failed — View Result"}
+
+                        <span>→</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={`challenge-action ${
+                          isLocked
+                            ? "locked-action"
+                            : ""
+                        }`}
+                        onClick={() =>
+                          handleStartChallenge(
+                            challenge
+                          )
+                        }
+                        disabled={isStarting}
+                      >
+                        {isStarting ? (
+                          <>
+                            <span className="button-spinner"></span>
+                            Starting...
+                          </>
+                        ) : isLocked ? (
+                          <>
+                            <span>🔒</span>
+                            Unlock with Premium
+                          </>
+                        ) : isInProgress ? (
+                          <>
+                            Continue Challenge
+                            <span>→</span>
+                          </>
+                        ) : (
+                          <>
+                            Start Challenge
+                            <span>→</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* HOW IT WORKS */}
+
+        <section className="how-section">
+          <div className="section-heading centered">
+            <span className="section-kicker">
+              HOW IT WORKS
+            </span>
+
+            <h2>
+              Challenge yourself in three steps
+            </h2>
+
+            <p>
+              Simple to start. Designed to make learning engaging.
+            </p>
+          </div>
+
+          <div className="how-grid">
+            <div className="how-card">
+              <div className="how-number">01</div>
+
+              <div className="how-icon">🎯</div>
+
+              <h3>Pick a challenge</h3>
+
+              <p>
+                Choose a challenge that matches the topic or style
+                you want to test yourself on.
+              </p>
+            </div>
+
+            <div className="how-card">
+              <div className="how-number">02</div>
+
+              <div className="how-icon">⚡</div>
+
+              <h3>Answer under pressure</h3>
+
+              <p>
+                Questions are timed, so trust your knowledge and
+                answer as accurately as possible.
+              </p>
+            </div>
+
+            <div className="how-card">
+              <div className="how-number">03</div>
+
+              <div className="how-icon">🏆</div>
+
+              <h3>See your result</h3>
+
+              <p>
+                Review your performance, learn from your mistakes,
+                and keep building your Sahaba knowledge.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* BOTTOM CTA */}
+
+        <section className="bottom-cta">
+          <div>
+            <span className="cta-small">
+              KEEP LEARNING
+            </span>
+
+            <h2>
+              Want to strengthen your knowledge first?
+            </h2>
+
+            <p>
+              Play the main quiz and build your foundation before
+              taking on the Challenge Arena.
+            </p>
+          </div>
+
+          <Link
+            href="/quiz"
+            className="cta-button"
+          >
+            Play Main Quiz
+            <span>→</span>
+          </Link>
+        </section>
+
+        {/* FOOTER */}
+
+        <footer className="footer">
+          <span>Sahaba Quest</span>
+          <span>•</span>
+          <span>
+            Learn. Remember. Compete.
+          </span>
+        </footer>
       </div>
 
-
       <style jsx>{`
-        @media (max-width: 900px) {
-          .challenge-grid {
-            grid-template-columns: 1fr 1fr !important;
+        .sq-page {
+          min-height: 100vh;
+          background:
+            radial-gradient(
+              circle at top left,
+              rgba(204, 245, 230, 0.85),
+              transparent 34%
+            ),
+            radial-gradient(
+              circle at top right,
+              rgba(229, 248, 239, 0.9),
+              transparent 32%
+            ),
+            #f7fbf9;
+          color: #123b32;
+        }
+
+        .sq-container {
+          width: min(1180px, calc(100% - 40px));
+          margin: 0 auto;
+          padding: 24px 0 50px;
+        }
+
+        .navbar-wrap {
+          margin-bottom: 28px;
+        }
+
+        /* HERO */
+
+        .hero-card {
+          position: relative;
+          min-height: 410px;
+          display: grid;
+          grid-template-columns: 1.1fr 0.9fr;
+          align-items: center;
+          overflow: hidden;
+          border: 1px solid #dcefe7;
+          border-radius: 30px;
+          padding: 50px;
+          background:
+            linear-gradient(
+              135deg,
+              #ffffff 0%,
+              #f2fbf7 52%,
+              #e7f7ef 100%
+            );
+          box-shadow: 0 20px 60px rgba(22, 85, 68, 0.08);
+        }
+
+        .hero-content {
+          position: relative;
+          z-index: 2;
+          max-width: 680px;
+        }
+
+        .sq-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 13px;
+          border-radius: 999px;
+          background: #e5f6ef;
+          border: 1px solid #ccecdf;
+          color: #0f6b56;
+          font-size: 13px;
+          font-weight: 800;
+          margin-bottom: 18px;
+        }
+
+        .hero-card h1 {
+          margin: 0;
+          font-size: clamp(36px, 5vw, 58px);
+          line-height: 1.03;
+          letter-spacing: -2px;
+          color: #103e34;
+        }
+
+        .hero-card h1 span {
+          color: #0d8066;
+        }
+
+        .hero-card p {
+          max-width: 610px;
+          margin: 20px 0 28px;
+          font-size: 16px;
+          line-height: 1.75;
+          color: #638078;
+        }
+
+        .hero-actions {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .primary-btn,
+        .premium-btn,
+        .cta-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          text-decoration: none;
+          border-radius: 13px;
+          padding: 13px 18px;
+          font-size: 14px;
+          font-weight: 800;
+          transition: 0.2s ease;
+        }
+
+        .primary-btn {
+          border: 0;
+          cursor: pointer;
+          background: #0c715a;
+          color: white;
+          box-shadow: 0 10px 25px rgba(12, 113, 90, 0.2);
+        }
+
+        .primary-btn:hover {
+          transform: translateY(-2px);
+          background: #095c49;
+        }
+
+        /* HERO VISUAL */
+
+        .hero-visual {
+          position: relative;
+          height: 310px;
+        }
+
+        .hero-circle {
+          position: absolute;
+          border-radius: 50%;
+        }
+
+        .circle-one {
+          width: 260px;
+          height: 260px;
+          right: 35px;
+          top: 15px;
+          background: #d5f0e4;
+        }
+
+        .circle-two {
+          width: 150px;
+          height: 150px;
+          right: 0;
+          bottom: 0;
+          background: #c3e9d9;
+        }
+
+        .trophy-card {
+          position: absolute;
+          z-index: 3;
+          top: 78px;
+          right: 55px;
+          width: 250px;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          padding: 20px;
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.9);
+          box-shadow: 0 20px 50px rgba(18, 73, 59, 0.13);
+        }
+
+        .trophy-icon {
+          width: 55px;
+          height: 55px;
+          display: grid;
+          place-items: center;
+          border-radius: 17px;
+          background: #fff5d7;
+          font-size: 29px;
+        }
+
+        .trophy-card strong,
+        .floating-card strong {
+          display: block;
+          color: #173f36;
+          font-size: 14px;
+        }
+
+        .trophy-card span {
+          display: block;
+          margin-top: 4px;
+          color: #779087;
+          font-size: 12px;
+        }
+
+        .floating-card {
+          position: absolute;
+          z-index: 4;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 11px 14px;
+          border-radius: 15px;
+          background: white;
+          box-shadow: 0 14px 35px rgba(18, 73, 59, 0.11);
+        }
+
+        .floating-card > span {
+          font-size: 19px;
+        }
+
+        .floating-card small {
+          display: block;
+          margin-top: 2px;
+          color: #82968f;
+          font-size: 10px;
+        }
+
+        .floating-card-one {
+          top: 35px;
+          right: 245px;
+        }
+
+        .floating-card-two {
+          bottom: 30px;
+          right: 90px;
+        }
+
+        /* STATS */
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 15px;
+          margin: 18px 0;
+        }
+
+        .stat-card {
+          display: flex;
+          align-items: center;
+          gap: 13px;
+          padding: 18px;
+          border: 1px solid #e0eee9;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.85);
+        }
+
+        .stat-icon {
+          width: 43px;
+          height: 43px;
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          border-radius: 13px;
+          background: #e7f6f0;
+          font-size: 19px;
+        }
+
+        .stat-card span {
+          display: block;
+          color: #80948e;
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .stat-card strong {
+          display: block;
+          margin-top: 3px;
+          color: #123e34;
+          font-size: 21px;
+        }
+
+        /* PREMIUM */
+
+        .premium-notice {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          padding: 17px 19px;
+          margin-bottom: 30px;
+          border: 1px solid #f0dfad;
+          border-radius: 18px;
+          background: linear-gradient(
+            135deg,
+            #fffdf5,
+            #fff9e8
+          );
+        }
+
+        .premium-icon {
+          width: 45px;
+          height: 45px;
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          border-radius: 14px;
+          background: #fff1c6;
+          font-size: 21px;
+        }
+
+        .premium-content {
+          flex: 1;
+        }
+
+        .premium-content strong {
+          color: #6d5420;
+          font-size: 14px;
+        }
+
+        .premium-content p {
+          margin: 4px 0 0;
+          color: #8a7853;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .premium-btn {
+          flex-shrink: 0;
+          background: #c99428;
+          color: white;
+        }
+
+        .premium-btn:hover {
+          transform: translateY(-2px);
+        }
+
+        /* ERROR */
+
+        .error-card {
+          display: flex;
+          align-items: center;
+          gap: 13px;
+          margin-bottom: 24px;
+          padding: 15px 17px;
+          border: 1px solid #f1caca;
+          border-radius: 16px;
+          background: #fff7f7;
+        }
+
+        .error-icon {
+          width: 36px;
+          height: 36px;
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          border-radius: 50%;
+          background: #fce0e0;
+          color: #a63838;
+          font-weight: 900;
+        }
+
+        .error-card strong {
+          color: #813535;
+          font-size: 13px;
+        }
+
+        .error-card p {
+          margin: 2px 0 0;
+          color: #9b6969;
+          font-size: 12px;
+        }
+
+        .retry-btn {
+          margin-left: auto;
+          border: 1px solid #e5caca;
+          border-radius: 10px;
+          padding: 9px 13px;
+          background: white;
+          color: #853d3d;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        /* SECTIONS */
+
+        .challenges-section {
+          margin-top: 38px;
+          scroll-margin-top: 25px;
+        }
+
+        .section-heading {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          gap: 20px;
+          margin-bottom: 20px;
+        }
+
+        .section-kicker,
+        .cta-small {
+          display: block;
+          margin-bottom: 7px;
+          color: #0d8066;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 1.5px;
+        }
+
+        .section-heading h2 {
+          margin: 0;
+          color: #123f35;
+          font-size: 28px;
+          letter-spacing: -0.7px;
+        }
+
+        .section-heading p {
+          margin: 7px 0 0;
+          color: #81938d;
+          font-size: 13px;
+        }
+
+        .challenge-count {
+          padding: 9px 13px;
+          border-radius: 999px;
+          background: #e8f6f0;
+          color: #16715c;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        /* CHALLENGE GRID */
+
+        .challenge-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 18px;
+        }
+
+        .challenge-card {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          min-height: 390px;
+          padding: 22px;
+          border: 1px solid #dfeee8;
+          border-radius: 22px;
+          background: white;
+          box-shadow: 0 10px 35px rgba(24, 80, 65, 0.055);
+          transition: 0.22s ease;
+        }
+
+        .challenge-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 18px 45px rgba(24, 80, 65, 0.09);
+        }
+
+        .challenge-locked {
+          border-color: #efdfb4;
+          background: linear-gradient(
+            180deg,
+            #fffef9,
+            #fffaf0
+          );
+        }
+
+        .challenge-passed {
+          border-color: #bfe2d0;
+          background: linear-gradient(
+            180deg,
+            #ffffff,
+            #f5fbf8
+          );
+        }
+
+        .challenge-failed {
+          border-color: #edc5c5;
+          background: linear-gradient(
+            180deg,
+            #ffffff,
+            #fff8f8
+          );
+        }
+
+        .challenge-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .challenge-icon {
+          width: 53px;
+          height: 53px;
+          display: grid;
+          place-items: center;
+          border-radius: 16px;
+          background: #e8f6f0;
+          font-size: 25px;
+        }
+
+        .challenge-locked .challenge-icon {
+          background: #fff0c8;
+        }
+
+        .challenge-passed .challenge-icon {
+          background: #def2e7;
+        }
+
+        .challenge-failed .challenge-icon {
+          background: #fce4e4;
+        }
+
+        .status-badge {
+          padding: 6px 9px;
+          border-radius: 999px;
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 0.2px;
+        }
+
+        .ready-badge {
+          background: #e8f6f0;
+          color: #16715c;
+        }
+
+        .progress-badge {
+          background: #e8efff;
+          color: #47649c;
+        }
+
+        .passed-badge {
+          background: #dff3e7;
+          color: #23724f;
+        }
+
+        .failed-badge {
+          background: #fde2e2;
+          color: #ad3d3d;
+        }
+
+        .premium-badge {
+          background: #fff0c8;
+          color: #8b681f;
+        }
+
+        .challenge-type {
+          margin-top: 20px;
+          color: #0d8066;
+          font-size: 10px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 1.1px;
+        }
+
+        .challenge-card h3 {
+          margin: 7px 0 7px;
+          color: #173f36;
+          font-size: 20px;
+          letter-spacing: -0.3px;
+        }
+
+        .challenge-description {
+          min-height: 57px;
+          margin: 0;
+          color: #7a8f88;
+          font-size: 12px;
+          line-height: 1.6;
+        }
+
+        .challenge-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          margin-top: 17px;
+        }
+
+        .meta-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 7px 9px;
+          border-radius: 9px;
+          background: #f4f8f6;
+          color: #627870;
+          font-size: 10px;
+          font-weight: 700;
+        }
+
+        /* PROGRESS */
+
+        .progress-area {
+          margin-top: 16px;
+        }
+
+        .progress-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 6px;
+          color: #71857e;
+          font-size: 10px;
+        }
+
+        .progress-header strong {
+          color: #0d8066;
+        }
+
+        .progress-track {
+          height: 7px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: #e6efeb;
+        }
+
+        .progress-fill {
+          height: 100%;
+          border-radius: inherit;
+          background: #0d8066;
+          transition: width 0.3s ease;
+        }
+
+        .progress-area small {
+          display: block;
+          margin-top: 5px;
+          color: #8b9b96;
+          font-size: 9px;
+        }
+
+        /* COMPLETED PANEL */
+
+        .completed-panel {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 15px;
+          padding: 11px;
+          border-radius: 12px;
+        }
+
+        .passed-panel {
+          border: 1px solid #d3ebde;
+          background: #eff9f4;
+        }
+
+        .failed-panel {
+          border: 1px solid #f0d2d2;
+          background: #fff2f2;
+        }
+
+        .completed-check {
+          width: 31px;
+          height: 31px;
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          border-radius: 50%;
+          font-weight: 900;
+        }
+
+        .passed-check {
+          background: #d7efe2;
+          color: #247750;
+        }
+
+        .failed-check {
+          background: #f8dede;
+          color: #ad3c3c;
+        }
+
+        .completed-panel strong {
+          display: block;
+          font-size: 11px;
+        }
+
+        .passed-panel strong {
+          color: #2a604d;
+        }
+
+        .failed-panel strong {
+          color: #913b3b;
+        }
+
+        .completed-panel span {
+          display: block;
+          margin-top: 2px;
+          color: #789088;
+          font-size: 9px;
+        }
+
+        /* RESULT */
+
+        .result-summary {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 6px;
+          margin-top: 10px;
+          padding: 10px;
+          border-radius: 12px;
+          background: #f7faf8;
+        }
+
+        .result-summary div {
+          text-align: center;
+        }
+
+        .result-summary span {
+          display: block;
+          color: #8b9b96;
+          font-size: 8px;
+        }
+
+        .result-summary strong {
+          display: block;
+          margin-top: 3px;
+          color: #254e44;
+          font-size: 11px;
+        }
+
+        .result-passed {
+          color: #23724f !important;
+        }
+
+        .result-failed {
+          color: #ad3d3d !important;
+        }
+
+        /* ACTION */
+
+        .challenge-action,
+        .completed-result-button {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: auto;
+          padding: 12px 14px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .challenge-action {
+          border: 0;
+          background: #0d715a;
+          color: white;
+          cursor: pointer;
+          transition: 0.2s ease;
+        }
+
+        .challenge-action:hover:not(:disabled) {
+          background: #095d4a;
+          transform: translateY(-1px);
+        }
+
+        .challenge-action:disabled {
+          cursor: not-allowed;
+          opacity: 0.7;
+        }
+
+        .locked-action {
+          background: #bd8c29;
+        }
+
+        .locked-action:hover:not(:disabled) {
+          background: #a77a20;
+        }
+
+        /*
+         * RESULT BUTTONS
+         *
+         * These do NOT start a challenge.
+         * They only open the saved result.
+         */
+
+        .completed-result-button {
+          border: 0;
+          cursor: pointer;
+          color: white;
+          transition: 0.2s ease;
+        }
+
+        .completed-result-button:hover {
+          transform: translateY(-1px);
+        }
+
+        .passed-result-button {
+          background: #238052;
+          box-shadow: 0 8px 18px rgba(35, 128, 82, 0.16);
+        }
+
+        .passed-result-button:hover {
+          background: #1b6d45;
+        }
+
+        .failed-result-button {
+          background: #c44949;
+          box-shadow: 0 8px 18px rgba(196, 73, 73, 0.15);
+        }
+
+        .failed-result-button:hover {
+          background: #ad3939;
+        }
+
+        .button-spinner,
+        .loading-spinner {
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(255, 255, 255, 0.35);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
           }
         }
 
-        @media (max-width: 600px) {
+        /* LOADING */
+
+        .loading-card,
+        .empty-card {
+          min-height: 250px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 35px;
+          border: 1px solid #dfeee8;
+          border-radius: 22px;
+          background: white;
+        }
+
+        .loading-spinner {
+          width: 28px;
+          height: 28px;
+          margin-bottom: 15px;
+          border-color: #cfe5dc;
+          border-top-color: #0d8066;
+        }
+
+        .loading-card strong,
+        .empty-card h3 {
+          color: #254e44;
+        }
+
+        .loading-card p,
+        .empty-card p {
+          max-width: 440px;
+          margin: 6px 0 20px;
+          color: #81938d;
+          font-size: 13px;
+          line-height: 1.6;
+        }
+
+        .empty-icon {
+          width: 60px;
+          height: 60px;
+          display: grid;
+          place-items: center;
+          margin-bottom: 12px;
+          border-radius: 18px;
+          background: #e8f6f0;
+          font-size: 28px;
+        }
+
+        .empty-card h3 {
+          margin: 0;
+        }
+
+        /* HOW */
+
+        .how-section {
+          margin-top: 70px;
+        }
+
+        .centered {
+          display: block;
+          text-align: center;
+        }
+
+        .centered p {
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .how-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 17px;
+          margin-top: 24px;
+        }
+
+        .how-card {
+          position: relative;
+          padding: 26px;
+          border: 1px solid #e0eee9;
+          border-radius: 20px;
+          background: white;
+          overflow: hidden;
+        }
+
+        .how-number {
+          position: absolute;
+          top: 17px;
+          right: 20px;
+          color: #e2eee9;
+          font-size: 30px;
+          font-weight: 900;
+        }
+
+        .how-icon {
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          margin-bottom: 20px;
+          border-radius: 15px;
+          background: #e8f6f0;
+          font-size: 22px;
+        }
+
+        .how-card h3 {
+          margin: 0 0 8px;
+          color: #214a40;
+          font-size: 17px;
+        }
+
+        .how-card p {
+          margin: 0;
+          color: #7f918b;
+          font-size: 12px;
+          line-height: 1.7;
+        }
+
+        /* CTA */
+
+        .bottom-cta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 25px;
+          margin-top: 55px;
+          padding: 34px 38px;
+          border-radius: 24px;
+          background: #123f35;
+          box-shadow: 0 18px 45px rgba(18, 63, 53, 0.16);
+        }
+
+        .bottom-cta .cta-small {
+          color: #9dd9c4;
+        }
+
+        .bottom-cta h2 {
+          margin: 0;
+          color: white;
+          font-size: 25px;
+          letter-spacing: -0.5px;
+        }
+
+        .bottom-cta p {
+          max-width: 610px;
+          margin: 8px 0 0;
+          color: #bad3cb;
+          font-size: 12px;
+          line-height: 1.6;
+        }
+
+        .cta-button {
+          flex-shrink: 0;
+          background: white;
+          color: #12483b;
+        }
+
+        .cta-button:hover {
+          transform: translateY(-2px);
+        }
+
+        /* FOOTER */
+
+        .footer {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 35px;
+          color: #9aaba6;
+          font-size: 10px;
+        }
+
+        .footer span:first-child {
+          color: #55736a;
+          font-weight: 800;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1050px) {
+          .hero-card {
+            grid-template-columns: 1fr;
+            padding: 40px;
+          }
+
+          .hero-visual {
+            display: none;
+          }
+
           .challenge-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 800px) {
+          .sq-container {
+            width: min(100% - 28px, 680px);
+            padding-top: 15px;
+          }
+
+          .hero-card {
+            min-height: auto;
+            padding: 32px 25px;
+            border-radius: 24px;
+          }
+
+          .hero-card h1 {
+            font-size: 38px;
+            letter-spacing: -1.3px;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .premium-notice {
+            align-items: flex-start;
+            flex-wrap: wrap;
+          }
+
+          .premium-btn {
+            width: 100%;
+          }
+
+          .challenge-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .how-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .bottom-cta {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 28px;
+          }
+
+          .cta-button {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .sq-container {
+            width: calc(100% - 20px);
+          }
+
+          .hero-card {
+            padding: 27px 20px;
+          }
+
+          .hero-card h1 {
+            font-size: 33px;
+          }
+
+          .hero-card p {
+            font-size: 14px;
+          }
+
+          .hero-actions {
+            flex-direction: column;
+          }
+
+          .primary-btn {
+            width: 100%;
+          }
+
+          .stats-grid {
+            gap: 9px;
+          }
+
+          .stat-card {
+            padding: 13px;
+            gap: 9px;
+          }
+
+          .stat-icon {
+            width: 37px;
+            height: 37px;
+            border-radius: 11px;
+          }
+
+          .stat-card strong {
+            font-size: 18px;
+          }
+
+          .section-heading {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .section-heading h2 {
+            font-size: 24px;
+          }
+
+          .challenge-card {
+            padding: 18px;
+          }
+
+          .footer {
+            flex-wrap: wrap;
           }
         }
       `}</style>
