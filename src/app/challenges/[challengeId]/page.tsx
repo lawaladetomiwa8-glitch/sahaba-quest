@@ -19,10 +19,10 @@ type ChallengeQuestion = {
   id: string;
   level: number;
   question: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
+  option_a: string | null;
+  option_b: string | null;
+  option_c: string | null;
+  option_d: string | null;
 };
 
 type ChallengeAttempt = {
@@ -60,14 +60,6 @@ type AnswerResult = {
 
 const OPTIONS = ["A", "B", "C", "D"] as const;
 
-/*
-  Normalize answer text before comparing it.
-
-  This protects against small differences such as:
-  - extra spaces
-  - different capitalization
-  - accidental leading/trailing spaces
-*/
 function normalizeAnswer(value: string | null | undefined) {
   return (value || "")
     .trim()
@@ -97,9 +89,16 @@ export default function ChallengeGamePage() {
     useState(false);
 
   /*
-    selectedAnswer stores the ACTUAL ANSWER TEXT.
+    selectedAnswer = answer that has actually
+    been submitted.
+
+    puzzleAnswer = what the user is currently
+    typing into the puzzle input.
   */
   const [selectedAnswer, setSelectedAnswer] =
+    useState("");
+
+  const [puzzleAnswer, setPuzzleAnswer] =
     useState("");
 
   const [answerResult, setAnswerResult] =
@@ -108,15 +107,9 @@ export default function ChallengeGamePage() {
   const [timeLeft, setTimeLeft] =
     useState(0);
 
-  /*
-    XP earned during this challenge.
-  */
   const [totalXp, setTotalXp] =
     useState(0);
 
-  /*
-    Challenge progress.
-  */
   const [questionsAnswered, setQuestionsAnswered] =
     useState(0);
 
@@ -130,7 +123,7 @@ export default function ChallengeGamePage() {
     useState<number | null>(null);
 
   // ==========================================
-  // LOAD CHALLENGE + START / RESUME ATTEMPT
+  // LOAD CHALLENGE
   // ==========================================
 
   useEffect(() => {
@@ -140,7 +133,6 @@ export default function ChallengeGamePage() {
       );
 
       setLoading(false);
-
       return;
     }
 
@@ -152,10 +144,6 @@ export default function ChallengeGamePage() {
       setLoading(true);
       setErrorMessage("");
 
-      // ----------------------------------------
-      // CHECK USER
-      // ----------------------------------------
-
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -164,10 +152,6 @@ export default function ChallengeGamePage() {
         router.push("/login");
         return;
       }
-
-      // ----------------------------------------
-      // LOAD CHALLENGE
-      // ----------------------------------------
 
       const {
         data: challengeData,
@@ -204,10 +188,6 @@ export default function ChallengeGamePage() {
 
       setChallenge(loadedChallenge);
 
-      // ----------------------------------------
-      // START OR RESUME CHALLENGE
-      // ----------------------------------------
-
       const {
         data: attemptData,
         error: attemptError,
@@ -231,10 +211,10 @@ export default function ChallengeGamePage() {
       const attempt =
         attemptData as ChallengeAttempt;
 
-      // ----------------------------------------
-      // COMPLETED CHALLENGE
-      // ----------------------------------------
-
+      /*
+        If the challenge was already completed,
+        go straight to the result page.
+      */
       if (
         attempt.action === "completed" ||
         attempt.status === "completed"
@@ -245,10 +225,6 @@ export default function ChallengeGamePage() {
 
         return;
       }
-
-      // ----------------------------------------
-      // NEW OR RESUMED ATTEMPT
-      // ----------------------------------------
 
       setAttemptId(
         attempt.attempt_id
@@ -266,13 +242,6 @@ export default function ChallengeGamePage() {
         attempt.score || 0
       );
 
-      /*
-        SAFETY CHECK
-
-        If the attempt already has the configured
-        number of questions answered, do not ask
-        Supabase for another question.
-      */
       if (
         attempt.questions_answered >=
         loadedChallenge.question_count
@@ -283,10 +252,6 @@ export default function ChallengeGamePage() {
 
         return;
       }
-
-      // ----------------------------------------
-      // LOAD NEXT UNANSWERED QUESTION
-      // ----------------------------------------
 
       await loadNextQuestion(
         loadedChallenge,
@@ -337,18 +302,6 @@ export default function ChallengeGamePage() {
         return;
       }
 
-      /*
-        HARD STOP
-
-        Never load question 31 for a
-        30-question challenge.
-
-        Never load question 21 for a
-        20-question challenge.
-
-        Never load question 26 for a
-        25-question challenge, etc.
-      */
       if (
         answeredCount >=
         activeChallenge.question_count
@@ -364,7 +317,11 @@ export default function ChallengeGamePage() {
         setQuestionLoading(true);
         setErrorMessage("");
 
+        /*
+          Reset the answer state for the new question.
+        */
         setSelectedAnswer("");
+        setPuzzleAnswer("");
         setAnswerResult(null);
 
         const {
@@ -382,12 +339,6 @@ export default function ChallengeGamePage() {
           throw error;
         }
 
-        /*
-          NO MORE QUESTIONS
-
-          If Supabase returns no question,
-          immediately show the result.
-        */
         if (
           !data ||
           data.length === 0
@@ -406,17 +357,6 @@ export default function ChallengeGamePage() {
           nextQuestion
         );
 
-        /*
-          IMPORTANT:
-
-          The timer comes directly from the
-          challenge configuration.
-
-          Example:
-          Sahaba Master = 15
-          Speed Round = 10
-          Abu Bakr = 15
-        */
         setTimeLeft(
           activeChallenge.time_per_question
         );
@@ -463,13 +403,6 @@ export default function ChallengeGamePage() {
         return;
       }
 
-      /*
-        Extra safety check.
-
-        If the configured number of questions
-        has already been answered, do not submit
-        another answer.
-      */
       if (
         challenge &&
         questionsAnswered >=
@@ -483,10 +416,35 @@ export default function ChallengeGamePage() {
       }
 
       /*
-        Store the ACTUAL ANSWER TEXT.
+        For a Puzzle challenge, don't manually
+        submit an empty answer while time remains.
+
+        Empty answers are allowed when the timer
+        reaches zero.
+      */
+      if (
+        challenge?.challenge_type ===
+          "Puzzle" &&
+        !answerText.trim() &&
+        timeLeft > 0
+      ) {
+        return;
+      }
+
+      const cleanAnswer =
+        answerText.trim();
+
+      /*
+        IMPORTANT:
+
+        Mark the answer as submitted BEFORE
+        calling Supabase.
+
+        This prevents double-clicks and timer
+        races.
       */
       setSelectedAnswer(
-        answerText
+        cleanAnswer
       );
 
       const responseTime =
@@ -507,11 +465,8 @@ export default function ChallengeGamePage() {
             p_question_id:
               question.id,
 
-            /*
-              Send actual answer text.
-            */
             p_selected_answer:
-              answerText,
+              cleanAnswer,
 
             p_response_time_ms:
               responseTime,
@@ -529,9 +484,6 @@ export default function ChallengeGamePage() {
           result
         );
 
-        /*
-          Update progress immediately.
-        */
         setQuestionsAnswered(
           result.questions_answered
         );
@@ -543,22 +495,16 @@ export default function ChallengeGamePage() {
         setTotalXp(
           result.score
         );
-
-        /*
-          IMPORTANT:
-
-          If this was the final question,
-          do NOT wait for another question.
-
-          The result page will be shown immediately
-          after the player sees the final answer.
-        */
       } catch (error) {
         console.error(
           "Answer submission error:",
           error
         );
 
+        /*
+          Allow the user to try again if the
+          database submission itself failed.
+        */
         setSelectedAnswer("");
 
         setErrorMessage(
@@ -575,6 +521,7 @@ export default function ChallengeGamePage() {
       challenge,
       questionsAnswered,
       router,
+      timeLeft,
     ]
   );
 
@@ -595,7 +542,13 @@ export default function ChallengeGamePage() {
 
     if (timeLeft <= 0) {
       /*
-        Timeout = incorrect answer.
+        Time ran out.
+
+        For Puzzle:
+        submit an empty answer.
+
+        For multiple choice:
+        also submit an empty answer.
       */
       submitAnswer("");
       return;
@@ -634,16 +587,6 @@ export default function ChallengeGamePage() {
       return;
     }
 
-    /*
-      FINAL QUESTION
-
-      We check the actual number of questions
-      answered, rather than relying only on
-      answerResult.completed.
-
-      This gives us a second layer of protection
-      against ever showing an extra question.
-    */
     if (
       answerResult.completed ||
       answerResult.questions_answered >=
@@ -656,10 +599,6 @@ export default function ChallengeGamePage() {
       return;
     }
 
-    /*
-      There are still questions remaining.
-      Load exactly one more question.
-    */
     await loadNextQuestion(
       challenge,
       attemptId,
@@ -688,8 +627,7 @@ export default function ChallengeGamePage() {
               className="sq-card"
               style={{
                 padding: "50px",
-                textAlign:
-                  "center",
+                textAlign: "center",
                 color:
                   "var(--muted)",
               }}
@@ -726,15 +664,13 @@ export default function ChallengeGamePage() {
               className="sq-card"
               style={{
                 padding: "40px",
-                textAlign:
-                  "center",
+                textAlign: "center",
               }}
             >
               <div
                 style={{
                   fontSize: "42px",
-                  marginBottom:
-                    "16px",
+                  marginBottom: "16px",
                 }}
               >
                 ⚠️
@@ -744,8 +680,7 @@ export default function ChallengeGamePage() {
                 style={{
                   margin:
                     "0 0 10px",
-                  fontSize:
-                    "24px",
+                  fontSize: "24px",
                   fontWeight: 800,
                 }}
               >
@@ -756,12 +691,10 @@ export default function ChallengeGamePage() {
                 style={{
                   margin:
                     "0 auto 24px",
-                  maxWidth:
-                    "520px",
+                  maxWidth: "520px",
                   color:
                     "var(--muted)",
-                  lineHeight:
-                    1.6,
+                  lineHeight: 1.6,
                 }}
               >
                 {errorMessage}
@@ -788,6 +721,10 @@ export default function ChallengeGamePage() {
   // MAIN GAME
   // ==========================================
 
+  const isPuzzle =
+    challenge?.challenge_type ===
+    "Puzzle";
+
   return (
     <main
       style={{
@@ -802,29 +739,24 @@ export default function ChallengeGamePage() {
         <div
           className="sq-container"
           style={{
-            maxWidth:
-              "850px",
+            maxWidth: "850px",
           }}
         >
           {/* CHALLENGE HEADER */}
 
           <section
             style={{
-              marginBottom:
-                "24px",
+              marginBottom: "24px",
             }}
           >
             <div
               style={{
-                display:
-                  "flex",
-                alignItems:
-                  "center",
+                display: "flex",
+                alignItems: "center",
                 justifyContent:
                   "space-between",
                 gap: "15px",
-                flexWrap:
-                  "wrap",
+                flexWrap: "wrap",
               }}
             >
               <div>
@@ -837,8 +769,7 @@ export default function ChallengeGamePage() {
                 <h1
                   className="sq-title"
                   style={{
-                    marginTop:
-                      "12px",
+                    marginTop: "12px",
                   }}
                 >
                   {
@@ -852,14 +783,12 @@ export default function ChallengeGamePage() {
 
               <div
                 style={{
-                  textAlign:
-                    "right",
+                  textAlign: "right",
                 }}
               >
                 <div
                   style={{
-                    fontSize:
-                      "12px",
+                    fontSize: "12px",
                     color:
                       "var(--muted)",
                     fontWeight: 700,
@@ -870,8 +799,7 @@ export default function ChallengeGamePage() {
 
                 <div
                   style={{
-                    fontSize:
-                      "22px",
+                    fontSize: "22px",
                     fontWeight: 900,
                     color:
                       "var(--primary)",
@@ -888,23 +816,18 @@ export default function ChallengeGamePage() {
           <section
             className="sq-card"
             style={{
-              padding:
-                "18px 20px",
-              marginBottom:
-                "18px",
+              padding: "18px 20px",
+              marginBottom: "18px",
             }}
           >
             <div
               style={{
-                display:
-                  "flex",
+                display: "flex",
                 justifyContent:
                   "space-between",
                 gap: "12px",
-                marginBottom:
-                  "9px",
-                fontSize:
-                  "13px",
+                marginBottom: "9px",
+                fontSize: "13px",
                 fontWeight: 800,
               }}
             >
@@ -956,21 +879,17 @@ export default function ChallengeGamePage() {
 
           <div
             style={{
-              display:
-                "flex",
+              display: "flex",
               justifyContent:
                 "center",
-              marginBottom:
-                "18px",
+              marginBottom: "18px",
             }}
           >
             <div
               className="sq-timer"
               style={{
-                minWidth:
-                  "100px",
-                textAlign:
-                  "center",
+                minWidth: "100px",
+                textAlign: "center",
                 fontWeight: 900,
               }}
             >
@@ -984,35 +903,32 @@ export default function ChallengeGamePage() {
             <section
               className="sq-card"
               style={{
-                padding:
-                  "30px",
+                padding: "30px",
               }}
             >
               <div
                 style={{
                   color:
                     "var(--muted)",
-                  fontSize:
-                    "12px",
+                  fontSize: "12px",
                   fontWeight: 800,
                   textTransform:
                     "uppercase",
                   letterSpacing:
                     "0.6px",
-                  marginBottom:
-                    "12px",
+                  marginBottom: "12px",
                 }}
               >
-                Your challenge question
+                {isPuzzle
+                  ? "Complete the name"
+                  : "Your challenge question"}
               </div>
 
               <h2
                 style={{
                   margin: 0,
-                  fontSize:
-                    "23px",
-                  lineHeight:
-                    1.5,
+                  fontSize: "23px",
+                  lineHeight: 1.5,
                   fontWeight: 800,
                 }}
               >
@@ -1021,150 +937,221 @@ export default function ChallengeGamePage() {
                 }
               </h2>
 
-              {/* ANSWERS */}
+              {/* ==================================
+                  PUZZLE
+              ================================== */}
 
-              <div
-                style={{
-                  display:
-                    "grid",
-                  gap: "12px",
-                  marginTop:
-                    "28px",
-                }}
-              >
-                {OPTIONS.map(
-                  (letter) => {
-                    const option =
-                      question[
-                        `option_${letter.toLowerCase()}` as keyof ChallengeQuestion
-                      ] as string;
-
-                    /*
-                      Normalize both values before
-                      comparing them.
-
-                      This prevents a correct answer
-                      from being displayed as wrong
-                      because of capitalization or
-                      extra spaces.
-                    */
-                    const normalizedOption =
-                      normalizeAnswer(
-                        option
-                      );
-
-                    const normalizedSelected =
-                      normalizeAnswer(
-                        selectedAnswer
-                      );
-
-                    const normalizedCorrect =
-                      normalizeAnswer(
-                        answerResult?.correct_answer
-                      );
-
-                    const isSelected =
-                      normalizedSelected !==
-                        "" &&
-                      normalizedSelected ===
-                        normalizedOption;
-
-                    const isCorrect =
-                      !!answerResult &&
-                      normalizedCorrect !==
-                        "" &&
-                      normalizedOption ===
-                        normalizedCorrect;
-
-                    let className =
-                      "sq-answer";
-
-                    /*
-                      Correct answer is always
-                      highlighted as correct.
-                    */
-                    if (
-                      answerResult &&
-                      isCorrect
-                    ) {
-                      className +=
-                        " sq-correct";
+              {isPuzzle ? (
+                <div
+                  style={{
+                    marginTop: "28px",
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={
+                      puzzleAnswer
                     }
-                    /*
-                      If the player selected a
-                      wrong answer, highlight only
-                      their selected answer as wrong.
-                    */
-                    else if (
-                      isSelected &&
-                      answerResult &&
-                      !answerResult.is_correct
-                    ) {
-                      className +=
-                        " sq-wrong";
+                    onChange={(event) =>
+                      setPuzzleAnswer(
+                        event.target.value
+                      )
                     }
+                    onKeyDown={(event) => {
+                      if (
+                        event.key ===
+                        "Enter"
+                      ) {
+                        event.preventDefault();
 
-                    return (
-                      <button
-                        key={
-                          letter
-                        }
-                        type="button"
-                        className={
-                          className
-                        }
-                        disabled={
-                          !!selectedAnswer ||
-                          !!answerResult
-                        }
-                        onClick={() =>
+                        if (
+                          puzzleAnswer.trim()
+                        ) {
                           submitAnswer(
-                            option
-                          )
+                            puzzleAnswer.trim()
+                          );
                         }
-                        style={{
-                          textAlign:
-                            "left",
-                          width:
-                            "100%",
-                          cursor:
-                            selectedAnswer
-                              ? "default"
-                              : "pointer",
-                        }}
-                      >
-                        <span className="sq-answer-letter">
-                          {
+                      }
+                    }}
+                    disabled={
+                      !!selectedAnswer ||
+                      !!answerResult
+                    }
+                    autoComplete="off"
+                    autoCapitalize="words"
+                    spellCheck={false}
+                    placeholder="Type the missing name..."
+                    style={{
+                      width: "100%",
+                      boxSizing:
+                        "border-box",
+                      padding:
+                        "16px 18px",
+                      borderRadius:
+                        "14px",
+                      border:
+                        "2px solid var(--border)",
+                      background:
+                        "var(--background)",
+                      color:
+                        "var(--foreground)",
+                      fontSize:
+                        "18px",
+                      fontWeight: 700,
+                      outline: "none",
+                    }}
+                  />
+
+                  {!answerResult && (
+                    <button
+                      type="button"
+                      className="sq-button-primary"
+                      disabled={
+                        !puzzleAnswer.trim() ||
+                        !!selectedAnswer
+                      }
+                      onClick={() =>
+                        submitAnswer(
+                          puzzleAnswer.trim()
+                        )
+                      }
+                      style={{
+                        width: "100%",
+                        marginTop: "14px",
+                      }}
+                    >
+                      Submit Answer →
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* ==================================
+                   MULTIPLE CHOICE
+                ================================== */
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "12px",
+                    marginTop: "28px",
+                  }}
+                >
+                  {OPTIONS.map(
+                    (letter) => {
+                      const option =
+                        question[
+                          `option_${letter.toLowerCase()}` as keyof ChallengeQuestion
+                        ] as string | null;
+
+                      if (!option) {
+                        return null;
+                      }
+
+                      const normalizedOption =
+                        normalizeAnswer(
+                          option
+                        );
+
+                      const normalizedSelected =
+                        normalizeAnswer(
+                          selectedAnswer
+                        );
+
+                      const normalizedCorrect =
+                        normalizeAnswer(
+                          answerResult?.correct_answer
+                        );
+
+                      const isSelected =
+                        normalizedSelected !==
+                          "" &&
+                        normalizedSelected ===
+                          normalizedOption;
+
+                      const isCorrect =
+                        !!answerResult &&
+                        normalizedCorrect !==
+                          "" &&
+                        normalizedOption ===
+                          normalizedCorrect;
+
+                      let className =
+                        "sq-answer";
+
+                      if (
+                        answerResult &&
+                        isCorrect
+                      ) {
+                        className +=
+                          " sq-correct";
+                      } else if (
+                        isSelected &&
+                        answerResult &&
+                        !answerResult.is_correct
+                      ) {
+                        className +=
+                          " sq-wrong";
+                      }
+
+                      return (
+                        <button
+                          key={
                             letter
                           }
-                        </span>
-
-                        <span
+                          type="button"
+                          className={
+                            className
+                          }
+                          disabled={
+                            !!selectedAnswer ||
+                            !!answerResult
+                          }
+                          onClick={() =>
+                            submitAnswer(
+                              option
+                            )
+                          }
                           style={{
-                            flex: 1,
+                            textAlign:
+                              "left",
+                            width:
+                              "100%",
+                            cursor:
+                              selectedAnswer
+                                ? "default"
+                                : "pointer",
                           }}
                         >
-                          {
-                            option
-                          }
-                        </span>
-                      </button>
-                    );
-                  }
-                )}
-              </div>
+                          <span className="sq-answer-letter">
+                            {
+                              letter
+                            }
+                          </span>
+
+                          <span
+                            style={{
+                              flex: 1,
+                            }}
+                          >
+                            {
+                              option
+                            }
+                          </span>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              )}
 
               {/* FEEDBACK */}
 
               {answerResult && (
                 <div
                   style={{
-                    marginTop:
-                      "22px",
-                    padding:
-                      "18px",
-                    borderRadius:
-                      "14px",
+                    marginTop: "22px",
+                    padding: "18px",
+                    borderRadius: "14px",
                     background:
                       answerResult.is_correct
                         ? "var(--primary-light)"
@@ -1173,10 +1160,8 @@ export default function ChallengeGamePage() {
                 >
                   <div
                     style={{
-                      fontSize:
-                        "17px",
-                      fontWeight:
-                        900,
+                      fontSize: "17px",
+                      fontWeight: 900,
                     }}
                   >
                     {answerResult.is_correct
@@ -1191,8 +1176,7 @@ export default function ChallengeGamePage() {
                           "7px 0 0",
                         color:
                           "var(--muted)",
-                        fontSize:
-                          "13px",
+                        fontSize: "13px",
                       }}
                     >
                       Correct answer:{" "}
@@ -1211,8 +1195,7 @@ export default function ChallengeGamePage() {
                           "7px 0 0",
                         color:
                           "var(--muted)",
-                        fontSize:
-                          "13px",
+                        fontSize: "13px",
                       }}
                     >
                       +{
@@ -1234,10 +1217,8 @@ export default function ChallengeGamePage() {
                     handleContinue
                   }
                   style={{
-                    width:
-                      "100%",
-                    marginTop:
-                      "18px",
+                    width: "100%",
+                    marginTop: "18px",
                   }}
                 >
                   {answerResult.completed ||
@@ -1257,18 +1238,14 @@ export default function ChallengeGamePage() {
             question && (
               <div
                 style={{
-                  marginTop:
-                    "18px",
-                  padding:
-                    "14px",
-                  borderRadius:
-                    "12px",
+                  marginTop: "18px",
+                  padding: "14px",
+                  borderRadius: "12px",
                   background:
                     "var(--danger-light)",
                   color:
                     "var(--danger)",
-                  fontSize:
-                    "13px",
+                  fontSize: "13px",
                 }}
               >
                 {errorMessage}

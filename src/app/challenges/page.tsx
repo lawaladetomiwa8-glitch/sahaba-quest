@@ -32,6 +32,24 @@ type ChallengeAttempt = {
   passed: boolean | null;
 };
 
+/*
+ * ---------------------------------------------------------
+ * PREMIUM CHALLENGES THAT ARE NOT PLAYABLE YET
+ * ---------------------------------------------------------
+ *
+ * These challenges are visible in the Challenge Arena,
+ * but their question banks are still being prepared.
+ */
+
+const COMING_SOON_CHALLENGE_TITLES = new Set([
+  "Women of the Sahaba",
+  "The Ten Promised Paradise",
+  "Companions of Badr",
+  "Ansar vs Muhajirun",
+  "Leaders Among the Sahaba",
+  "The Young Sahaba",
+]);
+
 export default function ChallengesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -220,11 +238,101 @@ export default function ChallengesPage() {
 
   /*
    * ---------------------------------------------------------
+   * HELPER FUNCTIONS
+   * ---------------------------------------------------------
+   */
+
+  function isComingSoonChallenge(challenge: Challenge) {
+    return COMING_SOON_CHALLENGE_TITLES.has(challenge.title);
+  }
+
+  function getChallengeAttempt(challengeId: string) {
+    return attempts[challengeId];
+  }
+
+  function getProgressPercentage(attempt: ChallengeAttempt) {
+    const challenge = challenges.find(
+      (item) => item.id === attempt.challenge_id
+    );
+
+    if (!challenge || challenge.question_count === 0) {
+      return 0;
+    }
+
+    return Math.min(
+      100,
+      Math.round(
+        (attempt.questions_answered / challenge.question_count) * 100
+      )
+    );
+  }
+
+  /*
+   * Determine whether a completed challenge was passed.
+   *
+   * Passing requirement:
+   * 50% or higher.
+   *
+   * We use the saved `passed` value when available.
+   * For older records where passed is null, we calculate it.
+   */
+
+  function getPassedStatus(
+    attempt: ChallengeAttempt,
+    challenge: Challenge
+  ) {
+    if (typeof attempt.passed === "boolean") {
+      return attempt.passed;
+    }
+
+    if (challenge.question_count <= 0) {
+      return false;
+    }
+
+    const percentage =
+      (attempt.correct_answers / challenge.question_count) * 100;
+
+    return percentage >= 50;
+  }
+
+  function formatChallengeType(type: string | null) {
+    if (!type) return "Challenge";
+
+    return type
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  function formatTime(seconds: number) {
+    if (seconds < 60) {
+      return `${seconds}s/question`;
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    if (remainingSeconds === 0) {
+      return `${minutes}m/question`;
+    }
+
+    return `${minutes}m ${remainingSeconds}s/question`;
+  }
+
+  /*
+   * ---------------------------------------------------------
    * START CHALLENGE
    * ---------------------------------------------------------
    */
 
   async function handleStartChallenge(challenge: Challenge) {
+    /*
+     * Coming Soon challenges cannot be started.
+     */
+
+    if (isComingSoonChallenge(challenge)) {
+      return;
+    }
+
     if (!user) {
       window.location.href = "/login";
       return;
@@ -347,84 +455,6 @@ export default function ChallengesPage() {
   ) {
     window.location.href =
       `/challenges/${challengeId}/result?attempt=${attemptId}`;
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * HELPER FUNCTIONS
-   * ---------------------------------------------------------
-   */
-
-  function getChallengeAttempt(challengeId: string) {
-    return attempts[challengeId];
-  }
-
-  function getProgressPercentage(attempt: ChallengeAttempt) {
-    const challenge = challenges.find(
-      (item) => item.id === attempt.challenge_id
-    );
-
-    if (!challenge || challenge.question_count === 0) {
-      return 0;
-    }
-
-    return Math.min(
-      100,
-      Math.round(
-        (attempt.questions_answered / challenge.question_count) * 100
-      )
-    );
-  }
-
-  /*
-   * Determine whether a completed challenge was passed.
-   *
-   * Passing requirement:
-   * 50% or higher.
-   *
-   * We use the saved `passed` value when available.
-   * For older records where passed is null, we calculate it.
-   */
-
-  function getPassedStatus(
-    attempt: ChallengeAttempt,
-    challenge: Challenge
-  ) {
-    if (typeof attempt.passed === "boolean") {
-      return attempt.passed;
-    }
-
-    if (challenge.question_count <= 0) {
-      return false;
-    }
-
-    const percentage =
-      (attempt.correct_answers / challenge.question_count) * 100;
-
-    return percentage >= 50;
-  }
-
-  function formatChallengeType(type: string | null) {
-    if (!type) return "Challenge";
-
-    return type
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  function formatTime(seconds: number) {
-    if (seconds < 60) {
-      return `${seconds}s/question`;
-    }
-
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-
-    if (remainingSeconds === 0) {
-      return `${minutes}m/question`;
-    }
-
-    return `${minutes}m ${remainingSeconds}s/question`;
   }
 
   const completedCount = challenges.filter(
@@ -669,8 +699,14 @@ export default function ChallengesPage() {
                   challenge.id
                 );
 
+                const isComingSoon = isComingSoonChallenge(
+                  challenge
+                );
+
                 const isLocked =
-                  challenge.is_premium && !isPremium;
+                  challenge.is_premium &&
+                  !isPremium &&
+                  !isComingSoon;
 
                 const isCompleted =
                   attempt?.status === "completed";
@@ -695,9 +731,11 @@ export default function ChallengesPage() {
                   <article
                     key={challenge.id}
                     className={`challenge-card ${
-                      isLocked
-                        ? "challenge-locked"
-                        : ""
+                      isComingSoon
+                        ? "challenge-coming-soon"
+                        : isLocked
+                          ? "challenge-locked"
+                          : ""
                     } ${
                       isCompleted
                         ? passed
@@ -713,7 +751,11 @@ export default function ChallengesPage() {
                         {challenge.icon || "🏆"}
                       </div>
 
-                      {isLocked ? (
+                      {isComingSoon ? (
+                        <span className="status-badge coming-soon-badge">
+                          ✨ Coming Soon
+                        </span>
+                      ) : isLocked ? (
                         <span className="status-badge premium-badge">
                           👑 Premium
                         </span>
@@ -773,9 +815,28 @@ export default function ChallengesPage() {
                       </div>
                     </div>
 
+                    {/* COMING SOON MESSAGE */}
+
+                    {isComingSoon && (
+                      <div className="coming-soon-panel">
+                        <div className="coming-soon-panel-icon">
+                          ✨
+                        </div>
+
+                        <div>
+                          <strong>Questions are being prepared</strong>
+
+                          <span>
+                            This premium challenge will be available
+                            soon.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* IN PROGRESS */}
 
-                    {isInProgress && attempt && (
+                    {isInProgress && attempt && !isComingSoon && (
                       <div className="progress-area">
                         <div className="progress-header">
                           <span>Your progress</span>
@@ -803,7 +864,7 @@ export default function ChallengesPage() {
 
                     {/* COMPLETED RESULT */}
 
-                    {isCompleted && attempt && (
+                    {isCompleted && attempt && !isComingSoon && (
                       <div
                         className={`completed-panel ${
                           passed
@@ -840,7 +901,7 @@ export default function ChallengesPage() {
 
                     {/* RESULT SUMMARY */}
 
-                    {isCompleted && attempt && (
+                    {isCompleted && attempt && !isComingSoon && (
                       <div className="result-summary">
                         <div>
                           <span>Score</span>
@@ -879,7 +940,16 @@ export default function ChallengesPage() {
 
                     {/* ACTION */}
 
-                    {isCompleted && attempt ? (
+                    {isComingSoon ? (
+                      <button
+                        type="button"
+                        className="challenge-action coming-soon-action"
+                        disabled
+                      >
+                        <span>✨</span>
+                        Coming Soon
+                      </button>
+                    ) : isCompleted && attempt ? (
                       /*
                        * Completed challenges cannot be retaken.
                        * This button ONLY opens the saved result.
@@ -1494,6 +1564,24 @@ export default function ChallengesPage() {
           box-shadow: 0 18px 45px rgba(24, 80, 65, 0.09);
         }
 
+        .challenge-coming-soon {
+          border-color: #ddd8c9;
+          background: linear-gradient(
+            180deg,
+            #ffffff,
+            #faf9f4
+          );
+        }
+
+        .challenge-coming-soon:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 38px rgba(80, 73, 50, 0.07);
+        }
+
+        .challenge-coming-soon .challenge-icon {
+          background: #f3f0e5;
+        }
+
         .challenge-locked {
           border-color: #efdfb4;
           background: linear-gradient(
@@ -1583,6 +1671,11 @@ export default function ChallengesPage() {
           color: #8b681f;
         }
 
+        .coming-soon-badge {
+          background: #eeeae0;
+          color: #756b55;
+        }
+
         .challenge-type {
           margin-top: 20px;
           color: #0d8066;
@@ -1624,6 +1717,44 @@ export default function ChallengesPage() {
           color: #627870;
           font-size: 10px;
           font-weight: 700;
+        }
+
+        /* COMING SOON */
+
+        .coming-soon-panel {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 16px;
+          padding: 11px;
+          border: 1px solid #e7e1d3;
+          border-radius: 12px;
+          background: #f8f6ef;
+        }
+
+        .coming-soon-panel-icon {
+          width: 31px;
+          height: 31px;
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          border-radius: 50%;
+          background: #eee9dc;
+          font-size: 14px;
+        }
+
+        .coming-soon-panel strong {
+          display: block;
+          color: #685f4e;
+          font-size: 11px;
+        }
+
+        .coming-soon-panel span {
+          display: block;
+          margin-top: 2px;
+          color: #918873;
+          font-size: 9px;
+          line-height: 1.4;
         }
 
         /* PROGRESS */
@@ -1803,6 +1934,22 @@ export default function ChallengesPage() {
 
         .locked-action:hover:not(:disabled) {
           background: #a77a20;
+        }
+
+        .coming-soon-action {
+          background: #e9e5da;
+          color: #756b55;
+          cursor: default;
+          box-shadow: none;
+        }
+
+        .coming-soon-action:hover {
+          background: #e9e5da;
+          transform: none;
+        }
+
+        .coming-soon-action:disabled {
+          opacity: 1;
         }
 
         /*
