@@ -1,153 +1,309 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-function PaymentCallbackContent() {
+type VerificationResult = {
+  success?: boolean;
+  already_processed?: boolean;
+  subscription_id?: string;
+  plan_type?: string;
+  billing_interval?: string;
+  currency?: string;
+  current_period_end?: string;
+  error?: string;
+};
+
+function FlutterwaveCallbackContent() {
   const searchParams = useSearchParams();
 
-  const [status, setStatus] = useState<"verifying" | "success" | "failed">(
-    "verifying"
+  const txRef = searchParams.get("tx_ref");
+  const transactionId =
+    searchParams.get("transaction_id");
+
+  const [loading, setLoading] = useState(true);
+  const [success, setSuccess] = useState(false);
+  const [message, setMessage] = useState(
+    "Verifying your payment..."
   );
-  const [message, setMessage] = useState("Verifying your payment...");
-  const [planType, setPlanType] = useState("");
+  const [result, setResult] =
+    useState<VerificationResult | null>(null);
 
   useEffect(() => {
+    /*
+     * We intentionally do NOT require:
+     *
+     * status === "successful"
+     *
+     * Flutterwave can return a completed payment with
+     * status values such as "completed".
+     *
+     * The server-side verification determines whether
+     * the payment is actually valid.
+     */
+
+    if (!txRef || !transactionId) {
+      setLoading(false);
+      setSuccess(false);
+      setMessage(
+        "Payment information is incomplete. We could not verify this transaction."
+      );
+      return;
+    }
+
     const verifyPayment = async () => {
-      const paymentStatus = searchParams.get("status");
-      const txRef = searchParams.get("tx_ref");
-      const transactionId = searchParams.get("transaction_id");
-
-      if (paymentStatus !== "successful" || !txRef || !transactionId) {
-        setStatus("failed");
-        setMessage("Payment was not completed successfully.");
-        return;
-      }
-
       try {
-        const response = await fetch("/api/payments/flutterwave/verify", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tx_ref: txRef,
-            transaction_id: transactionId,
-          }),
-        });
+        setLoading(true);
+        setMessage("Verifying your payment...");
 
-        const data = await response.json();
+        const response = await fetch(
+          "/api/payments/flutterwave/verify",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              tx_ref: txRef,
+              transaction_id: transactionId,
+            }),
+          }
+        );
+
+        const data =
+          (await response.json()) as VerificationResult;
+
+        setResult(data);
 
         if (!response.ok || !data.success) {
-          setStatus("failed");
-          setMessage(data.error || "We could not verify your payment.");
+          setSuccess(false);
+          setMessage(
+            data.error ||
+              "Payment could not be verified."
+          );
           return;
         }
 
-        setStatus("success");
-        setPlanType(data.plan_type || "");
-        setMessage("Your payment was verified successfully.");
-      } catch (error) {
-        console.error("Payment verification error:", error);
-
-        setStatus("failed");
+        setSuccess(true);
         setMessage(
-          "Something went wrong while verifying your payment. Please contact support if you were charged."
+          "Your payment was verified successfully."
         );
+      } catch (error) {
+        console.error(
+          "Flutterwave callback verification error:",
+          error
+        );
+
+        setSuccess(false);
+        setMessage(
+          "We could not verify your payment at this time."
+        );
+      } finally {
+        setLoading(false);
       }
     };
 
     verifyPayment();
-  }, [searchParams]);
+  }, [txRef, transactionId]);
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg text-center">
-        {status === "verifying" && (
-          <>
-            <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-black" />
+    <main className="sq-page">
+      <div className="sq-container">
+        <div
+          className="sq-card"
+          style={{
+            maxWidth: "600px",
+            margin: "60px auto",
+            textAlign: "center",
+          }}
+        >
+          {loading ? (
+            <>
+              <div
+                style={{
+                  fontSize: "48px",
+                  marginBottom: "20px",
+                }}
+              >
+                ⏳
+              </div>
 
-            <h1 className="text-2xl font-bold text-gray-900">
-              Verifying Payment
-            </h1>
+              <h1>Verifying Payment</h1>
 
-            <p className="mt-3 text-gray-600">{message}</p>
-          </>
-        )}
-
-        {status === "success" && (
-          <>
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl text-green-600">
-              ✓
-            </div>
-
-            <h1 className="text-2xl font-bold text-gray-900">
-              Payment Successful
-            </h1>
-
-            <p className="mt-3 text-gray-600">{message}</p>
-
-            {planType && (
-              <p className="mt-2 text-sm font-medium text-gray-800">
-                Your {planType} subscription is now active.
+              <p
+                style={{
+                  marginTop: "12px",
+                  opacity: 0.8,
+                }}
+              >
+                Please wait while we confirm your
+                payment with Flutterwave.
               </p>
-            )}
+            </>
+          ) : success ? (
+            <>
+              <div
+                style={{
+                  fontSize: "56px",
+                  marginBottom: "16px",
+                }}
+              >
+                ✅
+              </div>
 
-            <Link
-              href="/dashboard"
-              className="mt-6 inline-block rounded-lg bg-black px-6 py-3 font-semibold text-white transition hover:bg-gray-800"
-            >
-              Go to Dashboard
-            </Link>
-          </>
-        )}
+              <h1>Payment Successful!</h1>
 
-        {status === "failed" && (
-          <>
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl text-red-600">
-              !
-            </div>
+              <p
+                style={{
+                  marginTop: "12px",
+                  opacity: 0.85,
+                }}
+              >
+                Your payment has been verified and
+                your subscription is now active.
+              </p>
 
-            <h1 className="text-2xl font-bold text-gray-900">
-              Payment Verification Failed
-            </h1>
+              {result?.plan_type && (
+                <div
+                  className="sq-stat"
+                  style={{
+                    marginTop: "24px",
+                    padding: "18px",
+                  }}
+                >
+                  <strong>
+                    {result.plan_type === "plus"
+                      ? "Individual Plus"
+                      : result.plan_type}
+                  </strong>
 
-            <p className="mt-3 text-gray-600">{message}</p>
+                  {result.billing_interval && (
+                    <div
+                      style={{
+                        marginTop: "6px",
+                      }}
+                    >
+                      Billing:{" "}
+                      {result.billing_interval}
+                    </div>
+                  )}
+                </div>
+              )}
 
-            <Link
-              href="/dashboard"
-              className="mt-6 inline-block rounded-lg bg-black px-6 py-3 font-semibold text-white transition hover:bg-gray-800"
-            >
-              Return to Dashboard
-            </Link>
-          </>
-        )}
+              <div
+                style={{
+                  marginTop: "28px",
+                }}
+              >
+                <Link
+                  href="/dashboard"
+                  className="sq-button-primary"
+                >
+                  Go to Dashboard
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  fontSize: "56px",
+                  marginBottom: "16px",
+                }}
+              >
+                ⚠️
+              </div>
+
+              <h1>Payment Verification Failed</h1>
+
+              <p
+                style={{
+                  marginTop: "12px",
+                  opacity: 0.85,
+                }}
+              >
+                {message}
+              </p>
+
+              <p
+                style={{
+                  marginTop: "12px",
+                  fontSize: "14px",
+                  opacity: 0.7,
+                }}
+              >
+                If your bank or Flutterwave shows the
+                payment as successful, please check your
+                dashboard before attempting another
+                payment.
+              </p>
+
+              <div
+                style={{
+                  marginTop: "28px",
+                }}
+              >
+                <Link
+                  href="/dashboard"
+                  className="sq-button-secondary"
+                >
+                  Go to Dashboard
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </main>
   );
 }
 
-export default function PaymentCallbackPage() {
+function LoadingFallback() {
   return (
-    <Suspense
-      fallback={
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg text-center">
-            <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-black" />
-
-            <h1 className="text-2xl font-bold text-gray-900">
-              Loading Payment
-            </h1>
-
-            <p className="mt-3 text-gray-600">
-              Please wait while we prepare your payment verification.
-            </p>
+    <main className="sq-page">
+      <div className="sq-container">
+        <div
+          className="sq-card"
+          style={{
+            maxWidth: "600px",
+            margin: "60px auto",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "48px",
+              marginBottom: "20px",
+            }}
+          >
+            ⏳
           </div>
-        </main>
-      }
-    >
-      <PaymentCallbackContent />
+
+          <h1>Loading Payment</h1>
+
+          <p
+            style={{
+              marginTop: "12px",
+              opacity: 0.8,
+            }}
+          >
+            Please wait...
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function FlutterwaveCallbackPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <FlutterwaveCallbackContent />
     </Suspense>
   );
 }
