@@ -1,31 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "../../../../../lib/supabase-server";
 
-function getPeriodEnd(
-  interval: "monthly" | "annual"
-) {
-  const date = new Date();
-
-  if (interval === "monthly") {
-    date.setMonth(date.getMonth() + 1);
-  } else {
-    date.setFullYear(
-      date.getFullYear() + 1
-    );
-  }
-
-  return date.toISOString();
-}
-
-export async function POST(
-  request: Request
-) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
 
     const txRef = body.tx_ref;
-    const transactionId =
-      body.transaction_id;
+    const transactionId = body.transaction_id;
 
     if (!txRef || !transactionId) {
       return NextResponse.json(
@@ -37,9 +18,10 @@ export async function POST(
       );
     }
 
-    if (
-      !process.env.FLUTTERWAVE_SECRET_KEY
-    ) {
+    const flutterwaveSecretKey =
+      process.env.FLUTTERWAVE_SECRET_KEY;
+
+    if (!flutterwaveSecretKey) {
       console.error(
         "FLUTTERWAVE_SECRET_KEY is missing."
       );
@@ -54,32 +36,29 @@ export async function POST(
     }
 
     /*
-     * Find the transaction we created
-     * before sending the user to Flutterwave.
+     * ---------------------------------------------------------
+     * 1. Find the payment transaction created during checkout
+     * ---------------------------------------------------------
      */
     const {
       data: paymentTransaction,
       error: transactionLookupError,
-    } =
-      await supabaseServer
-        .from("payment_transactions")
-        .select(
-          `
-          id,
-          user_id,
-          plan_id,
-          subscription_id,
-          transaction_reference,
-          amount,
-          currency,
-          status
+    } = await supabaseServer
+      .from("payment_transactions")
+      .select(
         `
-        )
-        .eq(
-          "transaction_reference",
-          txRef
-        )
-        .single();
+        id,
+        user_id,
+        plan_id,
+        subscription_id,
+        transaction_reference,
+        amount,
+        currency,
+        status
+        `
+      )
+      .eq("transaction_reference", txRef)
+      .single();
 
     if (
       transactionLookupError ||
@@ -100,23 +79,100 @@ export async function POST(
     }
 
     /*
-     * Verify the transaction directly
-     * with Flutterwave.
+     * ---------------------------------------------------------
+     * 2. If this payment has already been processed,
+     *    return the existing subscription.
+     *
+     * This is a quick response optimization.
+     *
+     * The database function remains the authoritative
+     * idempotency protection.
+     * ---------------------------------------------------------
+     */
+    if (
+      paymentTransaction.status === "success" &&
+      paymentTransaction.subscription_id
+    ) {
+      const {
+        data: existingSubscription,
+        error: existingSubscriptionError,
+      } = await supabaseServer
+        .from("subscriptions")
+        .select(
+          `
+          id,
+          current_period_end,
+          subscription_plans (
+            plan_type,
+            billing_interval,
+            currency
+          )
+          `
+        )
+        .eq(
+          "id",
+          paymentTransaction.subscription_id
+        )
+        .maybeSingle();
+
+      if (
+        existingSubscriptionError ||
+        !existingSubscription
+      ) {
+        console.error(
+          "Existing subscription lookup failed:",
+          existingSubscriptionError
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              "Payment was already processed, but the subscription could not be loaded.",
+          },
+          { status: 500 }
+        );
+      }
+
+      const planData =
+        existingSubscription.subscription_plans;
+
+      const plan = Array.isArray(planData)
+        ? planData[0]
+        : planData;
+
+      return NextResponse.json({
+        success: true,
+        already_processed: true,
+        subscription_id:
+          existingSubscription.id,
+        plan_type:
+          plan?.plan_type || "",
+        billing_interval:
+          plan?.billing_interval || "",
+        currency:
+          plan?.currency ||
+          paymentTransaction.currency,
+        current_period_end:
+          existingSubscription.current_period_end,
+      });
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * 3. Verify the transaction directly with Flutterwave
+     * ---------------------------------------------------------
      */
     const flutterwaveResponse =
       await fetch(
         `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
         {
           method: "GET",
-
           headers: {
             Authorization:
-              `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
-
+              `Bearer ${flutterwaveSecretKey}`,
             "Content-Type":
               "application/json",
           },
-
           cache: "no-store",
         }
       );
@@ -126,8 +182,7 @@ export async function POST(
 
     if (
       !flutterwaveResponse.ok ||
-      flutterwaveData.status !==
-        "success"
+      flutterwaveData.status !== "success"
     ) {
       console.error(
         "Flutterwave verification failed:",
@@ -159,13 +214,24 @@ export async function POST(
       flutterwaveData.data;
 
     /*
-     * Make sure the payment belongs
-     * to the transaction we created.
+     * ---------------------------------------------------------
+     * 4. Verify transaction reference
+     * ---------------------------------------------------------
      */
     if (
       verified.tx_ref !==
       paymentTransaction.transaction_reference
     ) {
+      console.error(
+        "Transaction reference mismatch:",
+        {
+          expected:
+            paymentTransaction.transaction_reference,
+          received:
+            verified.tx_ref,
+        }
+      );
+
       return NextResponse.json(
         {
           error:
@@ -176,12 +242,13 @@ export async function POST(
     }
 
     /*
-     * The stored database amount uses:
+     * ---------------------------------------------------------
+     * 5. Verify amount
      *
-     * NGN 1500
-     * USD 299 cents
-     * GBP 249 pence
-     * EUR 299 cents
+     * Database stores:
+     *
+     * NGN = naira
+     * USD/GBP/EUR = cents/pence
      *
      * Flutterwave receives:
      *
@@ -189,29 +256,30 @@ export async function POST(
      * USD 2.99
      * GBP 2.49
      * EUR 2.99
+     * ---------------------------------------------------------
      */
     let expectedAmount =
-      paymentTransaction.amount;
+      Number(paymentTransaction.amount);
 
     if (
-      paymentTransaction.currency !==
-      "NGN"
+      paymentTransaction.currency !== "NGN"
     ) {
       expectedAmount =
-        paymentTransaction.amount / 100;
+        expectedAmount / 100;
     }
 
+    const verifiedAmount =
+      Number(verified.amount);
+
     const amountMatches =
-      Number(verified.amount) >=
-      Number(expectedAmount);
+      verifiedAmount >= expectedAmount;
 
     const currencyMatches =
       verified.currency ===
       paymentTransaction.currency;
 
     const paymentSuccessful =
-      verified.status ===
-        "successful" &&
+      verified.status === "successful" &&
       amountMatches &&
       currencyMatches;
 
@@ -234,12 +302,7 @@ export async function POST(
       await supabaseServer
         .from("payment_transactions")
         .update({
-          status:
-            verified.status ===
-            "successful"
-              ? "failed"
-              : "failed",
-
+          status: "failed",
           updated_at:
             new Date().toISOString(),
         })
@@ -258,230 +321,79 @@ export async function POST(
     }
 
     /*
-     * Mark the payment as successful.
-     */
-    const {
-      error: paymentUpdateError,
-    } =
-      await supabaseServer
-        .from("payment_transactions")
-        .update({
-          status: "success",
-
-          provider_transaction_id:
-            String(verified.id),
-
-          paid_at:
-            new Date().toISOString(),
-
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          "id",
-          paymentTransaction.id
-        );
-
-    if (paymentUpdateError) {
-      console.error(
-        "Could not update payment transaction:",
-        paymentUpdateError
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Payment was verified but could not be recorded.",
-        },
-        { status: 500 }
-      );
-    }
-
-    /*
-     * Get the selected subscription plan.
-     */
-    const {
-      data: plan,
-      error: planError,
-    } =
-      await supabaseServer
-        .from("subscription_plans")
-        .select(
-          `
-          id,
-          plan_type,
-          billing_interval,
-          currency,
-          amount,
-          display_name
-        `
-        )
-        .eq(
-          "id",
-          paymentTransaction.plan_id
-        )
-        .single();
-
-    if (
-      planError ||
-      !plan
-    ) {
-      console.error(
-        "Subscription plan not found:",
-        planError
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Payment succeeded, but the subscription plan could not be found.",
-        },
-        { status: 500 }
-      );
-    }
-
-    /*
-     * Check whether an active subscription
-     * already exists for this payment.
+     * ---------------------------------------------------------
+     * 6. Atomically process the verified payment
      *
-     * This prevents duplicate subscriptions
-     * if the callback is refreshed.
+     * The database function:
+     *
+     * - locks the payment row
+     * - prevents duplicate processing
+     * - creates one subscription when needed
+     * - extends an existing active subscription
+     * - starts from now when the old subscription expired
+     * - links the payment to the subscription
+     * ---------------------------------------------------------
      */
-    if (
-      paymentTransaction.subscription_id
-    ) {
-      return NextResponse.json({
-        success: true,
-
-        already_processed: true,
-
-        subscription_id:
-          paymentTransaction.subscription_id,
-      });
-    }
-
-    /*
-     * Create the user's active entitlement.
-     */
-    const now =
-      new Date();
-
-    const periodEnd =
-      getPeriodEnd(
-        plan.billing_interval
-      );
-
     const {
-      data: subscription,
-      error: subscriptionError,
-    } =
-      await supabaseServer
-        .from("subscriptions")
-        .insert({
-          user_id:
-            paymentTransaction.user_id,
+      data: processedPayment,
+      error: processError,
+    } = await supabaseServer.rpc(
+      "process_verified_payment",
+      {
+        p_payment_transaction_id:
+          paymentTransaction.id,
 
-          plan_id:
-            plan.id,
+        p_provider_transaction_id:
+          String(verified.id),
 
-          status:
-            "active",
-
-          provider:
-            "flutterwave",
-
-          provider_customer_code:
-            null,
-
-          provider_subscription_code:
-            txRef,
-
-          start_date:
-            now.toISOString(),
-
-          current_period_start:
-            now.toISOString(),
-
-          current_period_end:
-            periodEnd,
-
-          created_at:
-            now.toISOString(),
-
-          updated_at:
-            now.toISOString(),
-        })
-        .select("id")
-        .single();
+        p_paid_at:
+          verified.created_at ||
+          new Date().toISOString(),
+      }
+    );
 
     if (
-      subscriptionError ||
-      !subscription
+      processError ||
+      !processedPayment ||
+      processedPayment.length === 0
     ) {
       console.error(
-        "Subscription creation error:",
-        subscriptionError
+        "Verified payment processing failed:",
+        processError
       );
 
       return NextResponse.json(
         {
           error:
-            "Payment succeeded, but the subscription could not be activated.",
+            "Payment was verified, but we could not activate the subscription. Please contact support if you were charged.",
         },
         { status: 500 }
       );
     }
 
-    /*
-     * Link the successful payment
-     * to the new subscription.
-     */
-    const {
-      error:
-        subscriptionLinkError,
-    } =
-      await supabaseServer
-        .from("payment_transactions")
-        .update({
-          subscription_id:
-            subscription.id,
-
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          "id",
-          paymentTransaction.id
-        );
-
-    if (
-      subscriptionLinkError
-    ) {
-      console.error(
-        "Could not link subscription to payment:",
-        subscriptionLinkError
-      );
-    }
+    const result =
+      processedPayment[0];
 
     return NextResponse.json({
       success: true,
 
-      already_processed: false,
+      already_processed:
+        result.already_processed,
 
       subscription_id:
-        subscription.id,
+        result.subscription_id,
 
       plan_type:
-        plan.plan_type,
+        result.plan_type,
 
       billing_interval:
-        plan.billing_interval,
+        result.billing_interval,
 
       currency:
-        plan.currency,
+        result.currency,
 
       current_period_end:
-        periodEnd,
+        result.current_period_end,
     });
   } catch (error) {
     console.error(
