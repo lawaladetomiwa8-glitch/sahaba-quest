@@ -48,6 +48,8 @@ export default function SignupPage() {
   const [accountType, setAccountType] =
     useState<AccountType>("individual");
 
+  const [organisationName, setOrganisationName] = useState("");
+
   const [organisationType, setOrganisationType] =
     useState<OrganisationType>("school");
 
@@ -76,7 +78,9 @@ export default function SignupPage() {
   /*
    * Handle signup
    */
-  const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (
+    event: FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
 
     setMessage("");
@@ -88,6 +92,7 @@ export default function SignupPage() {
     const cleanDisplayName = displayName.trim();
     const cleanUsername = username.trim().toLowerCase();
     const cleanEmail = email.trim().toLowerCase();
+    const cleanOrganisationName = organisationName.trim();
 
     /*
      * Basic validation
@@ -131,6 +136,27 @@ export default function SignupPage() {
       return;
     }
 
+    /*
+     * Organisation validation
+     */
+    if (
+      accountType === "organisation" &&
+      !cleanOrganisationName
+    ) {
+      setMessage("Please enter your organisation name.");
+      return;
+    }
+
+    if (
+      accountType === "organisation" &&
+      cleanOrganisationName.length < 2
+    ) {
+      setMessage(
+        "Organisation name must be at least 2 characters."
+      );
+      return;
+    }
+
     if (
       accountType === "organisation" &&
       !organisationType
@@ -167,9 +193,6 @@ export default function SignupPage() {
 
       /*
        * Handle the response from the existing RPC.
-       *
-       * The existing project uses this function to check
-       * username/display-name availability.
        */
       if (nameCheck) {
         if (
@@ -194,27 +217,33 @@ export default function SignupPage() {
       /*
        * Create Supabase account
        *
-       * Account type is currently stored in user metadata.
-       * We will connect this to the Family/Organisation
-       * database structure after the Supabase schema audit.
+       * Organisation details are stored in Auth metadata.
+       * The actual Organisation database record will be created
+       * later, after the user confirms their email and signs in.
        */
-      const { error: signupError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          data: {
-            display_name: cleanDisplayName,
-            username: cleanUsername,
+      const { error: signupError } =
+        await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: {
+            data: {
+              display_name: cleanDisplayName,
+              username: cleanUsername,
 
-            account_type: accountType,
+              account_type: accountType,
 
-            organisation_type:
-              accountType === "organisation"
-                ? organisationType
-                : null,
+              organisation_name:
+                accountType === "organisation"
+                  ? cleanOrganisationName
+                  : null,
+
+              organisation_type:
+                accountType === "organisation"
+                  ? organisationType
+                  : null,
+            },
           },
-        },
-      });
+        });
 
       if (signupError) {
         console.error("Signup error:", signupError);
@@ -239,9 +268,16 @@ export default function SignupPage() {
        * Successful signup
        */
       setSuccess(true);
-      setMessage(
-        "Your account has been created successfully. Please check your email to confirm your account."
-      );
+
+      if (accountType === "organisation") {
+        setMessage(
+          "Your account has been created successfully. Please check your email to confirm your account. After confirmation, sign in to complete your organisation setup."
+        );
+      } else {
+        setMessage(
+          "Your account has been created successfully. Please check your email to confirm your account."
+        );
+      }
     } catch (error) {
       console.error("Unexpected signup error:", error);
 
@@ -286,12 +322,11 @@ export default function SignupPage() {
 
             <h2>Welcome to Sahaba Quest!</h2>
 
-            <p>
-              {message}
-            </p>
+            <p>{message}</p>
 
             <div className="success-note">
               <strong>Next step</strong>
+
               <span>
                 Open your email and click the confirmation link
                 before signing in.
@@ -333,8 +368,10 @@ export default function SignupPage() {
           <div className="brand-features">
             <div className="brand-feature">
               <span>📖</span>
+
               <div>
                 <strong>Learn</strong>
+
                 <p>
                   Explore authentic stories and lessons from
                   the Sahabah.
@@ -344,8 +381,10 @@ export default function SignupPage() {
 
             <div className="brand-feature">
               <span>🏆</span>
+
               <div>
                 <strong>Compete</strong>
+
                 <p>
                   Challenge yourself and climb the leaderboard.
                 </p>
@@ -354,8 +393,10 @@ export default function SignupPage() {
 
             <div className="brand-feature">
               <span>🌙</span>
+
               <div>
                 <strong>Remember</strong>
+
                 <p>
                   Turn Islamic knowledge into lasting
                   understanding.
@@ -469,47 +510,77 @@ export default function SignupPage() {
             </div>
 
             {/* =================================================
-                ORGANISATION TYPE
+                ORGANISATION DETAILS
             ================================================== */}
             {accountType === "organisation" && (
               <div className="form-section organisation-section">
-                <label
-                  htmlFor="organisationType"
-                  className="form-label"
-                >
-                  Organisation Type
-                </label>
+                <div className="form-group">
+                  <label
+                    htmlFor="organisationName"
+                    className="form-label"
+                  >
+                    Organisation Name
+                  </label>
 
-                <select
-                  id="organisationType"
-                  value={organisationType}
-                  onChange={(event) =>
-                    setOrganisationType(
-                      event.target.value as OrganisationType
-                    )
-                  }
-                  className="form-input"
-                >
-                  <option value="school">
-                    School
-                  </option>
+                  <input
+                    id="organisationName"
+                    type="text"
+                    value={organisationName}
+                    onChange={(event) =>
+                      setOrganisationName(
+                        event.target.value
+                      )
+                    }
+                    placeholder="e.g. Brightway International Academy"
+                    className="form-input"
+                    autoComplete="organization"
+                  />
 
-                  <option value="madrasa">
-                    Madrasa
-                  </option>
+                  <span className="field-hint">
+                    Enter the official name of your school,
+                    madrasa, mosque or organisation.
+                  </span>
+                </div>
 
-                  <option value="mosque">
-                    Mosque
-                  </option>
+                <div className="form-group">
+                  <label
+                    htmlFor="organisationType"
+                    className="form-label"
+                  >
+                    Organisation Type
+                  </label>
 
-                  <option value="islamic_academy">
-                    Islamic Academy
-                  </option>
+                  <select
+                    id="organisationType"
+                    value={organisationType}
+                    onChange={(event) =>
+                      setOrganisationType(
+                        event.target.value as OrganisationType
+                      )
+                    }
+                    className="form-input"
+                  >
+                    <option value="school">
+                      School
+                    </option>
 
-                  <option value="other">
-                    Other
-                  </option>
-                </select>
+                    <option value="madrasa">
+                      Madrasa
+                    </option>
+
+                    <option value="mosque">
+                      Mosque
+                    </option>
+
+                    <option value="islamic_academy">
+                      Islamic Academy
+                    </option>
+
+                    <option value="other">
+                      Other
+                    </option>
+                  </select>
+                </div>
               </div>
             )}
 
@@ -531,7 +602,9 @@ export default function SignupPage() {
                     type="text"
                     value={displayName}
                     onChange={(event) =>
-                      setDisplayName(event.target.value)
+                      setDisplayName(
+                        event.target.value
+                      )
                     }
                     placeholder="Your name"
                     className="form-input"
@@ -605,11 +678,15 @@ export default function SignupPage() {
                   <input
                     id="password"
                     type={
-                      showPassword ? "text" : "password"
+                      showPassword
+                        ? "text"
+                        : "password"
                     }
                     value={password}
                     onChange={(event) =>
-                      setPassword(event.target.value)
+                      setPassword(
+                        event.target.value
+                      )
                     }
                     placeholder="Create a strong password"
                     className="form-input password-input"
@@ -620,7 +697,9 @@ export default function SignupPage() {
                     type="button"
                     className="password-toggle"
                     onClick={() =>
-                      setShowPassword(!showPassword)
+                      setShowPassword(
+                        !showPassword
+                      )
                     }
                     aria-label={
                       showPassword
@@ -641,31 +720,41 @@ export default function SignupPage() {
 
                 <div className="requirements-grid">
                   <PasswordRequirement
-                    valid={passwordRequirements.minLength}
+                    valid={
+                      passwordRequirements.minLength
+                    }
                   >
                     At least 8 characters
                   </PasswordRequirement>
 
                   <PasswordRequirement
-                    valid={passwordRequirements.uppercase}
+                    valid={
+                      passwordRequirements.uppercase
+                    }
                   >
                     One uppercase letter
                   </PasswordRequirement>
 
                   <PasswordRequirement
-                    valid={passwordRequirements.lowercase}
+                    valid={
+                      passwordRequirements.lowercase
+                    }
                   >
                     One lowercase letter
                   </PasswordRequirement>
 
                   <PasswordRequirement
-                    valid={passwordRequirements.number}
+                    valid={
+                      passwordRequirements.number
+                    }
                   >
                     One number
                   </PasswordRequirement>
 
                   <PasswordRequirement
-                    valid={passwordRequirements.special}
+                    valid={
+                      passwordRequirements.special
+                    }
                   >
                     One special character
                   </PasswordRequirement>

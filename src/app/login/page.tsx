@@ -35,6 +35,55 @@ export default function LoginPage() {
   }, [router]);
 
   /*
+   * Set up an Organisation account after login.
+   *
+   * Individual and Family accounts are left untouched.
+   */
+  const setupOrganisationIfNeeded = async () => {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      throw new Error("Unable to verify your account.");
+    }
+
+    const accountType =
+      user.user_metadata?.account_type;
+
+    /*
+     * Only Organisation accounts need
+     * organisation setup.
+     */
+    if (accountType !== "organisation") {
+      return;
+    }
+
+    /*
+     * The database function safely creates the
+     * organisation and owner membership.
+     *
+     * It is idempotent, so calling it again
+     * will not create duplicate organisations.
+     */
+    const { error } = await supabase.rpc(
+      "setup_my_organization"
+    );
+
+    if (error) {
+      console.error(
+        "Organisation setup error:",
+        error
+      );
+
+      throw new Error(
+        "We couldn't finish setting up your organisation. Please try again."
+      );
+    }
+  };
+
+  /*
    * Handle login
    */
   const handleLogin = async (
@@ -66,6 +115,30 @@ export default function LoginPage() {
       if (error) {
         setMessageType("error");
         setMessage(error.message);
+        return;
+      }
+
+      /*
+       * If this is an Organisation account,
+       * make sure its Organisation record
+       * and owner membership exist before
+       * sending the user to the dashboard.
+       */
+      try {
+        await setupOrganisationIfNeeded();
+      } catch (organisationError) {
+        console.error(
+          "Organisation setup failed:",
+          organisationError
+        );
+
+        setMessageType("error");
+        setMessage(
+          organisationError instanceof Error
+            ? organisationError.message
+            : "We couldn't finish setting up your organisation. Please try again."
+        );
+
         return;
       }
 
