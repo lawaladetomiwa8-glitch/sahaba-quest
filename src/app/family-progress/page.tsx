@@ -15,89 +15,113 @@ type ProgressData = {
   best_streak: number;
 };
 
-export default function ProgressPage() {
+const TOTAL_QUESTIONS_PER_LEVEL = 50;
+const PASS_MARK = 25;
+
+export default function FamilyProgressPage() {
   const router = useRouter();
 
   const [progress, setProgress] = useState<ProgressData | null>(null);
-  const [displayName, setDisplayName] = useState("Player");
+  const [displayName, setDisplayName] = useState("Family");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    loadProgress();
-  }, [router]);
+    void loadProgress();
+  }, []);
 
   async function loadProgress() {
     setLoading(true);
     setMessage("");
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (!user) {
-      setMessage("You are not logged in.");
-      setLoading(false);
-      return;
-    }
+      if (userError) throw userError;
 
-    /*
-     * ---------------------------------------------------------
-     * FAMILY ACCOUNT ROUTE PROTECTION
-     * ---------------------------------------------------------
-     *
-     * Family users have a separate progress page and should not
-     * load the Individual player_progress data.
-     */
-    const { data: accountProfile, error: accountProfileError } =
-      await supabase
+      if (!user) {
+        setMessage("You are not logged in.");
+        return;
+      }
+
+      /*
+       * FAMILY ACCOUNT CHECK
+       */
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("account_type")
-        .eq("id", user.id)
-        .maybeSingle();
-
-    if (accountProfileError) {
-      setMessage(accountProfileError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (accountProfile?.account_type === "family") {
-      router.replace("/family-progress");
-      return;
-    }
-
-    const { data: profile, error: profileError } =
-      await supabase
-        .from("profiles")
-        .select("display_name")
+        .select("display_name, account_type")
         .eq("id", user.id)
         .single();
 
-    if (profileError) {
-      setMessage(profileError.message);
-      setLoading(false);
-      return;
-    }
+      if (profileError) throw profileError;
 
-    const { data: playerProgress, error: progressError } =
-      await supabase
-        .from("player_progress")
+      if (profile.account_type !== "family") {
+        router.replace("/dashboard");
+        return;
+      }
+
+      /*
+       * FAMILY PROGRESS
+       *
+       * IMPORTANT:
+       * current_level is determined by Family Quest pass/fail.
+       * total_xp is a separate reward system and must NOT determine level.
+       */
+      let { data: familyProgress, error: progressError } = await supabase
+        .from("family_player_progress")
         .select(
           "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
         )
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-    if (progressError) {
-      setMessage(progressError.message);
+      if (progressError) throw progressError;
+
+      if (!familyProgress) {
+        const { error: createError } = await supabase.rpc(
+          "create_family_player_progress",
+          {
+            p_user_id: user.id,
+          }
+        );
+
+        if (createError) throw createError;
+
+        const { data: createdProgress, error: reloadError } =
+          await supabase
+            .from("family_player_progress")
+            .select(
+              "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
+            )
+            .eq("user_id", user.id)
+            .single();
+
+        if (reloadError) throw reloadError;
+
+        familyProgress = createdProgress;
+      }
+
+      setDisplayName(profile.display_name || "Family");
+      setProgress(familyProgress as ProgressData);
+    } catch (error: any) {
+      console.error("Family progress loading error:", {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        error,
+      });
+
+      setMessage(
+        error?.message ||
+          "We couldn't load your Family progress."
+      );
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setDisplayName(profile?.display_name || "Player");
-    setProgress(playerProgress);
-    setLoading(false);
   }
 
   const accuracy =
@@ -109,16 +133,19 @@ export default function ProgressPage() {
         )
       : 0;
 
-  const xpIntoLevel = progress
-    ? progress.total_xp % 1000
-    : 0;
-
-  const levelProgress = Math.min(
-    (xpIntoLevel / 1000) * 100,
-    100
-  );
-
-  const xpToNextLevel = 1000 - xpIntoLevel;
+  /*
+   * LEVEL PROGRESSION
+   *
+   * XP does NOT determine this.
+   * The current_level value comes from the Family Quest pass result.
+   *
+   * A Family Quest contains 50 questions.
+   * A score of 25/50 or more passes the level.
+   * Passing advances the player to the next level.
+   * Failing keeps the player on the same level while XP is retained.
+   */
+  const currentLevel = progress?.current_level ?? 1;
+  const nextLevel = currentLevel + 1;
 
   if (loading) {
     return (
@@ -142,15 +169,15 @@ export default function ProgressPage() {
                 fontSize: "18px",
               }}
             >
-              ✦
+              👨‍👩‍👧‍👦
             </div>
 
             <h2 style={{ margin: 0 }}>
-              Loading your progress...
+              Loading Family progress...
             </h2>
 
             <p className="sq-subtitle">
-              We're getting your latest learning statistics.
+              We're getting your latest Family learning statistics.
             </p>
           </div>
         </div>
@@ -158,9 +185,11 @@ export default function ProgressPage() {
     );
   }
 
-  if (message) {
+  if (message || !progress) {
     return (
       <main className="sq-page">
+        <AppNavbar />
+
         <div
           className="sq-container"
           style={{
@@ -173,25 +202,47 @@ export default function ProgressPage() {
           <div
             className="sq-card"
             style={{
-              maxWidth: "500px",
+              maxWidth: "560px",
               width: "100%",
               padding: "36px",
               textAlign: "center",
             }}
           >
+            <div style={{ fontSize: "44px", marginBottom: "12px" }}>
+              👨‍👩‍👧‍👦
+            </div>
+
             <h2 style={{ marginTop: 0 }}>
-              Unable to load progress
+              Unable to load Family progress
             </h2>
 
-            <p className="sq-subtitle">{message}</p>
+            <p className="sq-subtitle">
+              {message || "Family progress is currently unavailable."}
+            </p>
 
-            <Link
-              href="/"
-              className="sq-button-primary"
-              style={{ marginTop: "20px" }}
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                justifyContent: "center",
+                flexWrap: "wrap",
+                marginTop: "20px",
+              }}
             >
-              Go to Sign In
-            </Link>
+              <Link
+                href="/family-dashboard"
+                className="sq-button-primary"
+              >
+                Family Dashboard
+              </Link>
+
+              <Link
+                href="/family-challenges"
+                className="sq-button-secondary"
+              >
+                Family Challenges
+              </Link>
+            </div>
           </div>
         </div>
       </main>
@@ -205,34 +256,33 @@ export default function ProgressPage() {
         background: "var(--background)",
       }}
     >
-      {/* NAVIGATION */}
       <AppNavbar />
 
-      {/* MAIN CONTENT */}
       <div className="sq-page">
         <div className="sq-container">
 
           {/* HEADER */}
           <section style={{ marginBottom: "32px" }}>
             <span className="sq-badge">
-              Your learning journey
+              Family learning journey
             </span>
 
             <h1
               className="sq-title"
               style={{ marginTop: "16px" }}
             >
-              Your Progress, {displayName} 📈
+              Family Progress, {displayName} 📈
             </h1>
 
             <p className="sq-subtitle">
-              Keep learning, keep improving, and keep your streak alive.
+              Track your Family XP, Quest performance, streaks, and level
+              achievements.
             </p>
           </section>
 
           {/* STAT CARDS */}
           <section
-            className="progress-stats"
+            className="family-progress-stats"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4, 1fr)",
@@ -242,11 +292,11 @@ export default function ProgressPage() {
           >
             <div className="sq-stat">
               <div className="sq-stat-label">
-                Total XP
+                Family XP
               </div>
 
               <div className="sq-stat-value">
-                {progress?.total_xp.toLocaleString()}
+                {progress.total_xp.toLocaleString()}
               </div>
 
               <div
@@ -257,17 +307,17 @@ export default function ProgressPage() {
                   fontWeight: 700,
                 }}
               >
-                Keep going
+                Earned from correct answers
               </div>
             </div>
 
             <div className="sq-stat">
               <div className="sq-stat-label">
-                Current Level
+                Family Level
               </div>
 
               <div className="sq-stat-value">
-                {progress?.current_level}
+                {currentLevel}
               </div>
 
               <div
@@ -278,13 +328,13 @@ export default function ProgressPage() {
                   fontWeight: 600,
                 }}
               >
-                Level progress
+                Based on Quest pass marks
               </div>
             </div>
 
             <div className="sq-stat">
               <div className="sq-stat-label">
-                Accuracy
+                Family Accuracy
               </div>
 
               <div className="sq-stat-value">
@@ -299,17 +349,17 @@ export default function ProgressPage() {
                   fontWeight: 700,
                 }}
               >
-                Answer accuracy
+                Overall answer accuracy
               </div>
             </div>
 
             <div className="sq-stat">
               <div className="sq-stat-label">
-                Current Streak
+                Family Streak
               </div>
 
               <div className="sq-stat-value">
-                {progress?.current_streak} 🔥
+                {progress.current_streak} 🔥
               </div>
 
               <div
@@ -320,12 +370,12 @@ export default function ProgressPage() {
                   fontWeight: 700,
                 }}
               >
-                Best: {progress?.best_streak}
+                Best: {progress.best_streak}
               </div>
             </div>
           </section>
 
-          {/* LEVEL PROGRESS */}
+          {/* LEVEL / PASS PROGRESSION */}
           <section
             className="sq-card"
             style={{
@@ -338,13 +388,13 @@ export default function ProgressPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
-                gap: "20px",
-                marginBottom: "20px",
+                gap: "24px",
+                marginBottom: "24px",
               }}
             >
               <div>
                 <span className="sq-badge">
-                  Level {progress?.current_level}
+                  Family Level {currentLevel}
                 </span>
 
                 <h2
@@ -354,11 +404,12 @@ export default function ProgressPage() {
                     fontWeight: 800,
                   }}
                 >
-                  Your level journey
+                  Family Quest progression
                 </h2>
 
                 <p className="sq-subtitle">
-                  Earn XP by answering questions correctly.
+                  Your level is determined by successfully passing the Family
+                  Quest, not by your XP.
                 </p>
               </div>
 
@@ -375,7 +426,7 @@ export default function ProgressPage() {
                     color: "var(--primary)",
                   }}
                 >
-                  {xpIntoLevel} XP
+                  {TOTAL_QUESTIONS_PER_LEVEL} Questions
                 </div>
 
                 <div
@@ -385,47 +436,191 @@ export default function ProgressPage() {
                     marginTop: "4px",
                   }}
                 >
-                  toward next level
+                  per Family Quest level
                 </div>
               </div>
             </div>
 
-            <div className="sq-progress">
-              <div
-                className="sq-progress-bar"
-                style={{
-                  width: `${levelProgress}%`,
-                }}
-              />
-            </div>
-
+            {/* PASS MARK */}
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: "10px",
-                color: "var(--muted)",
-                fontSize: "13px",
-                fontWeight: 600,
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "14px",
+                marginBottom: "24px",
               }}
             >
-              <span>
-                Level {progress?.current_level}
-              </span>
+              <div
+                style={{
+                  padding: "18px",
+                  borderRadius: "16px",
+                  background: "#f8faf9",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Current Level
+                </div>
 
-              <span>
-                {xpToNextLevel} XP to next level
-              </span>
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "28px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Level {currentLevel}
+                </div>
+              </div>
 
-              <span>
-                Level {(progress?.current_level ?? 1) + 1}
-              </span>
+              <div
+                style={{
+                  padding: "18px",
+                  borderRadius: "16px",
+                  background: "#f8faf9",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Pass Mark
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "28px",
+                    fontWeight: 900,
+                  }}
+                >
+                  {PASS_MARK} / {TOTAL_QUESTIONS_PER_LEVEL}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: "18px",
+                  borderRadius: "16px",
+                  background: "#f8faf9",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Next Level
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "28px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Level {nextLevel}
+                </div>
+              </div>
+            </div>
+
+            {/* PROGRESSION EXPLANATION */}
+            <div
+              style={{
+                padding: "20px",
+                borderRadius: "18px",
+                background: "var(--primary-light)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  fontWeight: 800,
+                  fontSize: "16px",
+                }}
+              >
+                <span style={{ fontSize: "22px" }}>🎯</span>
+                How Family levels work
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "16px",
+                  marginTop: "16px",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Pass the Quest
+                  </div>
+
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "var(--muted)",
+                      lineHeight: 1.6,
+                      fontSize: "14px",
+                    }}
+                  >
+                    Answer at least {PASS_MARK} of the{" "}
+                    {TOTAL_QUESTIONS_PER_LEVEL} questions correctly to pass
+                    the current level and unlock Level {nextLevel}.
+                  </p>
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    XP is retained
+                  </div>
+
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "var(--muted)",
+                      lineHeight: 1.6,
+                      fontSize: "14px",
+                    }}
+                  >
+                    XP is earned from correct answers and remains yours even
+                    when you fail a level and need to retake it.
+                  </p>
+                </div>
+              </div>
             </div>
           </section>
 
           {/* PERFORMANCE */}
           <section
-            className="progress-performance"
+            className="family-progress-performance"
             style={{
               display: "grid",
               gridTemplateColumns: "1.2fr 0.8fr",
@@ -440,7 +635,7 @@ export default function ProgressPage() {
               }}
             >
               <div className="sq-badge">
-                Performance
+                Family Performance
               </div>
 
               <h2
@@ -450,7 +645,7 @@ export default function ProgressPage() {
                   fontWeight: 800,
                 }}
               >
-                Your question statistics
+                Family question statistics
               </h2>
 
               <div
@@ -485,7 +680,7 @@ export default function ProgressPage() {
                       fontWeight: 900,
                     }}
                   >
-                    {progress?.questions_answered}
+                    {progress.questions_answered}
                   </div>
                 </div>
 
@@ -514,7 +709,7 @@ export default function ProgressPage() {
                       fontWeight: 900,
                     }}
                   >
-                    {progress?.correct_answers}
+                    {progress.correct_answers}
                   </div>
                 </div>
               </div>
@@ -533,7 +728,7 @@ export default function ProgressPage() {
                       fontWeight: 700,
                     }}
                   >
-                    Accuracy
+                    Overall Accuracy
                   </span>
 
                   <span
@@ -591,7 +786,7 @@ export default function ProgressPage() {
                   fontWeight: 800,
                 }}
               >
-                Keep the streak alive
+                Keep the Family streak alive
               </h2>
 
               <p
@@ -602,8 +797,8 @@ export default function ProgressPage() {
                   fontSize: "14px",
                 }}
               >
-                Answer questions correctly to keep building your streak and
-                earn bonus XP.
+                Answer questions correctly to keep building your Family
+                streak and earn bonus Family XP.
               </p>
 
               <div
@@ -620,7 +815,7 @@ export default function ProgressPage() {
                       fontWeight: 900,
                     }}
                   >
-                    {progress?.current_streak}
+                    {progress.current_streak}
                   </div>
 
                   <div
@@ -640,7 +835,7 @@ export default function ProgressPage() {
                       fontWeight: 900,
                     }}
                   >
-                    {progress?.best_streak}
+                    {progress.best_streak}
                   </div>
 
                   <div
@@ -655,7 +850,7 @@ export default function ProgressPage() {
               </div>
 
               <Link
-                href="/quiz"
+                href="/family-quest"
                 className="sq-button-secondary"
                 style={{
                   marginTop: "28px",
@@ -663,7 +858,59 @@ export default function ProgressPage() {
                   border: "none",
                 }}
               >
-                Continue Playing
+                Continue Family Quest
+              </Link>
+            </div>
+          </section>
+
+          {/* FAMILY NAVIGATION */}
+          <section
+            className="sq-card"
+            style={{
+              padding: "24px",
+              marginTop: "24px",
+            }}
+          >
+            <h2
+              style={{
+                margin: "0 0 16px",
+                fontSize: "20px",
+                fontWeight: 800,
+              }}
+            >
+              Continue your Family journey
+            </h2>
+
+            <div
+              className="family-progress-navigation"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "12px",
+              }}
+            >
+              <Link
+                href="/family-dashboard"
+                className="sq-button-secondary"
+                style={{ textAlign: "center" }}
+              >
+                Family Dashboard
+              </Link>
+
+              <Link
+                href="/family-challenges"
+                className="sq-button-secondary"
+                style={{ textAlign: "center" }}
+              >
+                Family Challenges
+              </Link>
+
+              <Link
+                href="/family-leaderboard"
+                className="sq-button-secondary"
+                style={{ textAlign: "center" }}
+              >
+                Family Leaderboard
               </Link>
             </div>
           </section>
@@ -672,17 +919,35 @@ export default function ProgressPage() {
 
       <style jsx>{`
         @media (max-width: 900px) {
-          .progress-stats {
+          .family-progress-stats {
             grid-template-columns: repeat(2, 1fr) !important;
           }
 
-          .progress-performance {
+          .family-progress-performance {
             grid-template-columns: 1fr !important;
           }
         }
 
-        @media (max-width: 600px) {
-          .progress-stats {
+        @media (max-width: 700px) {
+          .family-progress-stats {
+            grid-template-columns: 1fr !important;
+          }
+
+          .family-progress-performance {
+            grid-template-columns: 1fr !important;
+          }
+
+          .family-progress-performance > div:first-child > div:nth-child(3) {
+            grid-template-columns: 1fr !important;
+          }
+
+          .family-progress-navigation {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (max-width: 650px) {
+          .family-progress-performance > div:first-child > div:nth-child(3) {
             grid-template-columns: 1fr !important;
           }
         }

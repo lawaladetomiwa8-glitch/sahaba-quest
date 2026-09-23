@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
@@ -216,6 +217,8 @@ function addRanks(
 }
 
 export default function LeaderboardPage() {
+  const router = useRouter();
+
   const [players, setPlayers] = useState<
     RankedPlayer[]
   >([]);
@@ -239,7 +242,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     loadLeaderboard();
-  }, [selectedPeriod]);
+  }, [selectedPeriod, router]);
 
   async function loadLeaderboard() {
     setLoading(true);
@@ -253,6 +256,31 @@ export default function LeaderboardPage() {
     if (!user) {
       setMessage("You are not logged in.");
       setLoading(false);
+      return;
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * FAMILY ACCOUNT ROUTE PROTECTION
+     * ---------------------------------------------------------
+     *
+     * Family users have their own leaderboard and must not load
+     * the Individual leaderboard data.
+     */
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("account_type")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      setMessage(profileError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (profile?.account_type === "family") {
+      router.replace("/family-leaderboard");
       return;
     }
 

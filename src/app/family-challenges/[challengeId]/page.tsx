@@ -26,9 +26,6 @@ type ChallengeQuestion = {
 };
 
 type ChallengeAttempt = {
-  success: boolean;
-  action: "new" | "resume" | "completed";
-
   attempt_id: string;
   challenge_id: string;
   title: string;
@@ -37,12 +34,13 @@ type ChallengeAttempt = {
   challenge_type: string;
   question_count: number;
   time_per_question: number;
+  score: number;
   questions_answered: number;
   correct_answers: number;
-  score: number;
-  passing_score: number;
-  passed: boolean | null;
   status: "in_progress" | "completed";
+  passed: boolean;
+  started_at: string;
+  completed_at: string | null;
 };
 
 type AnswerResult = {
@@ -52,10 +50,12 @@ type AnswerResult = {
   questions_answered: number;
   correct_answers: number;
   score: number;
-  questions_required: number;
-  passing_score: number;
-  completed: boolean;
-  passed: boolean | null;
+  total_questions: number;
+  questions_remaining: number;
+  pass_mark: number;
+  session_complete: boolean;
+  passed: boolean;
+  explanation?: string | null;
 };
 
 const OPTIONS = ["A", "B", "C", "D"] as const;
@@ -67,7 +67,7 @@ function normalizeAnswer(value: string | null | undefined) {
     .toLowerCase();
 }
 
-export default function ChallengeGamePage() {
+export default function FamilyChallengeGamePage() {
   const params = useParams();
   const router = useRouter();
 
@@ -153,30 +153,6 @@ export default function ChallengeGamePage() {
         return;
       }
 
-      /*
-       * ---------------------------------------------------------
-       * FAMILY ACCOUNT ROUTE PROTECTION
-       * ---------------------------------------------------------
-       *
-       * Family users must use the Family Challenge Arena.
-       * Redirect them before loading or starting an Individual
-       * challenge attempt.
-       */
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("account_type")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      if (profile?.account_type === "family") {
-        router.replace("/family-challenges");
-        return;
-      }
-
       const {
         data: challengeData,
         error: challengeError,
@@ -216,7 +192,7 @@ export default function ChallengeGamePage() {
         data: attemptData,
         error: attemptError,
       } = await supabase.rpc(
-        "start_challenge",
+        "start_family_challenge",
         {
           p_challenge_id: challengeId,
         }
@@ -232,46 +208,67 @@ export default function ChallengeGamePage() {
         );
       }
 
+      const startedAttempt = attemptData as {
+        attempt_id: string;
+      };
+
+      if (!startedAttempt.attempt_id) {
+        throw new Error(
+          "Unable to determine the Family challenge attempt."
+        );
+      }
+
+      /*
+        Load the complete saved attempt.
+        This is important when the user is resuming an
+        unfinished Family challenge.
+      */
+      const {
+        data: attemptDetails,
+        error: attemptDetailsError,
+      } = await supabase.rpc(
+        "get_family_challenge_attempt",
+        {
+          p_attempt_id: startedAttempt.attempt_id,
+        }
+      );
+
+      if (attemptDetailsError) {
+        throw attemptDetailsError;
+      }
+
+      if (!attemptDetails) {
+        throw new Error(
+          "Unable to load the Family challenge attempt."
+        );
+      }
+
       const attempt =
-        attemptData as ChallengeAttempt;
+        attemptDetails as ChallengeAttempt;
 
       /*
         If the challenge was already completed,
-        go straight to the result page.
+        go straight to the Family result page.
       */
-      if (
-        attempt.action === "completed" ||
-        attempt.status === "completed"
-      ) {
+      if (attempt.status === "completed") {
         router.replace(
-          `/challenges/${challengeId}/result?attempt=${attempt.attempt_id}`
+          `/family-challenges/${challengeId}/result?attempt=${attempt.attempt_id}`
         );
 
         return;
       }
 
-      setAttemptId(
-        attempt.attempt_id
-      );
-
-      setQuestionsAnswered(
-        attempt.questions_answered || 0
-      );
-
-      setCorrectAnswers(
-        attempt.correct_answers || 0
-      );
-
-      setTotalXp(
-        attempt.score || 0
-      );
+      setAttemptId(attempt.attempt_id);
+      setQuestionsAnswered(attempt.questions_answered || 0);
+      setCorrectAnswers(attempt.correct_answers || 0);
+      setTotalXp(attempt.score || 0);
 
       if (
         attempt.questions_answered >=
         loadedChallenge.question_count
       ) {
         router.replace(
-          `/challenges/${challengeId}/result?attempt=${attempt.attempt_id}`
+          `/family-challenges/${challengeId}/result?attempt=${attempt.attempt_id}`
         );
 
         return;
@@ -331,7 +328,7 @@ export default function ChallengeGamePage() {
         activeChallenge.question_count
       ) {
         router.replace(
-          `/challenges/${activeChallenge.id}/result?attempt=${activeAttemptId}`
+          `/family-challenges/${activeChallenge.id}/result?attempt=${activeAttemptId}`
         );
 
         return;
@@ -352,7 +349,7 @@ export default function ChallengeGamePage() {
           data,
           error,
         } = await supabase.rpc(
-          "get_next_challenge_question",
+          "get_next_family_challenge_question",
           {
             p_attempt_id:
               activeAttemptId,
@@ -368,7 +365,7 @@ export default function ChallengeGamePage() {
           data.length === 0
         ) {
           router.replace(
-            `/challenges/${activeChallenge.id}/result?attempt=${activeAttemptId}`
+            `/family-challenges/${activeChallenge.id}/result?attempt=${activeAttemptId}`
           );
 
           return;
@@ -388,14 +385,18 @@ export default function ChallengeGamePage() {
         setStartedAt(
           Date.now()
         );
-      } catch (error) {
-        console.error(
-          "Question loading error:",
-          error
-        );
+      } catch (error: any) {
+        console.error("Question loading error:", {
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+          error,
+        });
 
         setErrorMessage(
-          "We couldn't load the next question. Please try again."
+          error?.message ||
+            "We couldn't load the next question. Please try again."
         );
       } finally {
         setQuestionLoading(false);
@@ -433,7 +434,7 @@ export default function ChallengeGamePage() {
           challenge.question_count
       ) {
         router.replace(
-          `/challenges/${challenge.id}/result?attempt=${attemptId}`
+          `/family-challenges/${challenge.id}/result?attempt=${attemptId}`
         );
 
         return;
@@ -481,7 +482,7 @@ export default function ChallengeGamePage() {
           data,
           error,
         } = await supabase.rpc(
-          "submit_challenge_answer",
+          "submit_family_challenge_answer",
           {
             p_attempt_id:
               attemptId,
@@ -599,6 +600,40 @@ export default function ChallengeGamePage() {
   ]);
 
   // ==========================================
+  // ABANDON CHALLENGE
+  // ==========================================
+
+  async function handleAbandonChallenge() {
+    if (!attemptId) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to leave this challenge? Your unfinished attempt will be discarded."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setErrorMessage("");
+
+      const { error } = await supabase.rpc(
+        "abandon_family_challenge",
+        {
+          p_attempt_id: attemptId,
+        }
+      );
+
+      if (error) throw error;
+
+      router.replace("/family-challenges");
+    } catch (error) {
+      console.error("Abandon challenge error:", error);
+      setErrorMessage(
+        "We couldn't exit the challenge. Please try again."
+      );
+    }
+  }
+
+  // ==========================================
   // CONTINUE
   // ==========================================
 
@@ -612,12 +647,12 @@ export default function ChallengeGamePage() {
     }
 
     if (
-      answerResult.completed ||
+      answerResult.session_complete ||
       answerResult.questions_answered >=
         challenge.question_count
     ) {
       router.replace(
-        `/challenges/${challengeId}/result?attempt=${attemptId}`
+        `/family-challenges/${challengeId}/result?attempt=${attemptId}`
       );
 
       return;
@@ -727,7 +762,7 @@ export default function ChallengeGamePage() {
               <button
                 onClick={() =>
                   router.push(
-                    "/challenges"
+                    "/family-challenges"
                   )
                 }
                 className="sq-button-primary"
@@ -1231,6 +1266,33 @@ export default function ChallengeGamePage() {
                 </div>
               )}
 
+              {answerResult?.explanation && (
+                <div
+                  style={{
+                    marginTop: "14px",
+                    padding: "14px",
+                    borderRadius: "12px",
+                    background: "var(--background)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      color: "var(--muted)",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Explanation
+                  </div>
+                  <p style={{ margin: 0, lineHeight: 1.6 }}>
+                    {answerResult.explanation}
+                  </p>
+                </div>
+              )}
+
               {/* CONTINUE */}
 
               {answerResult && (
@@ -1245,7 +1307,7 @@ export default function ChallengeGamePage() {
                     marginTop: "18px",
                   }}
                 >
-                  {answerResult.completed ||
+                  {answerResult.session_complete ||
                   answerResult.questions_answered >=
                     (challenge?.question_count ||
                       0)
@@ -1254,6 +1316,29 @@ export default function ChallengeGamePage() {
                 </button>
               )}
             </section>
+          )}
+
+          {/* EXIT CHALLENGE */}
+
+          {attemptId && (
+            <button
+              type="button"
+              onClick={handleAbandonChallenge}
+              disabled={!!answerResult}
+              style={{
+                width: "100%",
+                marginTop: "14px",
+                padding: "12px 16px",
+                borderRadius: "12px",
+                border: "1px solid var(--border)",
+                background: "transparent",
+                color: "var(--muted)",
+                fontWeight: 800,
+                cursor: answerResult ? "default" : "pointer",
+              }}
+            >
+              Exit Challenge
+            </button>
           )}
 
           {/* ERROR */}

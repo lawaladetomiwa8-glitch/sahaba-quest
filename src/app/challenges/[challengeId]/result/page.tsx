@@ -68,6 +68,30 @@ export default function ChallengeResultPage() {
       }
 
       /*
+       * ---------------------------------------------------------
+       * FAMILY ACCOUNT ROUTE PROTECTION
+       * ---------------------------------------------------------
+       *
+       * Family users must use the Family Challenge Arena.
+       * Redirect them before loading any Individual challenge
+       * result data.
+       */
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      if (profile?.account_type === "family") {
+        router.replace("/family-challenges");
+        return;
+      }
+
+      /*
        * Load challenge information
        */
       const {

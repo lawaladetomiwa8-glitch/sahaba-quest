@@ -30,7 +30,7 @@ type ProgressData = {
   best_streak: number;
 };
 
-export default function ProfilePage() {
+export default function FamilyProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData>({
     username: "",
@@ -103,7 +103,7 @@ export default function ProfilePage() {
           .single(),
 
         supabase
-          .from("player_progress")
+          .from("family_player_progress")
           .select(
             "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
           )
@@ -140,16 +140,12 @@ export default function ProfilePage() {
 
     const rawAccountType = profileResult.data?.account_type;
 
-    if (rawAccountType === "family") {
-      router.replace("/family-profile");
+    if (rawAccountType !== "family") {
+      router.replace("/profile");
       return;
     }
 
-    const accountType: AccountType =
-      rawAccountType === "individual" ||
-      rawAccountType === "family"
-        ? rawAccountType
-        : "free";
+    const accountType: AccountType = "family";
 
     setProfile({
       username: profileResult.data?.username ?? "",
@@ -316,19 +312,8 @@ export default function ProfilePage() {
       .slice(0, 2)
       .toUpperCase() || "P";
 
-  const membershipLabel =
-    profile.account_type === "family"
-      ? "Family Account"
-      : profile.account_type === "individual"
-        ? "Individual Account"
-        : "Free Account";
-
-  const membershipDescription =
-    profile.account_type === "family"
-      ? "Family plan"
-      : profile.account_type === "individual"
-        ? "Individual plan"
-        : "Free player";
+  const membershipLabel = "Family Account";
+  const membershipDescription = "Family plan";
 
   const subscriptionEndDate =
     subscription?.current_period_end
@@ -424,7 +409,7 @@ export default function ProfilePage() {
 
                 <div>
                   <span className="sq-badge">
-                    Player Profile
+                    Family Profile
                   </span>
 
                   <h1
@@ -477,7 +462,7 @@ export default function ProfilePage() {
           >
             <div className="sq-stat">
               <div className="sq-stat-label">
-                Current Level
+                Family Level
               </div>
 
               <div className="sq-stat-value">
@@ -487,7 +472,7 @@ export default function ProfilePage() {
 
             <div className="sq-stat">
               <div className="sq-stat-label">
-                Total XP
+                Family XP
               </div>
 
               <div className="sq-stat-value">
@@ -507,7 +492,7 @@ export default function ProfilePage() {
 
             <div className="sq-stat">
               <div className="sq-stat-label">
-                Best Streak
+                Best Family Streak
               </div>
 
               <div className="sq-stat-value">
@@ -544,7 +529,7 @@ export default function ProfilePage() {
 
                 <p className="sq-subtitle">
                   Update the name and username shown on your
-                  Sahaba Quest profile.
+                  Sahaba Quest Family profile.
                 </p>
               </div>
 
@@ -740,8 +725,46 @@ export default function ProfilePage() {
                   marginTop: "28px",
                   paddingTop: "24px",
                   borderTop: "1px solid var(--border)",
+                  display: "grid",
+                  gap: "10px",
                 }}
               >
+                <Link
+                  href="/family-dashboard"
+                  className="sq-button-secondary"
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    textDecoration: "none",
+                  }}
+                >
+                  Family Dashboard
+                </Link>
+
+                <Link
+                  href="/family-progress"
+                  className="sq-button-secondary"
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    textDecoration: "none",
+                  }}
+                >
+                  Family Progress
+                </Link>
+
+                <Link
+                  href="/family-quest"
+                  className="sq-button-primary"
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    textDecoration: "none",
+                  }}
+                >
+                  Play Family Quest
+                </Link>
+
                 <button
                   className="sq-button-secondary"
                   onClick={signOut}
@@ -756,7 +779,7 @@ export default function ProfilePage() {
             </section>
           </div>
 
-          {/* Player Activity */}
+          {/* Family Activity */}
           <section
             className="sq-card"
             style={{
@@ -772,11 +795,11 @@ export default function ProfilePage() {
                   fontWeight: 800,
                 }}
               >
-                Player Activity
+                Family Activity
               </h2>
 
               <p className="sq-subtitle">
-                A quick look at your learning journey.
+                A quick look at your Family learning journey.
               </p>
             </div>
 
@@ -797,7 +820,7 @@ export default function ProfilePage() {
                 }}
               >
                 <div className="sq-stat-label">
-                  Questions Answered
+                  Family Questions Answered
                 </div>
 
                 <div
@@ -820,7 +843,7 @@ export default function ProfilePage() {
                 }}
               >
                 <div className="sq-stat-label">
-                  Current Streak
+                  Current Family Streak
                 </div>
 
                 <div
@@ -842,7 +865,7 @@ export default function ProfilePage() {
                 }}
               >
                 <div className="sq-stat-label">
-                  Correct Answers
+                  Family Correct Answers
                 </div>
 
                 <div

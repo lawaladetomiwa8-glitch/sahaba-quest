@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
-type AccountType = "free" | "individual" | "family";
-
 type Profile = {
   username: string | null;
   display_name: string | null;
-  account_type: AccountType;
+  account_type: "free" | "individual" | "family";
 };
 
-type Progress = {
+type FamilyProgress = {
   current_level: number;
   total_xp: number;
   questions_answered: number;
@@ -44,9 +42,6 @@ type SubscriptionQueryResult = {
 
 /*
  * SAHABA QUEST SOCIAL LINKS
- *
- * Facebook and Instagram are placeholders for now.
- * Replace "#" with the real links when they are available.
  */
 const SOCIAL_LINKS = {
   instagram: "#",
@@ -131,20 +126,20 @@ function WhatsAppIcon() {
   );
 }
 
-export default function DashboardPage() {
+export default function FamilyDashboardPage() {
   const router = useRouter();
 
   const [profile, setProfile] =
     useState<Profile | null>(null);
 
   const [progress, setProgress] =
-    useState<Progress | null>(null);
+    useState<FamilyProgress | null>(null);
 
   const [subscription, setSubscription] =
     useState<Subscription | null>(null);
 
   const [message, setMessage] = useState(
-    "Loading your dashboard..."
+    "Loading your Family Dashboard..."
   );
 
   useEffect(() => {
@@ -153,34 +148,21 @@ export default function DashboardPage() {
 
   async function loadDashboard() {
     try {
+      /*
+       * AUTH USER
+       */
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError) {
-        console.error(
-          "User lookup error:",
-          userError
-        );
-
-        setMessage(
-          "We could not load your account."
-        );
-
-        return;
-      }
-
-      if (!user) {
-        setMessage("You are not logged in.");
+      if (userError || !user) {
+        router.replace("/login");
         return;
       }
 
       /*
        * PROFILE
-       *
-       * account_type is now the source of truth
-       * for the user's account experience.
        */
       const {
         data: profileData,
@@ -195,64 +177,37 @@ export default function DashboardPage() {
 
       if (profileError) {
         console.error(
-          "Profile lookup error:",
+          "Family profile lookup error:",
           profileError
         );
 
         setMessage(
-          "We could not load your profile."
+          "We could not load your Family account."
         );
 
         return;
       }
 
-      const accountType =
-        profileData.account_type;
-
       /*
-       * Only the three active account types
-       * are allowed in V1.
+       * FAMILY ACCOUNT GUARD
+       *
+       * Only Family accounts are allowed here.
        */
       if (
-        accountType !== "free" &&
-        accountType !== "individual" &&
-        accountType !== "family"
+        profileData.account_type !== "family"
       ) {
-        console.error(
-          "Invalid account type:",
-          accountType
-        );
-
-        setMessage(
-          "Your account type could not be verified."
-        );
-
+        router.replace("/dashboard");
         return;
       }
 
       /*
-       * FAMILY ROUTING
-       *
-       * Family users have their own dashboard and should
-       * never remain on the Individual/standard dashboard.
-       *
-       * /family-dashboard already protects itself and only
-       * accepts Family accounts, so this does not create
-       * a redirect loop.
-       */
-      if (accountType === "family") {
-        router.replace("/family-dashboard");
-        return;
-      }
-
-      /*
-       * PLAYER PROGRESS
+       * FAMILY PROGRESS
        */
       const {
         data: progressData,
         error: progressError,
       } = await supabase
-        .from("player_progress")
+        .from("family_player_progress")
         .select(
           `
             current_level,
@@ -264,26 +219,58 @@ export default function DashboardPage() {
           `
         )
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (progressError) {
         console.error(
-          "Progress lookup error:",
+          "Family progress lookup error:",
           progressError
         );
 
         setMessage(
-          "We could not load your game progress."
+          "We could not load your Family progress."
         );
 
         return;
       }
 
       /*
-       * ACTIVE SUBSCRIPTION
-       *
-       * We only retrieve active subscriptions.
-       * The newest ending subscription is selected.
+       * If progress does not exist yet,
+       * create it through the existing RPC.
+       */
+      let familyProgress =
+        progressData as FamilyProgress | null;
+
+      if (!familyProgress) {
+        const {
+          data: createdProgress,
+          error: createError,
+        } = await supabase.rpc(
+          "create_family_player_progress",
+          {
+            p_user_id: user.id,
+          }
+        );
+
+        if (createError) {
+          console.error(
+            "Family progress creation error:",
+            createError
+          );
+
+          setMessage(
+            "We could not create your Family progress."
+          );
+
+          return;
+        }
+
+        familyProgress =
+          createdProgress as FamilyProgress;
+      }
+
+      /*
+       * ACTIVE FAMILY SUBSCRIPTION
        */
       const {
         data: subscriptionData,
@@ -310,7 +297,7 @@ export default function DashboardPage() {
 
       if (subscriptionError) {
         console.error(
-          "Subscription lookup error:",
+          "Family subscription lookup error:",
           subscriptionError
         );
 
@@ -328,7 +315,8 @@ export default function DashboardPage() {
           )
         ) {
           plan =
-            subscriptionResult.subscription_plans[0] ||
+            subscriptionResult
+              .subscription_plans[0] ||
             null;
         } else {
           plan =
@@ -336,35 +324,45 @@ export default function DashboardPage() {
             null;
         }
 
-        setSubscription({
-          status:
-            subscriptionResult.status,
+        /*
+         * Make sure this really is a Family plan.
+         */
+        if (
+          plan?.plan_type === "family"
+        ) {
+          setSubscription({
+            status:
+              subscriptionResult.status,
 
-          current_period_end:
-            subscriptionResult.current_period_end,
+            current_period_end:
+              subscriptionResult.current_period_end,
 
-          plan,
-        });
+            plan,
+          });
+        } else {
+          setSubscription(null);
+        }
       } else {
         setSubscription(null);
       }
 
       setProfile({
         username: profileData.username,
-        display_name: profileData.display_name,
-        account_type: accountType,
+        display_name:
+          profileData.display_name,
+        account_type: "family",
       });
 
-      setProgress(progressData);
+      setProgress(familyProgress);
       setMessage("");
     } catch (error) {
       console.error(
-        "Dashboard loading error:",
+        "Family Dashboard loading error:",
         error
       );
 
       setMessage(
-        "Something went wrong while loading your dashboard."
+        "Something went wrong while loading your Family Dashboard."
       );
     }
   }
@@ -396,16 +394,14 @@ export default function DashboardPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--primary)",
-                fontSize: "24px",
-                fontWeight: 900,
+                fontSize: "30px",
               }}
             >
-              SQ
+              👨‍👩‍👧‍👦
             </div>
 
             <h1 className="sq-title">
-              Sahaba Quest
+              Family Dashboard
             </h1>
 
             <p
@@ -422,43 +418,10 @@ export default function DashboardPage() {
     );
   }
 
-  /*
-   * PLAYER NAME
-   */
   const playerName =
     profile.display_name ||
     profile.username ||
-    "Player";
-
-  /*
-   * ACCOUNT DISPLAY
-   */
-  const accountLabels: Record<
-    AccountType,
-    string
-  > = {
-    free: "Free Account",
-    individual: "Individual Account",
-    family: "Family Account",
-  };
-
-  const accountDescriptions: Record<
-    AccountType,
-    string
-  > = {
-    free:
-      "You're currently using the free Sahaba Quest experience.",
-    individual:
-      "You're using the Individual Sahaba Quest experience.",
-    family:
-      "You're using the Family Sahaba Quest experience.",
-  };
-
-  const accountLabel =
-    accountLabels[profile.account_type];
-
-  const accountDescription =
-    accountDescriptions[profile.account_type];
+    "Family";
 
   /*
    * ACCURACY
@@ -473,7 +436,7 @@ export default function DashboardPage() {
       : 0;
 
   /*
-   * CURRENT LEVEL QUESTION PROGRESS
+   * LEVEL PROGRESS
    */
   const questionsInCurrentLevel =
     progress.questions_answered % 50;
@@ -481,30 +444,23 @@ export default function DashboardPage() {
   const correctInCurrentLevel =
     progress.correct_answers % 50;
 
-  /*
-   * If the player has completed exactly 50 questions,
-   * show 100% rather than 0%.
-   */
   const levelQuestionProgress =
     questionsInCurrentLevel === 0 &&
     progress.questions_answered > 0
       ? 100
       : Math.min(
-          (questionsInCurrentLevel / 50) * 100,
+          (questionsInCurrentLevel / 50) *
+            100,
           100
         );
 
-  /*
-   * REQUIRED CORRECT ANSWERS TO PASS
-   */
-  const levelCorrectProgress = Math.min(
-    (correctInCurrentLevel / 25) * 100,
-    100
-  );
+  const levelCorrectProgress =
+    Math.min(
+      (correctInCurrentLevel / 25) *
+        100,
+      100
+    );
 
-  /*
-   * DISPLAY DATE
-   */
   const subscriptionEndDate =
     subscription?.current_period_end
       ? new Date(
@@ -582,25 +538,11 @@ export default function DashboardPage() {
               <span
                 className="sq-badge"
                 style={{
-                  background:
-                    profile.account_type ===
-                    "family"
-                      ? "#fef3c7"
-                      : profile.account_type ===
-                        "individual"
-                      ? "#dbeafe"
-                      : "var(--primary-light)",
-                  color:
-                    profile.account_type ===
-                    "family"
-                      ? "#92400e"
-                      : profile.account_type ===
-                        "individual"
-                      ? "#1d4ed8"
-                      : "var(--primary-dark)",
+                  background: "#fef3c7",
+                  color: "#92400e",
                 }}
               >
-                {accountLabel}
+                Family Account
               </span>
             </div>
 
@@ -634,10 +576,11 @@ export default function DashboardPage() {
                 lineHeight: 1.7,
               }}
             >
-              Ready to continue your Sahaba
-              journey? Test your knowledge,
-              build your streak, and learn
-              something valuable today.
+              Welcome to your Family
+              Sahaba Quest journey. Learn
+              together, test your knowledge,
+              and grow your family's
+              understanding of the Sahabah.
             </p>
 
             <div
@@ -649,14 +592,14 @@ export default function DashboardPage() {
               }}
             >
               <a
-                href="/quiz"
+                href="/family-quest"
                 className="sq-button-primary"
               >
-                🎮 Continue Quest
+                👨‍👩‍👧‍👦 Start Family Quest
               </a>
 
               <a
-                href="/progress"
+                href="/family-progress"
                 className="sq-button-secondary"
               >
                 View Progress
@@ -665,20 +608,21 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* ACCOUNT TYPE */}
+        {/* FAMILY ACCOUNT */}
         <section
           className="sq-card"
           style={{
             marginTop: "20px",
             padding: "22px 26px",
             background:
-              "linear-gradient(135deg, #ffffff 0%, #f8faf9 100%)",
+              "linear-gradient(135deg, #ffffff 0%, #fffbeb 100%)",
           }}
         >
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
+              justifyContent:
+                "space-between",
               alignItems: "center",
               gap: "18px",
               flexWrap: "wrap",
@@ -696,7 +640,7 @@ export default function DashboardPage() {
                   fontWeight: 900,
                 }}
               >
-                {accountLabel}
+                Family Account
               </h2>
 
               <p
@@ -707,28 +651,11 @@ export default function DashboardPage() {
                   lineHeight: 1.6,
                 }}
               >
-                {accountDescription}
+                Your Family Sahaba Quest
+                experience with separate
+                Family progress and Family XP.
               </p>
             </div>
-
-            {profile.account_type ===
-              "free" && (
-              <a
-                href="/pricing"
-                className="sq-button-primary"
-                style={{
-                  minHeight: "44px",
-                  padding: "0 18px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Explore Plans →
-              </a>
-            )}
           </div>
         </section>
 
@@ -765,7 +692,7 @@ export default function DashboardPage() {
 
           <div className="sq-stat">
             <div className="sq-stat-label">
-              Total XP
+              Family XP
             </div>
 
             <div className="sq-stat-value">
@@ -779,13 +706,13 @@ export default function DashboardPage() {
                 fontSize: "13px",
               }}
             >
-              Experience earned
+              Family experience earned
             </div>
           </div>
 
           <div className="sq-stat">
             <div className="sq-stat-label">
-              Current Streak
+              Family Streak
             </div>
 
             <div
@@ -845,7 +772,8 @@ export default function DashboardPage() {
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
+              justifyContent:
+                "space-between",
               alignItems: "center",
               gap: "20px",
               flexWrap: "wrap",
@@ -891,7 +819,7 @@ export default function DashboardPage() {
                 >
                   {subscription?.plan
                     ?.display_name ||
-                    "Sahaba Quest Free"}
+                    "Sahaba Quest Family"}
                 </h2>
 
                 <p
@@ -903,8 +831,8 @@ export default function DashboardPage() {
                   }}
                 >
                   {subscription
-                    ? "Your subscription is active and your premium access is available."
-                    : "You are currently on the free plan. Continue your journey or unlock more levels."}
+                    ? "Your Family subscription is active."
+                    : "Your Family account is ready for the Family experience."}
                 </p>
 
                 {subscription &&
@@ -912,7 +840,8 @@ export default function DashboardPage() {
                     <div
                       style={{
                         marginTop: "8px",
-                        color: "var(--success)",
+                        color:
+                          "var(--success)",
                         fontSize: "12px",
                         fontWeight: 800,
                       }}
@@ -923,24 +852,6 @@ export default function DashboardPage() {
                   )}
               </div>
             </div>
-
-            {!subscription && (
-              <a
-                href="/pricing"
-                className="sq-button-primary"
-                style={{
-                  minHeight: "46px",
-                  padding: "0 20px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                View Plans →
-              </a>
-            )}
           </div>
         </section>
 
@@ -955,7 +866,8 @@ export default function DashboardPage() {
             marginTop: "20px",
           }}
         >
-          {/* PROGRESS CARD */}
+
+          {/* FAMILY PROGRESS */}
           <div
             className="sq-card"
             style={{
@@ -965,14 +877,15 @@ export default function DashboardPage() {
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent:
+                  "space-between",
                 alignItems: "flex-start",
                 gap: "20px",
               }}
             >
               <div>
                 <div className="sq-badge">
-                  Your Journey
+                  Family Journey
                 </div>
 
                 <h2
@@ -982,7 +895,7 @@ export default function DashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  Level{" "}
+                  Family Level{" "}
                   {progress.current_level}
                 </h2>
 
@@ -993,10 +906,10 @@ export default function DashboardPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Keep answering
-                  questions to
-                  strengthen your
-                  knowledge.
+                  Keep learning together
+                  and strengthen your
+                  family's knowledge of
+                  the Sahabah.
                 </p>
               </div>
 
@@ -1020,7 +933,8 @@ export default function DashboardPage() {
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
+                  justifyContent:
+                    "space-between",
                   marginBottom: "9px",
                 }}
               >
@@ -1031,7 +945,7 @@ export default function DashboardPage() {
                     color: "var(--muted)",
                   }}
                 >
-                  Level questions
+                  Family Quest questions
                 </span>
 
                 <span
@@ -1065,7 +979,8 @@ export default function DashboardPage() {
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
+                  justifyContent:
+                    "space-between",
                   marginBottom: "9px",
                 }}
               >
@@ -1181,7 +1096,7 @@ export default function DashboardPage() {
             }}
           >
             <div className="sq-badge">
-              Quick Actions
+              Family Actions
             </div>
 
             <h2
@@ -1202,7 +1117,7 @@ export default function DashboardPage() {
               }}
             >
               <a
-                href="/quiz"
+                href="/family-quest"
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
@@ -1212,19 +1127,20 @@ export default function DashboardPage() {
                   fontWeight: 800,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent:
+                    "space-between",
                   textDecoration: "none",
                 }}
               >
                 <span>
-                  🎮 Play Quiz
+                  👨‍👩‍👧‍👦 Family Quest
                 </span>
 
                 <span>→</span>
               </a>
 
               <a
-                href="/leaderboard"
+                href="/family-leaderboard"
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
@@ -1234,33 +1150,58 @@ export default function DashboardPage() {
                   fontWeight: 800,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent:
+                    "space-between",
                   textDecoration: "none",
                 }}
               >
                 <span>
-                  🏆 Leaderboard
+                  🏆 Family Leaderboard
                 </span>
 
                 <span>→</span>
               </a>
 
               <a
-                href="/challenges"
+                href="/family-progress"
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
-                  background: "#f1f5f3",
-                  color: "var(--foreground)",
+                  background: "var(--primary-light)",
+                  color: "var(--primary-dark)",
                   fontWeight: 800,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent:
+                    "space-between",
                   textDecoration: "none",
                 }}
               >
                 <span>
-                  🎯 Challenges
+                  📈 Family Progress
+                </span>
+
+                <span>→</span>
+              </a>
+
+              <a
+                href="/family-challenges"
+                style={{
+                  padding: "17px",
+                  borderRadius: "16px",
+                  background: "#f1f5f3",
+                  color:
+                    "var(--foreground)",
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent:
+                    "space-between",
+                  textDecoration: "none",
+                }}
+              >
+                <span>
+                  🎯 Family Challenges
                 </span>
 
                 <span>→</span>
@@ -1272,16 +1213,18 @@ export default function DashboardPage() {
                   padding: "17px",
                   borderRadius: "16px",
                   background: "#f1f5f3",
-                  color: "var(--foreground)",
+                  color:
+                    "var(--foreground)",
                   fontWeight: 800,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent:
+                    "space-between",
                   textDecoration: "none",
                 }}
               >
                 <span>
-                  👤 My Profile
+                  👤 Family Profile
                 </span>
 
                 <span>→</span>
@@ -1290,7 +1233,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* LEARNING MOTIVATION */}
+        {/* FAMILY LEARNING */}
         <section
           className="sq-card"
           style={{
@@ -1305,7 +1248,8 @@ export default function DashboardPage() {
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
+              justifyContent:
+                "space-between",
               alignItems: "center",
               gap: "24px",
               flexWrap: "wrap",
@@ -1321,11 +1265,12 @@ export default function DashboardPage() {
                   fontSize: "13px",
                   fontWeight: 800,
                   letterSpacing: "1px",
-                  textTransform: "uppercase",
+                  textTransform:
+                    "uppercase",
                   opacity: 0.8,
                 }}
               >
-                Daily reminder
+                Family Learning
               </div>
 
               <h2
@@ -1347,31 +1292,33 @@ export default function DashboardPage() {
                   opacity: 0.85,
                 }}
               >
-                Every question is an
-                opportunity to increase
-                your knowledge and
-                strengthen your
-                connection with the
-                lives of the Sahabah.
+                Make your Family Quest
+                journey a shared learning
+                experience. Discover the
+                lives, sacrifices and
+                lessons of the Sahabah
+                together.
               </p>
             </div>
 
             <a
-              href="/quiz"
+              href="/family-quest"
               style={{
                 minHeight: "50px",
                 padding: "0 22px",
                 borderRadius: "14px",
                 background: "white",
-                color: "var(--primary-dark)",
+                color:
+                  "var(--primary-dark)",
                 display: "inline-flex",
                 alignItems: "center",
-                justifyContent: "center",
+                justifyContent:
+                  "center",
                 fontWeight: 800,
                 textDecoration: "none",
               }}
             >
-              Start Learning →
+              Start Family Learning →
             </a>
           </div>
         </section>
@@ -1388,7 +1335,6 @@ export default function DashboardPage() {
             position: "relative",
           }}
         >
-          {/* DECORATIVE CIRCLE */}
           <div
             style={{
               position: "absolute",
@@ -1441,12 +1387,11 @@ export default function DashboardPage() {
               <strong>
                 Walking with the Sahaba
               </strong>{" "}
-              episodes, platform updates,
+              episodes, Family updates,
               new challenges and other
               important announcements.
             </p>
 
-            {/* SOCIAL LINKS */}
             <div
               className="social-connect-grid"
               style={{
@@ -1473,7 +1418,8 @@ export default function DashboardPage() {
                 className="social-connect-item"
                 style={{
                   textDecoration: "none",
-                  color: "var(--foreground)",
+                  color:
+                    "var(--foreground)",
                   padding: "20px",
                   borderRadius: "18px",
                   border:
@@ -1482,13 +1428,6 @@ export default function DashboardPage() {
                   display: "flex",
                   flexDirection: "column",
                   minHeight: "145px",
-                  transition:
-                    "transform 0.2s ease, box-shadow 0.2s ease",
-                  cursor:
-                    SOCIAL_LINKS.instagram ===
-                    "#"
-                      ? "default"
-                      : "pointer",
                 }}
               >
                 <div
@@ -1501,7 +1440,8 @@ export default function DashboardPage() {
                     color: "#E1306C",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent:
+                      "center",
                     marginBottom: "14px",
                   }}
                 >
@@ -1522,7 +1462,6 @@ export default function DashboardPage() {
                     marginTop: "5px",
                     color: "var(--muted)",
                     fontSize: "12px",
-                    lineHeight: 1.5,
                   }}
                 >
                   Coming soon
@@ -1545,7 +1484,8 @@ export default function DashboardPage() {
                 className="social-connect-item"
                 style={{
                   textDecoration: "none",
-                  color: "var(--foreground)",
+                  color:
+                    "var(--foreground)",
                   padding: "20px",
                   borderRadius: "18px",
                   border:
@@ -1554,13 +1494,6 @@ export default function DashboardPage() {
                   display: "flex",
                   flexDirection: "column",
                   minHeight: "145px",
-                  transition:
-                    "transform 0.2s ease, box-shadow 0.2s ease",
-                  cursor:
-                    SOCIAL_LINKS.facebook ===
-                    "#"
-                      ? "default"
-                      : "pointer",
                 }}
               >
                 <div
@@ -1573,7 +1506,8 @@ export default function DashboardPage() {
                     color: "#1877F2",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent:
+                      "center",
                     marginBottom: "14px",
                   }}
                 >
@@ -1594,14 +1528,13 @@ export default function DashboardPage() {
                     marginTop: "5px",
                     color: "var(--muted)",
                     fontSize: "12px",
-                    lineHeight: 1.5,
                   }}
                 >
                   Coming soon
                 </div>
               </a>
 
-              {/* BROTHERS WHATSAPP */}
+              {/* BROTHERS */}
               <a
                 href={
                   SOCIAL_LINKS.brothersWhatsApp
@@ -1611,7 +1544,8 @@ export default function DashboardPage() {
                 className="social-connect-item"
                 style={{
                   textDecoration: "none",
-                  color: "var(--foreground)",
+                  color:
+                    "var(--foreground)",
                   padding: "20px",
                   borderRadius: "18px",
                   border:
@@ -1620,8 +1554,6 @@ export default function DashboardPage() {
                   display: "flex",
                   flexDirection: "column",
                   minHeight: "145px",
-                  transition:
-                    "transform 0.2s ease, box-shadow 0.2s ease",
                 }}
               >
                 <div
@@ -1634,7 +1566,8 @@ export default function DashboardPage() {
                     color: "#25D366",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent:
+                      "center",
                     marginBottom: "14px",
                   }}
                 >
@@ -1655,7 +1588,6 @@ export default function DashboardPage() {
                     marginTop: "5px",
                     color: "var(--muted)",
                     fontSize: "12px",
-                    lineHeight: 1.5,
                   }}
                 >
                   Join for weekly
@@ -1663,7 +1595,7 @@ export default function DashboardPage() {
                 </div>
               </a>
 
-              {/* SISTERS WHATSAPP */}
+              {/* SISTERS */}
               <a
                 href={
                   SOCIAL_LINKS.sistersWhatsApp
@@ -1673,7 +1605,8 @@ export default function DashboardPage() {
                 className="social-connect-item"
                 style={{
                   textDecoration: "none",
-                  color: "var(--foreground)",
+                  color:
+                    "var(--foreground)",
                   padding: "20px",
                   borderRadius: "18px",
                   border:
@@ -1682,8 +1615,6 @@ export default function DashboardPage() {
                   display: "flex",
                   flexDirection: "column",
                   minHeight: "145px",
-                  transition:
-                    "transform 0.2s ease, box-shadow 0.2s ease",
                 }}
               >
                 <div
@@ -1696,7 +1627,8 @@ export default function DashboardPage() {
                     color: "#25D366",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent:
+                      "center",
                     marginBottom: "14px",
                   }}
                 >
@@ -1717,7 +1649,6 @@ export default function DashboardPage() {
                     marginTop: "5px",
                     color: "var(--muted)",
                     fontSize: "12px",
-                    lineHeight: 1.5,
                   }}
                 >
                   Join for weekly
@@ -1726,7 +1657,6 @@ export default function DashboardPage() {
               </a>
             </div>
 
-            {/* WEEKLY EPISODE MESSAGE */}
             <div
               style={{
                 marginTop: "18px",
@@ -1734,7 +1664,8 @@ export default function DashboardPage() {
                 borderRadius: "15px",
                 background:
                   "var(--primary-light)",
-                color: "var(--primary-dark)",
+                color:
+                  "var(--primary-dark)",
                 fontSize: "13px",
                 lineHeight: 1.6,
                 fontWeight: 700,
@@ -1756,13 +1687,18 @@ export default function DashboardPage() {
             fontSize: "12px",
           }}
         >
-          Sahaba Quest • Learn.
-          Remember. Compete.
+          Sahaba Quest • Family Learning.
+          Remember. Learn. Grow Together.
         </footer>
       </div>
 
-      {/* RESPONSIVE DASHBOARD FIX */}
       <style jsx>{`
+        .social-connect-item {
+          transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+        }
+
         .social-connect-item:hover {
           transform: translateY(-3px);
           box-shadow: 0 10px 25px
@@ -1778,7 +1714,8 @@ export default function DashboardPage() {
 
         @media (max-width: 800px) {
           .dashboard-main-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns:
+              1fr !important;
             gap: 16px !important;
             width: 100% !important;
           }
@@ -1790,34 +1727,12 @@ export default function DashboardPage() {
         }
 
         @media (max-width: 600px) {
-          nav {
-            margin-bottom: 18px !important;
-          }
-
           .dashboard-main-grid {
             gap: 16px !important;
           }
 
           .dashboard-main-grid .sq-card {
             padding: 22px !important;
-          }
-
-          .dashboard-main-grid
-            .sq-card
-            > div:first-child {
-            min-width: 0;
-          }
-
-          .dashboard-main-grid
-            .sq-card
-            h2 {
-            line-height: 1.25 !important;
-          }
-
-          .dashboard-main-grid
-            .sq-card
-            p {
-            max-width: 100% !important;
           }
 
           .social-connect-card {

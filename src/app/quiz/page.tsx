@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
@@ -48,6 +49,8 @@ type ResumeSession = {
 };
 
 export default function QuizPage() {
+  const router = useRouter();
+
   const [accountType, setAccountType] =
     useState<AccountType | null>(null);
 
@@ -169,6 +172,11 @@ export default function QuizPage() {
 
     const userAccountType =
       profile.account_type as AccountType;
+
+    if (userAccountType === "family") {
+      router.replace("/family-quest");
+      return;
+    }
 
     if (
       userAccountType !== "free" &&

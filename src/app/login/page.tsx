@@ -30,7 +30,31 @@ export default function LoginPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user) {
+      if (!user) return;
+
+      const { data: profile, error: profileError } =
+        await supabase
+          .from("profiles")
+          .select("account_type")
+          .eq("id", user.id)
+          .maybeSingle();
+
+      if (profileError) {
+        console.error(
+          "Existing session profile lookup error:",
+          profileError
+        );
+
+        router.replace("/dashboard");
+        return;
+      }
+
+      const accountType =
+        profile?.account_type || "free";
+
+      if (accountType === "family") {
+        router.replace("/family-dashboard");
+      } else {
         router.replace("/dashboard");
       }
     };
@@ -112,6 +136,7 @@ export default function LoginPage() {
          * missing for any reason, we safely treat the
          * account as free.
          */
+
         const accountType =
           profile?.account_type || "free";
 
@@ -137,13 +162,17 @@ export default function LoginPage() {
           "Authenticated account:",
           accountType
         );
+
+        /* =================================================
+           SEND USER TO THE CORRECT DASHBOARD
+        ================================================== */
+
+        if (accountType === "family") {
+          router.push("/family-dashboard");
+        } else {
+          router.push("/dashboard");
+        }
       }
-
-      /* =================================================
-         SEND USER TO DASHBOARD
-      ================================================== */
-
-      router.push("/dashboard");
     } catch (error) {
       console.error(
         "Unexpected login error:",
