@@ -5,9 +5,19 @@ import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
+type AccountType = "free" | "individual" | "family";
+
 type ProfileData = {
   username: string;
   display_name: string;
+  account_type: AccountType;
+};
+
+type SubscriptionData = {
+  status: string;
+  current_period_end: string | null;
+  plan_type: "plus" | "family" | "school" | null;
+  display_name: string | null;
 };
 
 type ProgressData = {
@@ -23,7 +33,11 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData>({
     username: "",
     display_name: "",
+    account_type: "free",
   });
+
+  const [subscription, setSubscription] =
+    useState<SubscriptionData | null>(null);
 
   const [progress, setProgress] = useState<ProgressData>({
     current_level: 1,
@@ -78,21 +92,42 @@ export default function ProfilePage() {
       );
     }
 
-    const [profileResult, progressResult] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("username, display_name")
-        .eq("id", user.id)
-        .single(),
+    const [profileResult, progressResult, subscriptionResult] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("username, display_name, account_type")
+          .eq("id", user.id)
+          .single(),
 
-      supabase
-        .from("player_progress")
-        .select(
-          "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
-        )
-        .eq("user_id", user.id)
-        .single(),
-    ]);
+        supabase
+          .from("player_progress")
+          .select(
+            "current_level, total_xp, questions_answered, correct_answers, current_streak, best_streak"
+          )
+          .eq("user_id", user.id)
+          .single(),
+
+        supabase
+          .from("subscriptions")
+          .select(
+            `
+              status,
+              current_period_end,
+              subscription_plans (
+                plan_type,
+                display_name
+              )
+            `
+          )
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .order("current_period_end", {
+            ascending: false,
+          })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
     if (profileResult.error) {
       setMessage(profileResult.error.message);
@@ -101,9 +136,18 @@ export default function ProfilePage() {
       return;
     }
 
+    const rawAccountType = profileResult.data?.account_type;
+
+    const accountType: AccountType =
+      rawAccountType === "individual" ||
+      rawAccountType === "family"
+        ? rawAccountType
+        : "free";
+
     setProfile({
       username: profileResult.data?.username ?? "",
       display_name: profileResult.data?.display_name ?? "",
+      account_type: accountType,
     });
 
     setDisplayName(profileResult.data?.display_name ?? "");
@@ -122,6 +166,35 @@ export default function ProfilePage() {
         best_streak:
           progressResult.data.best_streak ?? 0,
       });
+    }
+
+    if (subscriptionResult.error) {
+      console.error(
+        "Subscription lookup error:",
+        subscriptionResult.error
+      );
+      setSubscription(null);
+    } else if (subscriptionResult.data) {
+      const subscriptionPlan = Array.isArray(
+        subscriptionResult.data.subscription_plans
+      )
+        ? subscriptionResult.data.subscription_plans[0] ?? null
+        : subscriptionResult.data.subscription_plans ?? null;
+
+      setSubscription({
+        status: subscriptionResult.data.status,
+        current_period_end:
+          subscriptionResult.data.current_period_end ?? null,
+        plan_type:
+          subscriptionPlan?.plan_type === "plus" ||
+          subscriptionPlan?.plan_type === "family" ||
+          subscriptionPlan?.plan_type === "school"
+            ? subscriptionPlan.plan_type
+            : null,
+        display_name: subscriptionPlan?.display_name ?? null,
+      });
+    } else {
+      setSubscription(null);
     }
 
     setLoading(false);
@@ -200,6 +273,7 @@ export default function ProfilePage() {
     setProfile({
       username: cleanUsername,
       display_name: cleanDisplayName,
+      account_type: profile.account_type,
     });
 
     setUsername(cleanUsername);
@@ -234,6 +308,31 @@ export default function ProfilePage() {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "P";
+
+  const membershipLabel =
+    profile.account_type === "family"
+      ? "Family Account"
+      : profile.account_type === "individual"
+        ? "Individual Account"
+        : "Free Account";
+
+  const membershipDescription =
+    profile.account_type === "family"
+      ? "Family plan"
+      : profile.account_type === "individual"
+        ? "Individual plan"
+        : "Free player";
+
+  const subscriptionEndDate =
+    subscription?.current_period_end
+      ? new Date(
+          subscription.current_period_end
+        ).toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "";
 
   if (loading) {
     return (
@@ -594,15 +693,37 @@ export default function ProfilePage() {
 
                   <div
                     style={{
-                      marginTop: "6px",
+                      marginTop: "8px",
                       display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: "6px",
                     }}
                   >
                     <span className="sq-badge">
-                      Free Player
+                      {membershipLabel}
                     </span>
+
+                    <span
+                      style={{
+                        color: "var(--muted)",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {membershipDescription}
+                    </span>
+
+                    {subscriptionEndDate && (
+                      <span
+                        style={{
+                          color: "var(--muted)",
+                          fontSize: "12px",
+                        }}
+                      >
+                        Active until {subscriptionEndDate}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
