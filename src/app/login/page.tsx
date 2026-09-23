@@ -20,6 +20,10 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  /* =====================================================
+     CHECK EXISTING SESSION
+  ====================================================== */
+
   useEffect(() => {
     const checkUser = async () => {
       const {
@@ -34,58 +38,10 @@ export default function LoginPage() {
     checkUser();
   }, [router]);
 
-  /*
-   * Set up an Organisation account after login.
-   *
-   * Individual and Family accounts are left untouched.
-   */
-  const setupOrganisationIfNeeded = async () => {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+  /* =====================================================
+     HANDLE LOGIN
+  ====================================================== */
 
-    if (userError || !user) {
-      throw new Error("Unable to verify your account.");
-    }
-
-    const accountType =
-      user.user_metadata?.account_type;
-
-    /*
-     * Only Organisation accounts need
-     * organisation setup.
-     */
-    if (accountType !== "organisation") {
-      return;
-    }
-
-    /*
-     * The database function safely creates the
-     * organisation and owner membership.
-     *
-     * It is idempotent, so calling it again
-     * will not create duplicate organisations.
-     */
-    const { error } = await supabase.rpc(
-      "setup_my_organization"
-    );
-
-    if (error) {
-      console.error(
-        "Organisation setup error:",
-        error
-      );
-
-      throw new Error(
-        "We couldn't finish setting up your organisation. Please try again."
-      );
-    }
-  };
-
-  /*
-   * Handle login
-   */
   const handleLogin = async (
     event?: FormEvent<HTMLFormElement>
   ) => {
@@ -106,45 +62,93 @@ export default function LoginPage() {
     try {
       setLoading(true);
 
-      const { error } =
+      const { data, error } =
         await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password,
         });
 
       if (error) {
+        console.error("Login error:", error);
+
         setMessageType("error");
         setMessage(error.message);
         return;
       }
 
-      /*
-       * If this is an Organisation account,
-       * make sure its Organisation record
-       * and owner membership exist before
-       * sending the user to the dashboard.
-       */
-      try {
-        await setupOrganisationIfNeeded();
-      } catch (organisationError) {
-        console.error(
-          "Organisation setup failed:",
-          organisationError
-        );
+      /* =================================================
+         VERIFY ACCOUNT PROFILE
+      ================================================== */
 
-        setMessageType("error");
-        setMessage(
-          organisationError instanceof Error
-            ? organisationError.message
-            : "We couldn't finish setting up your organisation. Please try again."
-        );
+      if (data.user) {
+        const {
+          data: profile,
+          error: profileError,
+        } = await supabase
+          .from("profiles")
+          .select("account_type")
+          .eq("id", data.user.id)
+          .maybeSingle();
 
-        return;
+        if (profileError) {
+          console.error(
+            "Profile lookup error:",
+            profileError
+          );
+
+          setMessageType("error");
+          setMessage(
+            "We couldn't verify your account profile. Please try again."
+          );
+
+          return;
+        }
+
+        /*
+         * Existing accounts should normally have
+         * account_type = free, individual, or family.
+         *
+         * If the profile exists but account_type is
+         * missing for any reason, we safely treat the
+         * account as free.
+         */
+        const accountType =
+          profile?.account_type || "free";
+
+        if (
+          accountType !== "free" &&
+          accountType !== "individual" &&
+          accountType !== "family"
+        ) {
+          console.error(
+            "Invalid account type:",
+            accountType
+          );
+
+          setMessageType("error");
+          setMessage(
+            "Your account type could not be verified. Please contact support."
+          );
+
+          return;
+        }
+
+        console.log(
+          "Authenticated account:",
+          accountType
+        );
       }
+
+      /* =================================================
+         SEND USER TO DASHBOARD
+      ================================================== */
 
       router.push("/dashboard");
     } catch (error) {
-      console.error("Login error:", error);
+      console.error(
+        "Unexpected login error:",
+        error
+      );
 
       setMessageType("error");
       setMessage(
@@ -155,9 +159,10 @@ export default function LoginPage() {
     }
   };
 
-  /*
-   * Handle forgot password
-   */
+  /* =====================================================
+     HANDLE FORGOT PASSWORD
+  ====================================================== */
+
   const handleForgotPassword = async () => {
     const cleanEmail = email.trim().toLowerCase();
 
@@ -173,10 +178,6 @@ export default function LoginPage() {
       setResetLoading(true);
       setMessage("");
 
-      /*
-       * Supabase will return the user to this page after
-       * the email reset link is opened.
-       */
       const redirectTo =
         `${window.location.origin}/update-password`;
 
@@ -220,13 +221,21 @@ export default function LoginPage() {
     }
   };
 
+  /* =====================================================
+     PAGE
+  ====================================================== */
+
   return (
     <main className="login-page">
-      {/* =====================================================
+
+      {/* =================================================
           LEFT BRAND PANEL
-      ====================================================== */}
+      ================================================== */}
+
       <section className="brand-panel">
+
         <div className="brand-content">
+
           <Link
             href="/"
             className="brand-logo"
@@ -245,14 +254,17 @@ export default function LoginPage() {
           </h1>
 
           <p>
-            Sahaba Quest is a gamified Islamic learning
-            platform designed to help Muslims discover the
-            lives, sacrifices, character, and remarkable
-            stories of the Companions of the Prophet ﷺ.
+            Sahaba Quest is a gamified Islamic
+            learning platform designed to help
+            Muslims discover the lives, sacrifices,
+            character, and remarkable stories of
+            the Companions of the Prophet ﷺ.
           </p>
 
           <div className="feature-list">
+
             <div className="feature">
+
               <span className="feature-icon">
                 🎮
               </span>
@@ -267,9 +279,11 @@ export default function LoginPage() {
                   challenges and quests.
                 </p>
               </div>
+
             </div>
 
             <div className="feature">
+
               <span className="feature-icon">
                 🏆
               </span>
@@ -284,9 +298,11 @@ export default function LoginPage() {
                   learners.
                 </p>
               </div>
+
             </div>
 
             <div className="feature">
+
               <span className="feature-icon">
                 📚
               </span>
@@ -297,11 +313,13 @@ export default function LoginPage() {
                 </strong>
 
                 <p>
-                  Discover lessons from the lives of
-                  the Sahabah.
+                  Discover lessons from the lives
+                  of the Sahabah.
                 </p>
               </div>
+
             </div>
+
           </div>
 
           <Link
@@ -310,29 +328,41 @@ export default function LoginPage() {
           >
             ← Back to Sahaba Quest
           </Link>
+
         </div>
+
       </section>
 
-      {/* =====================================================
+      {/* =================================================
           LOGIN PANEL
-      ====================================================== */}
+      ================================================== */}
+
       <section className="login-panel">
+
         <div className="login-card">
+
           <div className="login-header">
+
             <span className="sq-badge">
               WELCOME BACK
             </span>
 
-            <h2>Sign in</h2>
+            <h2>
+              Sign in
+            </h2>
 
             <p>
               Continue your Sahaba Quest journey.
             </p>
+
           </div>
 
           <form onSubmit={handleLogin}>
+
             {/* EMAIL */}
+
             <div className="form-group">
+
               <label
                 htmlFor="email"
                 className="form-label"
@@ -352,10 +382,13 @@ export default function LoginPage() {
                 autoComplete="email"
                 autoFocus
               />
+
             </div>
 
             {/* PASSWORD */}
+
             <div className="form-group password-group">
+
               <label
                 htmlFor="password"
                 className="form-label"
@@ -364,6 +397,7 @@ export default function LoginPage() {
               </label>
 
               <div className="password-wrapper">
+
                 <input
                   id="password"
                   type={
@@ -395,11 +429,15 @@ export default function LoginPage() {
                     ? "Hide"
                     : "Show"}
                 </button>
+
               </div>
+
             </div>
 
             {/* FORGOT PASSWORD */}
+
             <div className="forgot-row">
+
               <button
                 type="button"
                 className="forgot-button"
@@ -410,9 +448,11 @@ export default function LoginPage() {
                   ? "Sending reset link..."
                   : "Forgot password?"}
               </button>
+
             </div>
 
             {/* MESSAGE */}
+
             {message && (
               <div
                 className={`form-message ${
@@ -426,6 +466,7 @@ export default function LoginPage() {
             )}
 
             {/* LOGIN BUTTON */}
+
             <button
               type="submit"
               className="login-button"
@@ -435,10 +476,13 @@ export default function LoginPage() {
                 ? "Signing in..."
                 : "Sign In"}
             </button>
+
           </form>
 
           {/* SIGNUP */}
+
           <div className="signup-link">
+
             <span>
               Don't have an account?
             </span>
@@ -446,19 +490,25 @@ export default function LoginPage() {
             <Link href="/signup">
               Create Account
             </Link>
+
           </div>
 
           <div className="security-note">
-            🔒 Your account information is securely
-            handled by Supabase authentication.
+            🔒 Your account information is
+            securely handled by Supabase
+            authentication.
           </div>
+
         </div>
+
       </section>
 
-      {/* =====================================================
+      {/* =================================================
           STYLES
-      ====================================================== */}
+      ================================================== */}
+
       <style jsx>{`
+
         .login-page {
           min-height: 100vh;
           display: grid;
@@ -476,12 +526,13 @@ export default function LoginPage() {
           align-items: center;
           justify-content: center;
           padding: 60px;
-          background: linear-gradient(
-            145deg,
-            #063f3b 0%,
-            #075b55 55%,
-            #08766d 100%
-          );
+          background:
+            linear-gradient(
+              145deg,
+              #063f3b 0%,
+              #075b55 55%,
+              #08766d 100%
+            );
           color: white;
           overflow: hidden;
         }
@@ -492,7 +543,8 @@ export default function LoginPage() {
           width: 480px;
           height: 480px;
           border-radius: 50%;
-          border: 1px solid
+          border:
+            1px solid
             rgba(255, 255, 255, 0.08);
           top: -210px;
           right: -190px;
@@ -504,7 +556,8 @@ export default function LoginPage() {
           width: 360px;
           height: 360px;
           border-radius: 50%;
-          border: 1px solid
+          border:
+            1px solid
             rgba(255, 255, 255, 0.06);
           bottom: -180px;
           left: -180px;
@@ -524,8 +577,10 @@ export default function LoginPage() {
           align-items: center;
           justify-content: center;
           border-radius: 22px;
-          background: rgba(255, 255, 255, 0.13);
-          border: 1px solid
+          background:
+            rgba(255, 255, 255, 0.13);
+          border:
+            1px solid
             rgba(255, 255, 255, 0.18);
           color: white;
           text-decoration: none;
@@ -537,9 +592,12 @@ export default function LoginPage() {
           display: inline-flex;
           padding: 8px 13px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.08);
-          color: rgba(255, 255, 255, 0.78);
-          border: 1px solid
+          background:
+            rgba(255, 255, 255, 0.08);
+          color:
+            rgba(255, 255, 255, 0.78);
+          border:
+            1px solid
             rgba(255, 255, 255, 0.12);
           font-size: 10px;
           font-weight: 800;
@@ -548,7 +606,8 @@ export default function LoginPage() {
 
         .brand-content h1 {
           margin: 20px 0 18px;
-          font-size: clamp(44px, 5vw, 68px);
+          font-size:
+            clamp(44px, 5vw, 68px);
           line-height: 0.98;
           letter-spacing: -2.5px;
           font-weight: 900;
@@ -557,7 +616,8 @@ export default function LoginPage() {
         .brand-content > p {
           max-width: 520px;
           margin: 0;
-          color: rgba(255, 255, 255, 0.84);
+          color:
+            rgba(255, 255, 255, 0.84);
           font-size: 16px;
           line-height: 1.8;
         }
@@ -582,7 +642,8 @@ export default function LoginPage() {
           align-items: center;
           justify-content: center;
           border-radius: 12px;
-          background: rgba(255, 255, 255, 0.09);
+          background:
+            rgba(255, 255, 255, 0.09);
           font-size: 18px;
         }
 
@@ -594,7 +655,8 @@ export default function LoginPage() {
 
         .feature p {
           margin: 0;
-          color: rgba(255, 255, 255, 0.62);
+          color:
+            rgba(255, 255, 255, 0.62);
           font-size: 11px;
           line-height: 1.6;
         }
@@ -602,7 +664,8 @@ export default function LoginPage() {
         .home-link {
           display: inline-block;
           margin-top: 42px;
-          color: rgba(255, 255, 255, 0.72);
+          color:
+            rgba(255, 255, 255, 0.72);
           font-size: 12px;
           font-weight: 700;
           text-decoration: none;
@@ -638,7 +701,8 @@ export default function LoginPage() {
           border-radius: 999px;
           color: #08766d;
           background: #e8f4f2;
-          border: 1px solid #cce7e3;
+          border:
+            1px solid #cce7e3;
           font-size: 10px;
           font-weight: 800;
           letter-spacing: 1.2px;
@@ -680,7 +744,8 @@ export default function LoginPage() {
           width: 100%;
           height: 49px;
           padding: 0 14px;
-          border: 1px solid #d7e4e2;
+          border:
+            1px solid #d7e4e2;
           border-radius: 11px;
           background: white;
           color: #183f3b;
@@ -715,7 +780,8 @@ export default function LoginPage() {
           position: absolute;
           right: 10px;
           top: 50%;
-          transform: translateY(-50%);
+          transform:
+            translateY(-50%);
           border: none;
           background: transparent;
           color: #687a77;
@@ -772,13 +838,15 @@ export default function LoginPage() {
         .form-message.success {
           color: #08766d;
           background: #edf8f6;
-          border: 1px solid #cde9e4;
+          border:
+            1px solid #cde9e4;
         }
 
         .form-message.error {
           color: #a54141;
           background: #fff2f2;
-          border: 1px solid #f0d3d3;
+          border:
+            1px solid #f0d3d3;
         }
 
         /* ================================================
@@ -804,7 +872,8 @@ export default function LoginPage() {
 
         .login-button:hover:not(:disabled) {
           background: #075e57;
-          transform: translateY(-1px);
+          transform:
+            translateY(-1px);
         }
 
         .login-button:disabled {
@@ -849,6 +918,7 @@ export default function LoginPage() {
         ================================================= */
 
         @media (max-width: 1050px) {
+
           .login-page {
             grid-template-columns: 1fr;
           }
@@ -863,14 +933,18 @@ export default function LoginPage() {
           }
 
           .login-panel {
-            padding: 50px 25px;
+            padding:
+              50px 25px;
           }
+
         }
 
         @media (max-width: 600px) {
+
           .brand-panel {
             min-height: auto;
-            padding: 38px 22px;
+            padding:
+              38px 22px;
           }
 
           .brand-content h1 {
@@ -891,17 +965,21 @@ export default function LoginPage() {
           }
 
           .login-panel {
-            padding: 35px 18px;
+            padding:
+              35px 18px;
           }
 
           .login-header h2 {
             font-size: 29px;
           }
+
         }
 
         @media (max-width: 420px) {
+
           .brand-panel {
-            padding: 30px 18px;
+            padding:
+              30px 18px;
           }
 
           .brand-content h1 {
@@ -909,10 +987,14 @@ export default function LoginPage() {
           }
 
           .login-panel {
-            padding: 30px 15px;
+            padding:
+              30px 15px;
           }
+
         }
+
       `}</style>
+
     </main>
   );
 }

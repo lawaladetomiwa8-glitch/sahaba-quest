@@ -4,18 +4,6 @@ import { FormEvent, ReactNode, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 
-type AccountType =
-  | "individual"
-  | "family"
-  | "organisation";
-
-type OrganisationType =
-  | "school"
-  | "madrasa"
-  | "mosque"
-  | "islamic_academy"
-  | "other";
-
 type PasswordRequirementProps = {
   valid: boolean;
   children: ReactNode;
@@ -58,19 +46,6 @@ export default function SignupPage() {
 
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
-
-  /* =====================================================
-     ACCOUNT TYPE
-  ====================================================== */
-
-  const [accountType, setAccountType] =
-    useState<AccountType>("individual");
-
-  const [organisationName, setOrganisationName] =
-    useState("");
-
-  const [organisationType, setOrganisationType] =
-    useState<OrganisationType>("school");
 
   /* =====================================================
      GENERAL STATE
@@ -118,6 +93,7 @@ export default function SignupPage() {
       setResendMessage(
         "We couldn't find your email address. Please return to signup and try again."
       );
+
       return;
     }
 
@@ -188,9 +164,6 @@ export default function SignupPage() {
     const cleanEmail =
       email.trim().toLowerCase();
 
-    const cleanOrganisationName =
-      organisationName.trim();
-
     /* ---------------------------------------------------
        BASIC VALIDATION
     ---------------------------------------------------- */
@@ -199,6 +172,7 @@ export default function SignupPage() {
       setMessage(
         "Please enter your display name."
       );
+
       return;
     }
 
@@ -206,6 +180,7 @@ export default function SignupPage() {
       setMessage(
         "Please enter a username."
       );
+
       return;
     }
 
@@ -213,6 +188,7 @@ export default function SignupPage() {
       setMessage(
         "Username must be at least 3 characters."
       );
+
       return;
     }
 
@@ -224,6 +200,7 @@ export default function SignupPage() {
       setMessage(
         "Username can only contain lowercase letters, numbers, and underscores."
       );
+
       return;
     }
 
@@ -231,6 +208,7 @@ export default function SignupPage() {
       setMessage(
         "Please enter your email address."
       );
+
       return;
     }
 
@@ -238,6 +216,7 @@ export default function SignupPage() {
       setMessage(
         "Please make sure your password meets all the requirements."
       );
+
       return;
     }
 
@@ -245,30 +224,7 @@ export default function SignupPage() {
       setMessage(
         "Passwords do not match."
       );
-      return;
-    }
 
-    /* ---------------------------------------------------
-       ORGANISATION VALIDATION
-    ---------------------------------------------------- */
-
-    if (
-      accountType === "organisation" &&
-      !organisationType
-    ) {
-      setMessage(
-        "Please select your organisation type."
-      );
-      return;
-    }
-
-    if (
-      accountType === "organisation" &&
-      !cleanOrganisationName
-    ) {
-      setMessage(
-        "Please enter your organisation name."
-      );
       return;
     }
 
@@ -363,28 +319,18 @@ export default function SignupPage() {
             username:
               cleanUsername,
 
-            account_type:
-              accountType,
-
             /*
-             * Organisation details are stored
-             * in Auth metadata.
+             * Every newly registered user starts
+             * with a FREE account.
              *
-             * setup_my_organization()
-             * reads these values after login.
+             * Users can later upgrade to:
+             * - Individual
+             * - Family
+             *
+             * Organisation is not available
+             * during V1 registration.
              */
-
-            organisation_name:
-              accountType ===
-              "organisation"
-                ? cleanOrganisationName
-                : null,
-
-            organisation_type:
-              accountType ===
-              "organisation"
-                ? organisationType
-                : null,
+            account_type: "free",
           },
         },
       });
@@ -400,8 +346,7 @@ export default function SignupPage() {
         );
 
         const errorMessage =
-          signupError.message
-            .toLowerCase();
+          signupError.message.toLowerCase();
 
         if (
           errorMessage.includes(
@@ -455,15 +400,12 @@ export default function SignupPage() {
   if (success) {
     return (
       <main className="success-page">
-        {/* Decorative background */}
+
         <div className="success-background-glow success-glow-one" />
 
         <div className="success-background-glow success-glow-two" />
 
         <section className="success-wrapper">
-          {/* =================================================
-              LOGO
-          ================================================== */}
 
           <Link
             href="/"
@@ -473,13 +415,7 @@ export default function SignupPage() {
             SQ
           </Link>
 
-          {/* =================================================
-              SUCCESS CARD
-          ================================================== */}
-
           <div className="success-card">
-
-            {/* Success icon */}
 
             <div className="success-icon-ring">
               <div className="success-icon">
@@ -487,13 +423,9 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Badge */}
-
             <span className="success-badge">
               ACCOUNT CREATED
             </span>
-
-            {/* Heading */}
 
             <h1>
               You're almost there!
@@ -505,16 +437,14 @@ export default function SignupPage() {
               successfully.
             </p>
 
-            {/* =================================================
-                EMAIL CONFIRMATION
-            ================================================== */}
-
             <div className="email-confirmation-box">
+
               <div className="email-icon">
                 ✉
               </div>
 
               <div className="email-content">
+
                 <strong>
                   Confirm your email address
                 </strong>
@@ -527,18 +457,15 @@ export default function SignupPage() {
                 <span className="email-address">
                   {email}
                 </span>
-              </div>
-            </div>
 
-            {/* =================================================
-                STEPS
-            ================================================== */}
+              </div>
+
+            </div>
 
             <div className="confirmation-steps">
 
-              {/* Step 1 */}
-
               <div className="confirmation-step active">
+
                 <span className="step-number">
                   ✓
                 </span>
@@ -553,13 +480,13 @@ export default function SignupPage() {
                     account is ready.
                   </p>
                 </div>
+
               </div>
 
               <div className="step-line" />
 
-              {/* Step 2 */}
-
               <div className="confirmation-step">
+
                 <span className="step-number">
                   2
                 </span>
@@ -575,13 +502,13 @@ export default function SignupPage() {
                     link.
                   </p>
                 </div>
+
               </div>
 
               <div className="step-line" />
 
-              {/* Step 3 */}
-
               <div className="confirmation-step">
+
                 <span className="step-number">
                   3
                 </span>
@@ -596,13 +523,10 @@ export default function SignupPage() {
                     and start learning.
                   </p>
                 </div>
+
               </div>
 
             </div>
-
-            {/* =================================================
-                RESEND MESSAGE
-            ================================================== */}
 
             {resendMessage && (
               <div
@@ -618,10 +542,6 @@ export default function SignupPage() {
               </div>
             )}
 
-            {/* =================================================
-                RESEND BUTTON
-            ================================================== */}
-
             <button
               type="button"
               className="resend-button"
@@ -634,10 +554,6 @@ export default function SignupPage() {
                 ? "Sending confirmation email..."
                 : "Didn't receive the email? Resend"}
             </button>
-
-            {/* =================================================
-                SIGN IN BUTTON
-            ================================================== */}
 
             <Link
               href="/login"
@@ -652,32 +568,23 @@ export default function SignupPage() {
               </span>
             </Link>
 
-            {/* =================================================
-                HELP TEXT
-            ================================================== */}
-
             <p className="success-help">
               Check your spam or junk folder
               if you don't see the email
               within a few minutes.
             </p>
-          </div>
 
-          {/* =================================================
-              FOOTER
-          ================================================== */}
+          </div>
 
           <p className="success-footer">
             Sahaba Quest · Learn · Remember ·
             Compete
           </p>
+
         </section>
 
-        {/* =====================================================
-            SUCCESS PAGE STYLES
-        ====================================================== */}
-
         <style jsx>{`
+
           .success-page {
             position: relative;
             min-height: 100vh;
@@ -1045,6 +952,7 @@ export default function SignupPage() {
               font-size: 25px;
             }
           }
+
         `}</style>
       </main>
     );
@@ -1062,6 +970,7 @@ export default function SignupPage() {
       ================================================== */}
 
       <section className="brand-panel">
+
         <div className="brand-content">
 
           <div className="brand-logo">
@@ -1082,11 +991,10 @@ export default function SignupPage() {
             Companions of the Prophet ﷺ.
           </p>
 
-          {/* FEATURES */}
-
           <div className="brand-features">
 
             <div className="brand-feature">
+
               <span>📖</span>
 
               <div>
@@ -1100,9 +1008,11 @@ export default function SignupPage() {
                   Sahabah.
                 </p>
               </div>
+
             </div>
 
             <div className="brand-feature">
+
               <span>🏆</span>
 
               <div>
@@ -1115,9 +1025,11 @@ export default function SignupPage() {
                   climb the leaderboard.
                 </p>
               </div>
+
             </div>
 
             <div className="brand-feature">
+
               <span>🌙</span>
 
               <div>
@@ -1130,10 +1042,13 @@ export default function SignupPage() {
                   into lasting understanding.
                 </p>
               </div>
+
             </div>
 
           </div>
+
         </div>
+
       </section>
 
       {/* =================================================
@@ -1141,11 +1056,8 @@ export default function SignupPage() {
       ================================================== */}
 
       <section className="signup-panel">
-        <div className="signup-card">
 
-          {/* =================================================
-              HEADER
-          ================================================== */}
+        <div className="signup-card">
 
           <div className="signup-header">
 
@@ -1158,229 +1070,13 @@ export default function SignupPage() {
             </h2>
 
             <p>
-              Choose how you want to
-              experience Sahaba Quest.
+              Create your free Sahaba Quest
+              account and start learning.
             </p>
 
           </div>
 
-          {/* =================================================
-              FORM
-          ================================================== */}
-
           <form onSubmit={handleSignup}>
-
-            {/* =================================================
-                ACCOUNT TYPE
-            ================================================== */}
-
-            <div className="form-section">
-
-              <label className="section-label">
-                Account Type
-              </label>
-
-              <div className="account-type-grid">
-
-                {/* INDIVIDUAL */}
-
-                <button
-                  type="button"
-                  className={`account-type-card ${
-                    accountType ===
-                    "individual"
-                      ? "selected"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    setAccountType(
-                      "individual"
-                    )
-                  }
-                >
-                  <span className="account-type-icon">
-                    👤
-                  </span>
-
-                  <span className="account-type-title">
-                    Individual
-                  </span>
-
-                  <span className="account-type-description">
-                    Learn, progress and
-                    compete on your own.
-                  </span>
-                </button>
-
-                {/* FAMILY */}
-
-                <button
-                  type="button"
-                  className={`account-type-card ${
-                    accountType ===
-                    "family"
-                      ? "selected"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    setAccountType(
-                      "family"
-                    )
-                  }
-                >
-                  <span className="account-type-icon">
-                    👨‍👩‍👧‍👦
-                  </span>
-
-                  <span className="account-type-title">
-                    Family
-                  </span>
-
-                  <span className="account-type-description">
-                    Learn and compete
-                    together as a family.
-                  </span>
-                </button>
-
-                {/* ORGANISATION */}
-
-                <button
-                  type="button"
-                  className={`account-type-card ${
-                    accountType ===
-                    "organisation"
-                      ? "selected"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    setAccountType(
-                      "organisation"
-                    )
-                  }
-                >
-                  <span className="account-type-icon">
-                    🏫
-                  </span>
-
-                  <span className="account-type-title">
-                    Organisation
-                  </span>
-
-                  <span className="account-type-description">
-                    Create a space for a
-                    school, madrasa or
-                    Islamic organisation.
-                  </span>
-                </button>
-
-              </div>
-            </div>
-
-            {/* =================================================
-                ORGANISATION DETAILS
-            ================================================== */}
-
-            {accountType ===
-              "organisation" && (
-              <div className="form-section organisation-section">
-
-                <div className="organisation-section-header">
-
-                  <span className="organisation-section-icon">
-                    🏫
-                  </span>
-
-                  <div>
-                    <strong>
-                      Organisation Details
-                    </strong>
-
-                    <p>
-                      Tell us about the
-                      organisation you're
-                      creating.
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* ORGANISATION NAME */}
-
-                <div className="form-group">
-
-                  <label
-                    htmlFor="organisationName"
-                    className="form-label"
-                  >
-                    Organisation Name
-                  </label>
-
-                  <input
-                    id="organisationName"
-                    type="text"
-                    value={
-                      organisationName
-                    }
-                    onChange={(event) =>
-                      setOrganisationName(
-                        event.target.value
-                      )
-                    }
-                    placeholder="e.g. Al-Hikmah Islamic Academy"
-                    className="form-input"
-                    autoComplete="organization"
-                  />
-
-                </div>
-
-                {/* ORGANISATION TYPE */}
-
-                <div className="form-group organisation-type-group">
-
-                  <label
-                    htmlFor="organisationType"
-                    className="form-label"
-                  >
-                    Organisation Type
-                  </label>
-
-                  <select
-                    id="organisationType"
-                    value={
-                      organisationType
-                    }
-                    onChange={(event) =>
-                      setOrganisationType(
-                        event.target
-                          .value as OrganisationType
-                      )
-                    }
-                    className="form-input"
-                  >
-                    <option value="school">
-                      School
-                    </option>
-
-                    <option value="madrasa">
-                      Madrasa
-                    </option>
-
-                    <option value="mosque">
-                      Mosque
-                    </option>
-
-                    <option value="islamic_academy">
-                      Islamic Academy
-                    </option>
-
-                    <option value="other">
-                      Other
-                    </option>
-                  </select>
-
-                </div>
-              </div>
-            )}
 
             {/* =================================================
                 PERSONAL INFORMATION
@@ -1389,8 +1085,6 @@ export default function SignupPage() {
             <div className="form-section">
 
               <div className="form-row">
-
-                {/* DISPLAY NAME */}
 
                 <div className="form-group">
 
@@ -1416,8 +1110,6 @@ export default function SignupPage() {
                   />
 
                 </div>
-
-                {/* USERNAME */}
 
                 <div className="form-group">
 
@@ -1451,8 +1143,6 @@ export default function SignupPage() {
 
               </div>
 
-              {/* EMAIL */}
-
               <div className="form-group">
 
                 <label
@@ -1485,8 +1175,6 @@ export default function SignupPage() {
             ================================================== */}
 
             <div className="form-section">
-
-              {/* PASSWORD */}
 
               <div className="form-group">
 
@@ -1540,8 +1228,6 @@ export default function SignupPage() {
 
               </div>
 
-              {/* PASSWORD REQUIREMENTS */}
-
               <div className="password-requirements">
 
                 <div className="requirements-title">
@@ -1591,9 +1277,8 @@ export default function SignupPage() {
                   </PasswordRequirement>
 
                 </div>
-              </div>
 
-              {/* CONFIRM PASSWORD */}
+              </div>
 
               <div className="form-group confirm-password-group">
 
@@ -1613,9 +1298,7 @@ export default function SignupPage() {
                         ? "text"
                         : "password"
                     }
-                    value={
-                      confirmPassword
-                    }
+                    value={confirmPassword}
                     onChange={(event) =>
                       setConfirmPassword(
                         event.target.value
@@ -1669,6 +1352,30 @@ export default function SignupPage() {
             </div>
 
             {/* =================================================
+                FREE ACCOUNT NOTICE
+            ================================================== */}
+
+            <div className="free-account-notice">
+
+              <div className="free-account-icon">
+                ✓
+              </div>
+
+              <div>
+                <strong>
+                  Free Account
+                </strong>
+
+                <p>
+                  Everyone starts free. You can
+                  upgrade to Individual or Family
+                  later from your account.
+                </p>
+              </div>
+
+            </div>
+
+            {/* =================================================
                 ERROR / SUCCESS MESSAGE
             ================================================== */}
 
@@ -1695,14 +1402,10 @@ export default function SignupPage() {
             >
               {loading
                 ? "Creating Account..."
-                : "Create Account"}
+                : "Create Free Account"}
             </button>
 
           </form>
-
-          {/* =================================================
-              LOGIN LINK
-          ================================================== */}
 
           <div className="login-link">
 
@@ -1716,10 +1419,6 @@ export default function SignupPage() {
 
           </div>
 
-          {/* =================================================
-              TERMS
-          ================================================== */}
-
           <div className="terms-text">
             By creating an account, you agree
             to use Sahaba Quest responsibly
@@ -1727,13 +1426,11 @@ export default function SignupPage() {
           </div>
 
         </div>
+
       </section>
 
-      {/* =====================================================
-          MAIN SIGNUP STYLES
-      ====================================================== */}
-
       <style jsx>{`
+
         * {
           box-sizing: border-box;
         }
@@ -1856,10 +1553,6 @@ export default function SignupPage() {
             rgba(255, 255, 255, 0.78);
         }
 
-        /* =================================================
-           BRAND FEATURES
-        ================================================== */
-
         .brand-features {
           display: grid;
           gap: 20px;
@@ -1949,7 +1642,6 @@ export default function SignupPage() {
           margin-bottom: 24px;
         }
 
-        .section-label,
         .form-label {
           display: block;
           margin-bottom: 8px;
@@ -1957,121 +1649,6 @@ export default function SignupPage() {
           font-size: 13px;
           font-weight: 700;
         }
-
-        /* =================================================
-           ACCOUNT TYPE
-        ================================================== */
-
-        .account-type-grid {
-          display: grid;
-          grid-template-columns:
-            repeat(3, 1fr);
-          gap: 10px;
-        }
-
-        .account-type-card {
-          appearance: none;
-          border:
-            1px solid #dbe7e5;
-          border-radius: 15px;
-          background: white;
-          padding: 17px 13px;
-          text-align: left;
-          cursor: pointer;
-          transition:
-            border-color 0.2s ease,
-            background 0.2s ease,
-            transform 0.2s ease,
-            box-shadow 0.2s ease;
-        }
-
-        .account-type-card:hover {
-          transform:
-            translateY(-1px);
-          border-color: #9ccdc7;
-        }
-
-        .account-type-card.selected {
-          border-color: #08766d;
-          background: #f0f9f7;
-          box-shadow:
-            0 0 0 2px
-            rgba(8, 118, 109, 0.08);
-        }
-
-        .account-type-icon {
-          display: block;
-          font-size: 24px;
-          margin-bottom: 9px;
-        }
-
-        .account-type-title {
-          display: block;
-          color: #183f3b;
-          font-size: 13px;
-          font-weight: 800;
-          margin-bottom: 5px;
-        }
-
-        .account-type-description {
-          display: block;
-          color: #71817f;
-          font-size: 10px;
-          line-height: 1.5;
-        }
-
-        /* =================================================
-           ORGANISATION
-        ================================================== */
-
-        .organisation-section {
-          padding: 18px;
-          border-radius: 14px;
-          background: #f2f8f7;
-          border:
-            1px solid #dcebe8;
-        }
-
-        .organisation-section-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 18px;
-        }
-
-        .organisation-section-icon {
-          width: 42px;
-          height: 42px;
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 12px;
-          background: #e2f2ef;
-          font-size: 19px;
-        }
-
-        .organisation-section-header strong {
-          display: block;
-          color: #183f3b;
-          font-size: 13px;
-          margin-bottom: 3px;
-        }
-
-        .organisation-section-header p {
-          margin: 0;
-          color: #778683;
-          font-size: 11px;
-          line-height: 1.5;
-        }
-
-        .organisation-type-group {
-          margin-bottom: 0;
-        }
-
-        /* =================================================
-           FORM ROW
-        ================================================== */
 
         .form-row {
           display: grid;
@@ -2110,10 +1687,6 @@ export default function SignupPage() {
 
         .form-input::placeholder {
           color: #a1afad;
-        }
-
-        select.form-input {
-          cursor: pointer;
         }
 
         .field-hint {
@@ -2222,6 +1795,51 @@ export default function SignupPage() {
 
         .password-match.no-match {
           color: #b54c4c;
+        }
+
+        /* =================================================
+           FREE ACCOUNT NOTICE
+        ================================================== */
+
+        .free-account-notice {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin:
+            0 0 20px;
+          padding: 15px;
+          border:
+            1px solid #dcebe8;
+          border-radius: 13px;
+          background: #f2f8f7;
+        }
+
+        .free-account-icon {
+          width: 34px;
+          height: 34px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          background: #08766d;
+          color: white;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .free-account-notice strong {
+          display: block;
+          margin-bottom: 3px;
+          color: #183f3b;
+          font-size: 12px;
+        }
+
+        .free-account-notice p {
+          margin: 0;
+          color: #778683;
+          font-size: 10px;
+          line-height: 1.55;
         }
 
         /* =================================================
@@ -2334,6 +1952,7 @@ export default function SignupPage() {
         ================================================== */
 
         @media (max-width: 1050px) {
+
           .signup-page {
             grid-template-columns:
               1fr;
@@ -2361,9 +1980,11 @@ export default function SignupPage() {
             padding:
               45px 25px;
           }
+
         }
 
         @media (max-width: 700px) {
+
           .brand-panel {
             min-height: auto;
             padding:
@@ -2400,34 +2021,6 @@ export default function SignupPage() {
             font-size: 28px;
           }
 
-          .account-type-grid {
-            grid-template-columns:
-              1fr;
-          }
-
-          .account-type-card {
-            display: grid;
-            grid-template-columns:
-              38px 1fr;
-            column-gap: 10px;
-            align-items: center;
-            padding: 13px;
-          }
-
-          .account-type-icon {
-            grid-row:
-              span 2;
-            margin: 0;
-          }
-
-          .account-type-title {
-            margin-bottom: 2px;
-          }
-
-          .account-type-description {
-            grid-column: 2;
-          }
-
           .form-row {
             grid-template-columns:
               1fr;
@@ -2438,9 +2031,11 @@ export default function SignupPage() {
             grid-template-columns:
               1fr;
           }
+
         }
 
         @media (max-width: 420px) {
+
           .brand-panel {
             padding:
               30px 18px;
@@ -2458,8 +2053,11 @@ export default function SignupPage() {
           .signup-header h2 {
             font-size: 25px;
           }
+
         }
+
       `}</style>
+
     </main>
   );
 }

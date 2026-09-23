@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
+type AccountType = "free" | "individual" | "family";
+
 type Profile = {
   username: string | null;
   display_name: string | null;
+  account_type: AccountType;
 };
 
 type Progress = {
@@ -172,6 +175,9 @@ export default function DashboardPage() {
 
       /*
        * PROFILE
+       *
+       * account_type is now the source of truth
+       * for the user's account experience.
        */
       const {
         data: profileData,
@@ -179,7 +185,7 @@ export default function DashboardPage() {
       } = await supabase
         .from("profiles")
         .select(
-          "username, display_name"
+          "username, display_name, account_type"
         )
         .eq("id", user.id)
         .single();
@@ -192,6 +198,30 @@ export default function DashboardPage() {
 
         setMessage(
           "We could not load your profile."
+        );
+
+        return;
+      }
+
+      const accountType =
+        profileData.account_type;
+
+      /*
+       * Only the three active account types
+       * are allowed in V1.
+       */
+      if (
+        accountType !== "free" &&
+        accountType !== "individual" &&
+        accountType !== "family"
+      ) {
+        console.error(
+          "Invalid account type:",
+          accountType
+        );
+
+        setMessage(
+          "Your account type could not be verified."
         );
 
         return;
@@ -301,7 +331,12 @@ export default function DashboardPage() {
         setSubscription(null);
       }
 
-      setProfile(profileData);
+      setProfile({
+        username: profileData.username,
+        display_name: profileData.display_name,
+        account_type: accountType,
+      });
+
       setProgress(progressData);
       setMessage("");
     } catch (error) {
@@ -376,6 +411,36 @@ export default function DashboardPage() {
     profile.display_name ||
     profile.username ||
     "Player";
+
+  /*
+   * ACCOUNT DISPLAY
+   */
+  const accountLabels: Record<
+    AccountType,
+    string
+  > = {
+    free: "Free Account",
+    individual: "Individual Account",
+    family: "Family Account",
+  };
+
+  const accountDescriptions: Record<
+    AccountType,
+    string
+  > = {
+    free:
+      "You're currently using the free Sahaba Quest experience.",
+    individual:
+      "You're using the Individual Sahaba Quest experience.",
+    family:
+      "You're using the Family Sahaba Quest experience.",
+  };
+
+  const accountLabel =
+    accountLabels[profile.account_type];
+
+  const accountDescription =
+    accountDescriptions[profile.account_type];
 
   /*
    * ACCURACY
@@ -485,9 +550,41 @@ export default function DashboardPage() {
               maxWidth: "720px",
             }}
           >
-            <span className="sq-badge">
-              Level {progress.current_level}
-            </span>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <span className="sq-badge">
+                Level {progress.current_level}
+              </span>
+
+              <span
+                className="sq-badge"
+                style={{
+                  background:
+                    profile.account_type ===
+                    "family"
+                      ? "#fef3c7"
+                      : profile.account_type ===
+                        "individual"
+                      ? "#dbeafe"
+                      : "var(--primary-light)",
+                  color:
+                    profile.account_type ===
+                    "family"
+                      ? "#92400e"
+                      : profile.account_type ===
+                        "individual"
+                      ? "#1d4ed8"
+                      : "var(--primary-dark)",
+                }}
+              >
+                {accountLabel}
+              </span>
+            </div>
 
             <h1
               style={{
@@ -547,6 +644,73 @@ export default function DashboardPage() {
                 View Progress
               </a>
             </div>
+          </div>
+        </section>
+
+        {/* ACCOUNT TYPE */}
+        <section
+          className="sq-card"
+          style={{
+            marginTop: "20px",
+            padding: "22px 26px",
+            background:
+              "linear-gradient(135deg, #ffffff 0%, #f8faf9 100%)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "18px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <div className="sq-badge">
+                Account Type
+              </div>
+
+              <h2
+                style={{
+                  margin: "9px 0 4px",
+                  fontSize: "20px",
+                  fontWeight: 900,
+                }}
+              >
+                {accountLabel}
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: "var(--muted)",
+                  fontSize: "13px",
+                  lineHeight: 1.6,
+                }}
+              >
+                {accountDescription}
+              </p>
+            </div>
+
+            {profile.account_type ===
+              "free" && (
+              <a
+                href="/pricing"
+                className="sq-button-primary"
+                style={{
+                  minHeight: "44px",
+                  padding: "0 18px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Explore Plans →
+              </a>
+            )}
           </div>
         </section>
 
@@ -663,8 +827,7 @@ export default function DashboardPage() {
           <div
             style={{
               display: "flex",
-              justifyContent:
-                "space-between",
+              justifyContent: "space-between",
               alignItems: "center",
               gap: "20px",
               flexWrap: "wrap",

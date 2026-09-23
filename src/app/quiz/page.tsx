@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
+type AccountType =
+  | "free"
+  | "individual"
+  | "family";
+
 type Question = {
   id: string;
   level: number;
@@ -43,6 +48,12 @@ type ResumeSession = {
 };
 
 export default function QuizPage() {
+  const [accountType, setAccountType] =
+    useState<AccountType | null>(null);
+
+  const [lockedLevel, setLockedLevel] =
+    useState<number | null>(null);
+
   const [question, setQuestion] = useState<Question | null>(null);
   const [message, setMessage] = useState(
     "Checking for an unfinished game..."
@@ -132,6 +143,47 @@ export default function QuizPage() {
       return;
     }
 
+    /*
+     * ---------------------------------------------------------
+     * ACCOUNT TYPE
+     * ---------------------------------------------------------
+     *
+     * profiles.account_type is the source of truth.
+     */
+    const {
+      data: profile,
+      error: profileError,
+    } = await supabase
+      .from("profiles")
+      .select("account_type")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      setCheckingSession(false);
+      setMessage(
+        "We could not verify your account type."
+      );
+      return;
+    }
+
+    const userAccountType =
+      profile.account_type as AccountType;
+
+    if (
+      userAccountType !== "free" &&
+      userAccountType !== "individual" &&
+      userAccountType !== "family"
+    ) {
+      setCheckingSession(false);
+      setMessage(
+        "Your account type could not be verified."
+      );
+      return;
+    }
+
+    setAccountType(userAccountType);
+
     const { data: existingSession, error: sessionError } = await supabase
       .from("game_sessions")
       .select(
@@ -155,7 +207,7 @@ export default function QuizPage() {
      */
     if (!existingSession) {
       setCheckingSession(false);
-      await startGame();
+      await startGame(userAccountType);
       return;
     }
 
@@ -194,13 +246,25 @@ export default function QuizPage() {
         .eq("user_id", user.id);
 
       setCheckingSession(false);
-      await startGame();
+      await startGame(userAccountType);
       return;
     }
 
     /*
      * Genuine unfinished game.
+     *
+     * Free accounts may only play Levels 1–4.
      */
+    if (
+      userAccountType === "free" &&
+      existingSession.level > 4
+    ) {
+      setLockedLevel(existingSession.level);
+      setCheckingSession(false);
+      setMessage("");
+      return;
+    }
+
     setResumeSession(existingSession as ResumeSession);
     setShowResumeScreen(true);
     setCheckingSession(false);
@@ -213,7 +277,7 @@ export default function QuizPage() {
    * ---------------------------------------------------------
    */
 
-  async function startGame() {
+  async function startGame(accountTypeOverride?: AccountType) {
     setMessage("Starting a new game...");
 
     setAttemptQuestions(0);
@@ -251,6 +315,24 @@ export default function QuizPage() {
     }
 
     const currentLevel = progress.current_level;
+    const effectiveAccountType =
+      accountTypeOverride ?? accountType;
+
+    /*
+     * ---------------------------------------------------------
+     * FREE ACCOUNT LEVEL LIMIT
+     * ---------------------------------------------------------
+     *
+     * Free users may play Levels 1–4 only.
+     */
+    if (
+      effectiveAccountType === "free" &&
+      currentLevel > 4
+    ) {
+      setLockedLevel(currentLevel);
+      setMessage("");
+      return;
+    }
 
     /*
      * Create a new game session.
@@ -667,6 +749,217 @@ export default function QuizPage() {
 
     setQuizResult(result);
     setMessage("");
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * FREE ACCOUNT LEVEL LOCK
+   * ---------------------------------------------------------
+   */
+
+  if (
+    lockedLevel !== null &&
+    accountType === "free"
+  ) {
+    return (
+      <main
+        className="sq-page"
+        style={{
+          minHeight: "100vh",
+          background:
+            "radial-gradient(circle at top left, rgba(204, 251, 241, 0.8), transparent 35%), var(--background)",
+        }}
+      >
+        <div className="sq-container">
+          <div style={{ marginBottom: "28px" }}>
+            <AppNavbar />
+          </div>
+
+          <div
+            className="sq-card"
+            style={{
+              maxWidth: "700px",
+              margin: "80px auto",
+              padding: "48px 32px",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                width: "80px",
+                height: "80px",
+                margin: "0 auto 24px",
+                borderRadius: "24px",
+                background: "#fef3c7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "38px",
+              }}
+            >
+              🔒
+            </div>
+
+            <div
+              style={{
+                color: "#92400e",
+                fontSize: "13px",
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                marginBottom: "10px",
+              }}
+            >
+              Free Account Limit
+            </div>
+
+            <h1
+              className="sq-title"
+              style={{ marginBottom: "14px" }}
+            >
+              Level {lockedLevel} is locked
+            </h1>
+
+            <p
+              className="sq-subtitle"
+              style={{
+                maxWidth: "540px",
+                margin: "0 auto",
+                lineHeight: 1.7,
+              }}
+            >
+              Your Free Account gives you access
+              to Levels 1–4 of Sahaba Quest.
+              Upgrade to an Individual or Family
+              Account to continue your journey
+              beyond Level 4.
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(2, minmax(0, 1fr))",
+                gap: "14px",
+                maxWidth: "520px",
+                margin: "30px auto 0",
+              }}
+            >
+              <div
+                style={{
+                  padding: "20px",
+                  borderRadius: "18px",
+                  background:
+                    "var(--primary-light)",
+                  textAlign: "left",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    color: "var(--muted)",
+                  }}
+                >
+                  FREE
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "20px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Levels 1–4
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    fontSize: "12px",
+                    color: "var(--muted)",
+                  }}
+                >
+                  Your current access
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: "20px",
+                  borderRadius: "18px",
+                  background: "#f0fdf4",
+                  textAlign: "left",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    color: "#166534",
+                  }}
+                >
+                  UPGRADE
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "20px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Continue Quest
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    fontSize: "12px",
+                    color: "var(--muted)",
+                  }}
+                >
+                  Unlock higher levels
+                </div>
+              </div>
+            </div>
+
+            <a
+              href="/pricing"
+              className="sq-button-primary"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: "28px",
+                minHeight: "50px",
+                padding: "0 24px",
+                textDecoration: "none",
+              }}
+            >
+              Explore Individual & Family →
+            </a>
+
+            <a
+              href="/dashboard"
+              className="sq-button-secondary"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: "12px",
+                minHeight: "50px",
+                padding: "0 24px",
+                textDecoration: "none",
+              }}
+            >
+              Back to Dashboard
+            </a>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   /*
