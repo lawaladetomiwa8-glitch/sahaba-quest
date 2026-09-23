@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "../../../../../lib/supabase-server";
 
-type PlanType = "plus" | "family" | "school";
+type PlanType = "plus" | "family";
 type BillingInterval = "monthly" | "annual";
 type Currency = "NGN" | "USD" | "GBP" | "EUR";
+type AccountType = "free" | "individual" | "family";
 
 export async function POST(request: NextRequest) {
   try {
     // ---------------------------------------------------------
     // 1. Get the user's access token
     // ---------------------------------------------------------
+
     const authorization = request.headers.get(
       "authorization"
     );
@@ -33,6 +35,7 @@ export async function POST(request: NextRequest) {
     // ---------------------------------------------------------
     // 2. Verify the logged-in user
     // ---------------------------------------------------------
+
     const {
       data: { user },
       error: userError,
@@ -52,8 +55,45 @@ export async function POST(request: NextRequest) {
     }
 
     // ---------------------------------------------------------
-    // 3. Read payment request
+    // 3. Get the user's actual account type
     // ---------------------------------------------------------
+
+    const {
+      data: profile,
+      error: profileError,
+    } = await supabaseServer
+      .from("profiles")
+      .select("account_type")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error(
+        "Could not retrieve user account type:",
+        profileError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Could not verify your account type. Please try again.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const accountType: AccountType =
+      profile?.account_type === "individual" ||
+      profile?.account_type === "family"
+        ? profile.account_type
+        : "free";
+
+    // ---------------------------------------------------------
+    // 4. Read payment request
+    // ---------------------------------------------------------
+
     const body = await request.json();
 
     const {
@@ -61,18 +101,24 @@ export async function POST(request: NextRequest) {
       billing_interval,
       currency,
     } = body as {
-      plan_type?: PlanType;
-      billing_interval?: BillingInterval;
-      currency?: Currency;
+      plan_type?: string;
+      billing_interval?: string;
+      currency?: string;
     };
 
     // ---------------------------------------------------------
-    // 4. Validate subscription details
+    // 5. Validate requested plan
+    //
+    // IMPORTANT:
+    // "plus" = Individual
+    // "family" = Family
+    //
+    // "school" / Organisation is intentionally NOT accepted.
     // ---------------------------------------------------------
+
     const validPlanTypes: PlanType[] = [
       "plus",
       "family",
-      "school",
     ];
 
     const validBillingIntervals: BillingInterval[] = [
@@ -89,11 +135,14 @@ export async function POST(request: NextRequest) {
 
     if (
       !plan_type ||
-      !validPlanTypes.includes(plan_type)
+      !validPlanTypes.includes(
+        plan_type as PlanType
+      )
     ) {
       return NextResponse.json(
         {
-          error: "Invalid subscription plan",
+          error:
+            "Invalid subscription plan. Organisation subscriptions are not currently available.",
         },
         {
           status: 400,
@@ -104,7 +153,7 @@ export async function POST(request: NextRequest) {
     if (
       !billing_interval ||
       !validBillingIntervals.includes(
-        billing_interval
+        billing_interval as BillingInterval
       )
     ) {
       return NextResponse.json(
@@ -119,7 +168,9 @@ export async function POST(request: NextRequest) {
 
     if (
       !currency ||
-      !validCurrencies.includes(currency)
+      !validCurrencies.includes(
+        currency as Currency
+      )
     ) {
       return NextResponse.json(
         {
@@ -131,9 +182,77 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const requestedPlan =
+      plan_type as PlanType;
+
+    const requestedBillingInterval =
+      billing_interval as BillingInterval;
+
+    const requestedCurrency =
+      currency as Currency;
+
     // ---------------------------------------------------------
-    // 5. Get the matching subscription plan
+    // 6. Enforce account upgrade rules
+    //
+    // plus   = Individual
+    // family = Family
     // ---------------------------------------------------------
+
+    if (
+      accountType === "individual" &&
+      requestedPlan === "plus"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "You already have an Individual Account.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      accountType === "family" &&
+      requestedPlan === "family"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "You already have a Family Account.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      accountType === "family" &&
+      requestedPlan === "plus"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "A Family Account cannot purchase an Individual subscription.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // Free users can purchase either plan.
+    //
+    // Individual users can upgrade to Family.
+    //
+    // Family users cannot downgrade to Individual.
+
+    // ---------------------------------------------------------
+    // 7. Get the matching subscription plan
+    // ---------------------------------------------------------
+
     const {
       data: plan,
       error: planError,
@@ -150,12 +269,18 @@ export async function POST(request: NextRequest) {
         flutterwave_plan_id
         `
       )
-      .eq("plan_type", plan_type)
+      .eq(
+        "plan_type",
+        requestedPlan
+      )
       .eq(
         "billing_interval",
-        billing_interval
+        requestedBillingInterval
       )
-      .eq("currency", currency)
+      .eq(
+        "currency",
+        requestedCurrency
+      )
       .eq("is_active", true)
       .single();
 
@@ -177,8 +302,9 @@ export async function POST(request: NextRequest) {
     }
 
     // ---------------------------------------------------------
-    // 6. Make sure Flutterwave secret key exists
+    // 8. Make sure Flutterwave secret key exists
     // ---------------------------------------------------------
+
     const flutterwaveSecretKey =
       process.env.FLUTTERWAVE_SECRET_KEY;
 
@@ -199,23 +325,25 @@ export async function POST(request: NextRequest) {
     }
 
     // ---------------------------------------------------------
-    // 7. Generate unique transaction reference
+    // 9. Generate unique transaction reference
     // ---------------------------------------------------------
+
     const txRef = `SQ-${Date.now()}-${crypto
       .randomUUID()
       .slice(0, 8)}`;
 
     // ---------------------------------------------------------
-    // 8. Convert stored amount to Flutterwave amount
+    // 10. Convert stored amount to Flutterwave amount
     //
     // NGN = naira
     // USD / GBP / EUR = cents/pence
     // ---------------------------------------------------------
+
     let flutterwaveAmount = Number(
       plan.amount
     );
 
-    if (currency !== "NGN") {
+    if (requestedCurrency !== "NGN") {
       flutterwaveAmount =
         flutterwaveAmount / 100;
     }
@@ -236,8 +364,9 @@ export async function POST(request: NextRequest) {
     }
 
     // ---------------------------------------------------------
-    // 9. Create pending payment transaction
+    // 11. Create pending payment transaction
     // ---------------------------------------------------------
+
     const {
       data: paymentTransaction,
       error: transactionError,
@@ -254,20 +383,24 @@ export async function POST(request: NextRequest) {
 
         amount: plan.amount,
 
-        currency: currency,
+        currency: requestedCurrency,
 
         status: "pending",
 
         payment_type: "subscription",
 
         metadata: {
-          plan_type,
-          billing_interval,
+          plan_type: requestedPlan,
+          billing_interval:
+            requestedBillingInterval,
 
           payment_mode: "one_time",
 
           flutterwave_plan_id:
             plan.flutterwave_plan_id,
+
+          account_type_before_payment:
+            accountType,
         },
       })
       .select("id")
@@ -294,8 +427,9 @@ export async function POST(request: NextRequest) {
     }
 
     // ---------------------------------------------------------
-    // 10. Application URL
+    // 12. Application URL
     // ---------------------------------------------------------
+
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       "http://localhost:3000";
@@ -304,14 +438,15 @@ export async function POST(request: NextRequest) {
       `${appUrl}/payment/flutterwave/callback`;
 
     // ---------------------------------------------------------
-    // 11. Build Flutterwave checkout payload
+    // 13. Build Flutterwave checkout payload
     // ---------------------------------------------------------
+
     const payload = {
       tx_ref: txRef,
 
       amount: flutterwaveAmount,
 
-      currency: currency,
+      currency: requestedCurrency,
 
       redirect_url: redirectUrl,
 
@@ -335,7 +470,8 @@ export async function POST(request: NextRequest) {
 
         plan_id: plan.id,
 
-        plan_type: plan.plan_type,
+        plan_type:
+          plan.plan_type,
 
         billing_interval:
           plan.billing_interval,
@@ -347,20 +483,25 @@ export async function POST(request: NextRequest) {
 
         payment_transaction_id:
           paymentTransaction.id,
+
+        account_type_before_payment:
+          accountType,
       },
 
       // -------------------------------------------------------
       // One-time checkout payment methods
       // -------------------------------------------------------
+
       payment_options:
-        currency === "NGN"
+        requestedCurrency === "NGN"
           ? "card,banktransfer,ussd,account"
           : "card",
     };
 
     // ---------------------------------------------------------
-    // 12. Send payment request to Flutterwave
+    // 14. Send payment request to Flutterwave
     // ---------------------------------------------------------
+
     const flutterwaveResponse =
       await fetch(
         "https://api.flutterwave.com/v3/payments",
@@ -385,8 +526,9 @@ export async function POST(request: NextRequest) {
       await flutterwaveResponse.json();
 
     // ---------------------------------------------------------
-    // 13. Handle Flutterwave error
+    // 15. Handle Flutterwave error
     // ---------------------------------------------------------
+
     if (
       !flutterwaveResponse.ok ||
       flutterwaveData.status !==
@@ -423,8 +565,9 @@ export async function POST(request: NextRequest) {
     }
 
     // ---------------------------------------------------------
-    // 14. Get checkout URL
+    // 16. Get checkout URL
     // ---------------------------------------------------------
+
     const checkoutUrl =
       flutterwaveData?.data?.link;
 
@@ -459,8 +602,9 @@ export async function POST(request: NextRequest) {
     }
 
     // ---------------------------------------------------------
-    // 15. Return checkout URL
+    // 17. Return checkout URL
     // ---------------------------------------------------------
+
     return NextResponse.json({
       success: true,
 
