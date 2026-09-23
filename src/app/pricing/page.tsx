@@ -4,8 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
-type PlanType = "plus" | "family" | "school";
+type AccountType = "free" | "individual" | "family";
+
+type PlanType = "plus" | "family";
+
 type BillingInterval = "monthly" | "annual";
+
 type Currency = "NGN" | "USD" | "GBP" | "EUR";
 
 type Plan = {
@@ -17,48 +21,56 @@ type Plan = {
   display_name: string;
 };
 
+type Profile = {
+  account_type: AccountType;
+};
+
 const PLAN_INFO: Record<
   PlanType,
   {
     name: string;
+    badge: string;
     description: string;
     features: string[];
   }
 > = {
   plus: {
-    name: "Sahaba Quest Plus",
+    name: "Individual",
+    badge: "INDIVIDUAL",
     description:
-      "For individual learners who want to go deeper into their Sahaba journey.",
+      "The full personal Sahaba Quest experience for learners who want deeper access, more challenges and exclusive competitions.",
     features: [
-      "Access to premium quiz levels",
-      "Detailed progress tracking",
-      "Personal performance statistics",
-      "Compete on the leaderboard",
+      "Access to all Levels 1–10",
+      "Full Individual Quest journey",
+      "All Individual challenges and quizzes",
+      "Individual XP, streak and progress tracking",
+      "Individual leaderboard",
+      "Detailed performance statistics",
+      "Access to exclusive Individual competitions",
+      "Eligibility for sponsored monthly/weekly competitions when active",
+      "Eligibility to compete for 1st, 2nd and 3rd place prizes",
+      "Access to competition results and winner announcements",
+      "Early access to selected Individual activities and events",
     ],
   },
 
   family: {
     name: "Family",
+    badge: "FAMILY",
     description:
-      "Make learning about the Sahabah a shared family experience.",
+      "A dedicated Family Quest experience focused on the Sahabah, family life, parenting, character and learning together.",
     features: [
-      "Everything in Plus",
-      "Family leaderboard",
-      "Multiple family members",
-      "Family progress tracking",
-    ],
-  },
-
-  school: {
-    name: "School",
-    description:
-      "Structured Islamic learning and competition for schools.",
-    features: [
-      "Everything in Plus",
-      "Student accounts",
-      "School leaderboard",
-      "School performance dashboard",
-      "Inter-school competition support",
+      "Access to all Levels 1–10",
+      "Full Family Quest journey",
+      "Family-focused Sahaba content",
+      "Family challenges and quizzes",
+      "Family XP and progress tracking",
+      "Separate Family leaderboard",
+      "Family-focused learning categories",
+      "Lessons from the families and households of the Sahabah",
+      "Marriage, parenting and family-life lessons",
+      "Family sacrifice, patience, mercy and character",
+      "Qur'an and Sunnah family guidance",
     ],
   },
 };
@@ -114,6 +126,12 @@ export default function PricingPage() {
 
   const [plans, setPlans] = useState<Plan[]>([]);
 
+  const [accountType, setAccountType] =
+    useState<AccountType>("free");
+
+  const [loadingAccount, setLoadingAccount] =
+    useState(true);
+
   const [loadingPlans, setLoadingPlans] =
     useState(true);
 
@@ -125,6 +143,79 @@ export default function PricingPage() {
   const [successMessage, setSuccessMessage] =
     useState("");
 
+  /*
+   * ---------------------------------------------------------
+   * LOAD CURRENT ACCOUNT
+   * ---------------------------------------------------------
+   */
+  useEffect(() => {
+    async function loadAccount() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          setAccountType("free");
+          return;
+        }
+
+        const {
+          data: profile,
+          error: profileError,
+        } = await supabase
+          .from("profiles")
+          .select("account_type")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error(
+            "Could not load account type:",
+            profileError
+          );
+
+          setAccountType("free");
+          return;
+        }
+
+        const detectedAccountType =
+          profile?.account_type;
+
+        if (
+          detectedAccountType === "individual" ||
+          detectedAccountType === "family"
+        ) {
+          setAccountType(
+            detectedAccountType
+          );
+        } else {
+          setAccountType("free");
+        }
+      } catch (accountError) {
+        console.error(
+          "Account loading error:",
+          accountError
+        );
+
+        setAccountType("free");
+      } finally {
+        setLoadingAccount(false);
+      }
+    }
+
+    loadAccount();
+  }, []);
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD PAID PLANS
+   *
+   * We intentionally load only Individual (plus) and Family.
+   * Organisation/school remains in the database for V2 but
+   * is not exposed for payment in V1.
+   * ---------------------------------------------------------
+   */
   useEffect(() => {
     async function loadPlans() {
       setLoadingPlans(true);
@@ -138,6 +229,10 @@ export default function PricingPage() {
         .select(
           "id, plan_type, billing_interval, currency, amount, display_name"
         )
+        .in("plan_type", [
+          "plus",
+          "family",
+        ])
         .eq(
           "billing_interval",
           billingInterval
@@ -160,7 +255,6 @@ export default function PricingPage() {
 
         setPlans([]);
         setLoadingPlans(false);
-
         return;
       }
 
@@ -178,7 +272,6 @@ export default function PricingPage() {
     > = {
       plus: null,
       family: null,
-      school: null,
     };
 
     for (const plan of plans) {
@@ -190,11 +283,31 @@ export default function PricingPage() {
     return result;
   }, [plans]);
 
+  /*
+   * ---------------------------------------------------------
+   * SUBSCRIBE
+   * ---------------------------------------------------------
+   */
   async function handleSubscribe(
     planType: PlanType
   ) {
     setError("");
     setSuccessMessage("");
+
+    /*
+     * A Family account is already the Family experience.
+     * We do not offer a casual switch back to Individual.
+     */
+    if (
+      accountType === "family" &&
+      planType === "plus"
+    ) {
+      setError(
+        "Your Family Account is already active. Individual access is not available from this account."
+      );
+      return;
+    }
+
     setProcessingPlan(planType);
 
     try {
@@ -204,7 +317,7 @@ export default function PricingPage() {
 
       if (!session) {
         setError(
-          "Please log in before subscribing."
+          "Please create a free account or log in before upgrading."
         );
 
         setTimeout(() => {
@@ -215,13 +328,13 @@ export default function PricingPage() {
         return;
       }
 
-      const plan = plansByType[planType];
+      const plan =
+        plansByType[planType];
 
       if (!plan) {
         setError(
           "This plan is currently unavailable for the selected currency and billing interval."
         );
-
         return;
       }
 
@@ -231,15 +344,22 @@ export default function PricingPage() {
           method: "POST",
 
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${session.access_token}`,
           },
 
           body: JSON.stringify({
-            plan_type: plan.plan_type,
+            plan_type:
+              plan.plan_type,
+
             billing_interval:
               plan.billing_interval,
-            currency: plan.currency,
+
+            currency:
+              plan.currency,
           }),
         }
       );
@@ -287,7 +407,8 @@ export default function PricingPage() {
   function getPlanPrice(
     planType: PlanType
   ): string {
-    const plan = plansByType[planType];
+    const plan =
+      plansByType[planType];
 
     if (!plan) {
       return "Unavailable";
@@ -301,11 +422,80 @@ export default function PricingPage() {
     )}`;
   }
 
+  function getPaidButtonLabel(
+    planType: PlanType
+  ): string {
+    if (loadingAccount) {
+      return "Loading...";
+    }
+
+    if (
+      accountType === "individual" &&
+      planType === "plus"
+    ) {
+      return "Current Plan";
+    }
+
+    if (
+      accountType === "family" &&
+      planType === "family"
+    ) {
+      return "Current Plan";
+    }
+
+    if (
+      accountType === "individual" &&
+      planType === "family"
+    ) {
+      return "Upgrade to Family";
+    }
+
+    return planType === "family"
+      ? "Upgrade to Family"
+      : "Get Individual";
+  }
+
+  function isPaidPlanDisabled(
+    planType: PlanType
+  ): boolean {
+    if (loadingAccount) {
+      return true;
+    }
+
+    if (
+      accountType === "individual" &&
+      planType === "plus"
+    ) {
+      return true;
+    }
+
+    if (
+      accountType === "family" &&
+      planType === "family"
+    ) {
+      return true;
+    }
+
+    if (
+      accountType === "family" &&
+      planType === "plus"
+    ) {
+      return true;
+    }
+
+    return (
+      !plansByType[planType] ||
+      processingPlan !== null
+    );
+  }
+
   return (
     <main className="sq-page">
       <div className="sq-container">
 
-        {/* NAVIGATION */}
+        {/* =================================================
+            NAVIGATION
+        ================================================== */}
         <div
           style={{
             marginBottom: "28px",
@@ -314,7 +504,9 @@ export default function PricingPage() {
           <AppNavbar />
         </div>
 
-        {/* HERO */}
+        {/* =================================================
+            HERO
+        ================================================== */}
         <section
           className="sq-card"
           style={{
@@ -325,7 +517,6 @@ export default function PricingPage() {
               "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
           }}
         >
-          {/* Decorative circle */}
           <div
             style={{
               position: "absolute",
@@ -350,7 +541,7 @@ export default function PricingPage() {
             }}
           >
             <span className="sq-badge">
-              Sahaba Quest Plans
+              SAHABA QUEST PLANS
             </span>
 
             <h1
@@ -379,7 +570,8 @@ export default function PricingPage() {
             <p
               style={{
                 margin: 0,
-                color: "var(--muted)",
+                color:
+                  "var(--muted)",
                 fontSize: "17px",
                 lineHeight: 1.7,
                 maxWidth: "650px",
@@ -387,26 +579,59 @@ export default function PricingPage() {
                 marginRight: "auto",
               }}
             >
-              Choose the plan that fits
-              your learning journey and
-              unlock more ways to learn,
-              remember, and compete.
+              Start free, explore Levels
+              1–4, and upgrade when you
+              are ready to continue your
+              journey.
             </p>
+
+            {!loadingAccount && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  marginTop: "20px",
+                  padding:
+                    "8px 14px",
+                  borderRadius:
+                    "999px",
+                  background:
+                    "rgba(255,255,255,0.85)",
+                  border:
+                    "1px solid var(--border)",
+                  color:
+                    "var(--primary-dark)",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                }}
+              >
+                {accountType ===
+                  "free" &&
+                  "You are currently on the Free Account"}
+                {accountType ===
+                  "individual" &&
+                  "You are currently on the Individual Account"}
+                {accountType ===
+                  "family" &&
+                  "You are currently on the Family Account"}
+              </div>
+            )}
           </div>
         </section>
 
-        {/* CONTROLS */}
+        {/* =================================================
+            CONTROLS
+        ================================================== */}
         <section
           style={{
             display: "flex",
-            justifyContent: "center",
+            justifyContent:
+              "center",
             alignItems: "center",
             flexWrap: "wrap",
             gap: "12px",
             marginTop: "20px",
           }}
         >
-          {/* Billing */}
           <div
             style={{
               display: "flex",
@@ -478,7 +703,6 @@ export default function PricingPage() {
             </button>
           </div>
 
-          {/* Currency */}
           <select
             value={currency}
             onChange={(event) =>
@@ -492,7 +716,8 @@ export default function PricingPage() {
               borderRadius: "14px",
               border:
                 "1px solid var(--border)",
-              background: "#ffffff",
+              background:
+                "#ffffff",
               color:
                 "var(--foreground)",
               padding:
@@ -521,7 +746,9 @@ export default function PricingPage() {
           </select>
         </section>
 
-        {/* MESSAGES */}
+        {/* =================================================
+            MESSAGES
+        ================================================== */}
         {error && (
           <div
             role="alert"
@@ -530,7 +757,8 @@ export default function PricingPage() {
               padding:
                 "14px 18px",
               borderRadius: "14px",
-              background: "#fef2f2",
+              background:
+                "#fef2f2",
               border:
                 "1px solid #fecaca",
               color: "#b91c1c",
@@ -566,14 +794,19 @@ export default function PricingPage() {
           </div>
         )}
 
-        {/* PLANS */}
-        {loadingPlans ? (
+        {/* =================================================
+            PLANS
+        ================================================== */}
+        {loadingPlans ||
+        loadingAccount ? (
           <div
             className="sq-card"
             style={{
               marginTop: "20px",
-              padding: "60px 30px",
-              textAlign: "center",
+              padding:
+                "60px 30px",
+              textAlign:
+                "center",
             }}
           >
             <div
@@ -586,8 +819,10 @@ export default function PricingPage() {
                 background:
                   "var(--primary-light)",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                alignItems:
+                  "center",
+                justifyContent:
+                  "center",
                 color:
                   "var(--primary)",
                 fontWeight: 900,
@@ -618,10 +853,302 @@ export default function PricingPage() {
                 "stretch",
             }}
           >
+
+            {/* =================================================
+                FREE
+            ================================================== */}
+            <article
+              className="sq-card"
+              style={{
+                position:
+                  "relative",
+                display: "flex",
+                flexDirection:
+                  "column",
+                padding: "28px",
+                border:
+                  accountType ===
+                  "free"
+                    ? "2px solid var(--primary)"
+                    : "1px solid var(--border)",
+                background:
+                  accountType ===
+                  "free"
+                    ? "linear-gradient(180deg, #ffffff 0%, #f0fdfa 100%)"
+                    : "#ffffff",
+              }}
+            >
+              {accountType ===
+                "free" && (
+                <div
+                  style={{
+                    position:
+                      "absolute",
+                    top: "-13px",
+                    left: "50%",
+                    transform:
+                      "translateX(-50%)",
+                    padding:
+                      "6px 15px",
+                    borderRadius:
+                      "999px",
+                    background:
+                      "var(--primary)",
+                    color:
+                      "#ffffff",
+                    fontSize:
+                      "11px",
+                    fontWeight:
+                      900,
+                    letterSpacing:
+                      "0.5px",
+                    whiteSpace:
+                      "nowrap",
+                  }}
+                >
+                  CURRENT PLAN
+                </div>
+              )}
+
+              <span className="sq-badge">
+                FREE
+              </span>
+
+              <h2
+                style={{
+                  margin:
+                    "16px 0 7px",
+                  fontSize: "24px",
+                  lineHeight: 1.2,
+                  fontWeight: 900,
+                }}
+              >
+                Free Account
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color:
+                    "var(--muted)",
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                  minHeight: "45px",
+                }}
+              >
+                Start your Sahaba
+                Quest journey at no
+                cost.
+              </p>
+
+              <div
+                style={{
+                  marginTop:
+                    "24px",
+                }}
+              >
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    alignItems:
+                      "baseline",
+                    gap: "4px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize:
+                        "34px",
+                      fontWeight:
+                        900,
+                      letterSpacing:
+                        "-1px",
+                    }}
+                  >
+                    ₦0
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    marginTop:
+                      "4px",
+                    color:
+                      "var(--muted)",
+                    fontSize:
+                      "13px",
+                  }}
+                >
+                  forever
+                </div>
+              </div>
+
+              <div
+                style={{
+                  height: "1px",
+                  background:
+                    "var(--border)",
+                  margin:
+                    "24px 0",
+                }}
+              />
+
+              <ul
+                style={{
+                  listStyle:
+                    "none",
+                  padding: 0,
+                  margin:
+                    "0 0 28px",
+                  display:
+                    "flex",
+                  flexDirection:
+                    "column",
+                  gap: "13px",
+                }}
+              >
+                {[
+                  "Access to Levels 1–4",
+                  "Selected free challenges and quizzes",
+                  "Basic Sahaba learning content",
+                  "Personal XP and streak",
+                  "Basic progress tracking",
+                  "Access to the Free leaderboard experience",
+                  "A chance to explore the Sahaba Quest platform before upgrading",
+                  "Free access forever",
+                ].map(
+                  (feature) => (
+                    <li
+                      key={feature}
+                      style={{
+                        display:
+                          "flex",
+                        alignItems:
+                          "flex-start",
+                        gap: "10px",
+                        fontSize:
+                          "14px",
+                        lineHeight:
+                          1.5,
+                      }}
+                    >
+                      <span
+                        style={{
+                          flexShrink:
+                            0,
+                          width:
+                            "21px",
+                          height:
+                            "21px",
+                          borderRadius:
+                            "50%",
+                          background:
+                            "var(--primary-light)",
+                          color:
+                            "var(--primary)",
+                          display:
+                            "inline-flex",
+                          alignItems:
+                            "center",
+                          justifyContent:
+                            "center",
+                          fontSize:
+                            "11px",
+                          fontWeight:
+                            900,
+                        }}
+                      >
+                        ✓
+                      </span>
+
+                      <span>
+                        {feature}
+                      </span>
+                    </li>
+                  )
+                )}
+              </ul>
+
+              <div
+                style={{
+                  marginTop:
+                    "auto",
+                }}
+              >
+                {accountType ===
+                "free" ? (
+                  <button
+                    type="button"
+                    disabled
+                    style={{
+                      width:
+                        "100%",
+                      minHeight:
+                        "48px",
+                      borderRadius:
+                        "14px",
+                      border:
+                        "1px solid var(--border)",
+                      background:
+                        "#f1f5f3",
+                      color:
+                        "var(--muted)",
+                      cursor:
+                        "not-allowed",
+                      fontWeight:
+                        800,
+                      padding:
+                        "0 18px",
+                    }}
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  <div
+                    style={{
+                      width:
+                        "100%",
+                      minHeight:
+                        "48px",
+                      borderRadius:
+                        "14px",
+                      background:
+                        "#f8faf9",
+                      color:
+                        "var(--muted)",
+                      display:
+                        "flex",
+                      alignItems:
+                        "center",
+                      justifyContent:
+                        "center",
+                      fontSize:
+                        "13px",
+                      fontWeight:
+                        700,
+                      textAlign:
+                        "center",
+                      padding:
+                        "8px 18px",
+                    }}
+                  >
+                    Free access remains
+                    available as the starting
+                    plan
+                  </div>
+                )}
+              </div>
+            </article>
+
+            {/* =================================================
+                PAID PLANS
+            ================================================== */}
             {(
-              Object.keys(
-                PLAN_INFO
-              ) as PlanType[]
+              [
+                "plus",
+                "family",
+              ] as PlanType[]
             ).map((planType) => {
               const info =
                 PLAN_INFO[planType];
@@ -639,6 +1166,11 @@ export default function PricingPage() {
                 planType ===
                 "family";
 
+              const disabled =
+                isPaidPlanDisabled(
+                  planType
+                );
+
               return (
                 <article
                   key={planType}
@@ -646,10 +1178,12 @@ export default function PricingPage() {
                   style={{
                     position:
                       "relative",
-                    display: "flex",
+                    display:
+                      "flex",
                     flexDirection:
                       "column",
-                    padding: "28px",
+                    padding:
+                      "28px",
                     border:
                       isFamily
                         ? "2px solid var(--primary)"
@@ -660,7 +1194,6 @@ export default function PricingPage() {
                         : "#ffffff",
                   }}
                 >
-                  {/* Popular badge */}
                   {isFamily && (
                     <div
                       style={{
@@ -680,27 +1213,21 @@ export default function PricingPage() {
                           "#ffffff",
                         fontSize:
                           "11px",
-                        fontWeight: 900,
+                        fontWeight:
+                          900,
                         letterSpacing:
                           "0.5px",
                         whiteSpace:
                           "nowrap",
                       }}
                     >
-                      POPULAR
+                      FAMILY
                     </div>
                   )}
 
-                  {/* Plan heading */}
                   <div>
                     <span className="sq-badge">
-                      {planType ===
-                      "plus"
-                        ? "Individual"
-                        : planType ===
-                            "family"
-                          ? "Family"
-                          : "Schools"}
+                      {info.badge}
                     </span>
 
                     <h2
@@ -737,7 +1264,6 @@ export default function PricingPage() {
                     </p>
                   </div>
 
-                  {/* Price */}
                   <div
                     style={{
                       marginTop:
@@ -761,8 +1287,6 @@ export default function PricingPage() {
                             900,
                           letterSpacing:
                             "-1px",
-                          color:
-                            "var(--foreground)",
                         }}
                       >
                         {getPlanPrice(
@@ -788,7 +1312,6 @@ export default function PricingPage() {
                     </div>
                   </div>
 
-                  {/* Divider */}
                   <div
                     style={{
                       height: "1px",
@@ -799,7 +1322,6 @@ export default function PricingPage() {
                     }}
                   />
 
-                  {/* Features */}
                   <ul
                     style={{
                       listStyle:
@@ -817,17 +1339,13 @@ export default function PricingPage() {
                     {info.features.map(
                       (feature) => (
                         <li
-                          key={
-                            feature
-                          }
+                          key={feature}
                           style={{
                             display:
                               "flex",
                             alignItems:
                               "flex-start",
                             gap: "10px",
-                            color:
-                              "var(--foreground)",
                             fontSize:
                               "14px",
                             lineHeight:
@@ -864,16 +1382,13 @@ export default function PricingPage() {
                           </span>
 
                           <span>
-                            {
-                              feature
-                            }
+                            {feature}
                           </span>
                         </li>
                       )
                     )}
                   </ul>
 
-                  {/* Button */}
                   <div
                     style={{
                       marginTop:
@@ -882,54 +1397,42 @@ export default function PricingPage() {
                   >
                     <button
                       type="button"
-                      disabled={
-                        !plan ||
-                        processingPlan !==
-                          null
-                      }
+                      disabled={disabled}
                       onClick={() =>
                         handleSubscribe(
                           planType
                         )
                       }
                       className={
-                        plan &&
-                        processingPlan ===
-                          null
+                        !disabled
                           ? "sq-button-primary"
                           : ""
                       }
                       style={{
-                        width: "100%",
+                        width:
+                          "100%",
                         minHeight:
                           "48px",
                         borderRadius:
                           "14px",
                         border:
-                          plan &&
-                          processingPlan ===
-                            null
+                          !disabled
                             ? "none"
                             : "1px solid var(--border)",
                         background:
-                          plan &&
-                          processingPlan ===
-                            null
+                          !disabled
                             ? undefined
                             : "#f1f5f3",
                         color:
-                          plan &&
-                          processingPlan ===
-                            null
+                          !disabled
                             ? undefined
                             : "var(--muted)",
                         cursor:
-                          plan &&
-                          processingPlan ===
-                            null
+                          !disabled
                             ? "pointer"
                             : "not-allowed",
-                        fontWeight: 800,
+                        fontWeight:
+                          800,
                         padding:
                           "0 18px",
                       }}
@@ -937,17 +1440,348 @@ export default function PricingPage() {
                       {isProcessing
                         ? "Preparing payment..."
                         : plan
-                          ? `Get ${info.name}`
+                          ? getPaidButtonLabel(
+                              planType
+                            )
                           : "Currently unavailable"}
                     </button>
                   </div>
                 </article>
               );
             })}
+
+            {/* =================================================
+                ORGANISATION — V2
+            ================================================== */}
+            <article
+              className="sq-card"
+              style={{
+                position:
+                  "relative",
+                display: "flex",
+                flexDirection:
+                  "column",
+                padding: "28px",
+                border:
+                  "1px solid var(--border)",
+                background:
+                  "#f8faf9",
+                opacity: 0.96,
+              }}
+            >
+              <div
+                style={{
+                  position:
+                    "absolute",
+                  top: "18px",
+                  right: "18px",
+                  padding:
+                    "6px 10px",
+                  borderRadius:
+                    "999px",
+                  background:
+                    "#fff8df",
+                  color:
+                    "#8a6800",
+                  fontSize:
+                    "10px",
+                  fontWeight:
+                    900,
+                  letterSpacing:
+                    "0.5px",
+                }}
+              >
+                COMING SOON
+              </div>
+
+              <span className="sq-badge">
+                ORGANISATION
+              </span>
+
+              <h2
+                style={{
+                  margin:
+                    "16px 0 7px",
+                  fontSize:
+                    "24px",
+                  lineHeight:
+                    1.2,
+                  fontWeight:
+                    900,
+                  paddingRight:
+                    "90px",
+                }}
+              >
+                Organisation
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color:
+                    "var(--muted)",
+                  fontSize:
+                    "14px",
+                  lineHeight:
+                    1.6,
+                  minHeight:
+                    "45px",
+                }}
+              >
+                Built for schools,
+                madrasas, mosques and
+                Islamic organisations.
+              </p>
+
+              <div
+                style={{
+                  marginTop:
+                    "24px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize:
+                      "25px",
+                    fontWeight:
+                      900,
+                  }}
+                >
+                  Launching soon
+                </span>
+
+                <div
+                  style={{
+                    marginTop:
+                      "6px",
+                    color:
+                      "var(--muted)",
+                    fontSize:
+                      "13px",
+                  }}
+                >
+                  Expected in a future
+                  Sahaba Quest release
+                </div>
+              </div>
+
+              <div
+                style={{
+                  height: "1px",
+                  background:
+                    "var(--border)",
+                  margin:
+                    "24px 0",
+                }}
+              />
+
+              <ul
+                style={{
+                  listStyle:
+                    "none",
+                  padding: 0,
+                  margin:
+                    "0 0 28px",
+                  display:
+                    "flex",
+                  flexDirection:
+                    "column",
+                  gap: "13px",
+                }}
+              >
+                {[
+                  "Organisation learning spaces",
+                  "Student accounts",
+                  "Classes and groups",
+                  "Organisation competitions",
+                  "Organisation leaderboard",
+                ].map(
+                  (feature) => (
+                    <li
+                      key={feature}
+                      style={{
+                        display:
+                          "flex",
+                        alignItems:
+                          "flex-start",
+                        gap: "10px",
+                        fontSize:
+                          "14px",
+                        lineHeight:
+                          1.5,
+                      }}
+                    >
+                      <span
+                        style={{
+                          flexShrink:
+                            0,
+                          width:
+                            "21px",
+                          height:
+                            "21px",
+                          borderRadius:
+                            "50%",
+                          background:
+                            "#e8eeeb",
+                          color:
+                            "var(--muted)",
+                          display:
+                            "inline-flex",
+                          alignItems:
+                            "center",
+                          justifyContent:
+                            "center",
+                          fontSize:
+                            "11px",
+                          fontWeight:
+                            900,
+                        }}
+                      >
+                        •
+                      </span>
+
+                      <span>
+                        {feature}
+                      </span>
+                    </li>
+                  )
+                )}
+              </ul>
+
+              <div
+                style={{
+                  marginTop:
+                    "auto",
+                  width: "100%",
+                  minHeight:
+                    "48px",
+                  borderRadius:
+                    "14px",
+                  border:
+                    "1px solid var(--border)",
+                  background:
+                    "#ffffff",
+                  color:
+                    "var(--muted)",
+                  display:
+                    "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "center",
+                  fontSize:
+                    "13px",
+                  fontWeight:
+                    800,
+                  padding:
+                    "0 18px",
+                }}
+              >
+                Organisation is not
+                available yet
+              </div>
+            </article>
           </section>
         )}
 
-        {/* WHY UPGRADE */}
+        {/* =================================================
+            INDIVIDUAL COMPETITION NOTICE
+        ================================================== */}
+        <section
+          className="sq-card"
+          style={{
+            marginTop: "20px",
+            padding: "28px",
+            border:
+              "1px solid var(--border)",
+            background:
+              "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "22px",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <span className="sq-badge">
+                INDIVIDUAL EXCLUSIVE
+              </span>
+
+              <h2
+                style={{
+                  margin:
+                    "13px 0 8px",
+                  fontSize: "23px",
+                  lineHeight: 1.25,
+                  fontWeight: 900,
+                }}
+              >
+                Sponsored Sahaba Quest Competitions
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: "var(--muted)",
+                  fontSize: "14px",
+                  lineHeight: 1.7,
+                }}
+              >
+                When a sponsored competition is active,
+                Individual subscribers can take part in
+                special weekly or monthly challenges,
+                compete for the top positions and become
+                eligible for the announced prizes.
+              </p>
+            </div>
+
+            <div
+              style={{
+                padding: "20px",
+                borderRadius: "16px",
+                background: "#ffffff",
+                border:
+                  "1px solid var(--border)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 900,
+                  marginBottom: "12px",
+                }}
+              >
+                Competition access
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "9px",
+                  color: "var(--muted)",
+                  fontSize: "13px",
+                  lineHeight: 1.5,
+                }}
+              >
+                <div>✓ Individual subscribers only</div>
+                <div>✓ Sponsored challenge or quiz</div>
+                <div>✓ 1st, 2nd and 3rd place prizes</div>
+                <div>✓ Winners announced after the competition</div>
+                <div>✓ Free users cannot enter exclusive competitions</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================
+            WHY UPGRADE
+        ================================================== */}
         <section
           className="sq-card"
           style={{
@@ -957,6 +1791,52 @@ export default function PricingPage() {
               "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
           }}
         >
+          <div
+            style={{
+              textAlign:
+                "center",
+              maxWidth:
+                "700px",
+              margin:
+                "0 auto 24px",
+            }}
+          >
+            <span className="sq-badge">
+              YOUR JOURNEY
+            </span>
+
+            <h2
+              style={{
+                margin:
+                  "14px 0 7px",
+                fontSize:
+                  "24px",
+                fontWeight:
+                  900,
+              }}
+            >
+              Learn. Remember. Compete.
+            </h2>
+
+            <p
+              style={{
+                margin: 0,
+                color:
+                  "var(--muted)",
+                fontSize:
+                  "14px",
+                lineHeight:
+                  1.6,
+              }}
+            >
+              Every plan is designed to
+              help you build knowledge
+              about the Sahabah and turn
+              learning into consistent
+              progress.
+            </p>
+          </div>
+
           <div
             style={{
               display: "grid",
@@ -970,18 +1850,22 @@ export default function PricingPage() {
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "14px",
+                  borderRadius:
+                    "14px",
                   background:
                     "var(--primary-light)",
                   color:
                     "var(--primary)",
-                  display: "flex",
+                  display:
+                    "flex",
                   alignItems:
                     "center",
                   justifyContent:
                     "center",
-                  fontSize: "20px",
-                  fontWeight: 900,
+                  fontSize:
+                    "20px",
+                  fontWeight:
+                    900,
                 }}
               >
                 📚
@@ -991,8 +1875,10 @@ export default function PricingPage() {
                 style={{
                   margin:
                     "13px 0 6px",
-                  fontSize: "18px",
-                  fontWeight: 900,
+                  fontSize:
+                    "18px",
+                  fontWeight:
+                    900,
                 }}
               >
                 Learn
@@ -1003,8 +1889,10 @@ export default function PricingPage() {
                   margin: 0,
                   color:
                     "var(--muted)",
-                  fontSize: "13px",
-                  lineHeight: 1.6,
+                  fontSize:
+                    "13px",
+                  lineHeight:
+                    1.6,
                 }}
               >
                 Discover meaningful
@@ -1018,18 +1906,22 @@ export default function PricingPage() {
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "14px",
+                  borderRadius:
+                    "14px",
                   background:
                     "#fff8df",
                   color:
                     "#8a6800",
-                  display: "flex",
+                  display:
+                    "flex",
                   alignItems:
                     "center",
                   justifyContent:
                     "center",
-                  fontSize: "20px",
-                  fontWeight: 900,
+                  fontSize:
+                    "20px",
+                  fontWeight:
+                    900,
                 }}
               >
                 🏆
@@ -1039,8 +1931,10 @@ export default function PricingPage() {
                 style={{
                   margin:
                     "13px 0 6px",
-                  fontSize: "18px",
-                  fontWeight: 900,
+                  fontSize:
+                    "18px",
+                  fontWeight:
+                    900,
                 }}
               >
                 Compete
@@ -1051,13 +1945,15 @@ export default function PricingPage() {
                   margin: 0,
                   color:
                     "var(--muted)",
-                  fontSize: "13px",
-                  lineHeight: 1.6,
+                  fontSize:
+                    "13px",
+                  lineHeight:
+                    1.6,
                 }}
               >
                 Challenge yourself and
                 see your progress on
-                the leaderboard.
+                the right leaderboard.
               </p>
             </div>
 
@@ -1066,18 +1962,22 @@ export default function PricingPage() {
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "14px",
+                  borderRadius:
+                    "14px",
                   background:
                     "#f1f5f3",
                   color:
                     "var(--foreground)",
-                  display: "flex",
+                  display:
+                    "flex",
                   alignItems:
                     "center",
                   justifyContent:
                     "center",
-                  fontSize: "20px",
-                  fontWeight: 900,
+                  fontSize:
+                    "20px",
+                  fontWeight:
+                    900,
                 }}
               >
                 🌱
@@ -1087,8 +1987,10 @@ export default function PricingPage() {
                 style={{
                   margin:
                     "13px 0 6px",
-                  fontSize: "18px",
-                  fontWeight: 900,
+                  fontSize:
+                    "18px",
+                  fontWeight:
+                    900,
                 }}
               >
                 Grow
@@ -1099,8 +2001,10 @@ export default function PricingPage() {
                   margin: 0,
                   color:
                     "var(--muted)",
-                  fontSize: "13px",
-                  lineHeight: 1.6,
+                  fontSize:
+                    "13px",
+                  lineHeight:
+                    1.6,
                 }}
               >
                 Build your knowledge
@@ -1111,24 +2015,30 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* PAYMENT NOTICE */}
+        {/* =================================================
+            PAYMENT NOTICE
+        ================================================== */}
         <section
           style={{
             marginTop: "20px",
             padding:
               "20px 24px",
-            borderRadius: "18px",
+            borderRadius:
+              "18px",
             background:
               "#f8faf9",
             border:
               "1px solid var(--border)",
-            textAlign: "center",
+            textAlign:
+              "center",
           }}
         >
           <div
             style={{
-              fontSize: "13px",
-              fontWeight: 800,
+              fontSize:
+                "13px",
+              fontWeight:
+                800,
               color:
                 "var(--foreground)",
               marginBottom:
@@ -1143,11 +2053,13 @@ export default function PricingPage() {
               margin: 0,
               color:
                 "var(--muted)",
-              fontSize: "12px",
-              lineHeight: 1.6,
+              fontSize:
+                "12px",
+              lineHeight:
+                1.6,
             }}
           >
-            Payments are securely
+            Paid plans are securely
             processed through
             Flutterwave. Sahaba Quest
             does not store your card
@@ -1155,15 +2067,19 @@ export default function PricingPage() {
           </p>
         </section>
 
-        {/* FOOTER */}
+        {/* =================================================
+            FOOTER
+        ================================================== */}
         <footer
           style={{
             padding:
               "28px 0 8px",
-            textAlign: "center",
+            textAlign:
+              "center",
             color:
               "var(--muted-light)",
-            fontSize: "12px",
+            fontSize:
+              "12px",
           }}
         >
           Sahaba Quest • Learn.
@@ -1171,7 +2087,6 @@ export default function PricingPage() {
         </footer>
       </div>
 
-      {/* MOBILE */}
       <style jsx>{`
         @media (max-width: 700px) {
           .sq-container {
