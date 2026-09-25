@@ -21,7 +21,25 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   /* =====================================================
-     CHECK EXISTING SESSION
+     CLEAR ANY OLD FAMILY MEMBER SESSION
+
+     Family Member authentication is separate from the
+     normal Supabase Auth account session. If a user previously
+     played as a Family Member and later opens the normal login
+     page, that old browser-only member session must not affect
+     the account they are about to sign into.
+  ====================================================== */
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(
+        "sahabaquest_family_member_session"
+      );
+    }
+  }, []);
+
+  /* =====================================================
+     CHECK EXISTING NORMAL AUTH SESSION
   ====================================================== */
 
   useEffect(() => {
@@ -85,6 +103,16 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
+
+      /*
+       * A normal account login must never inherit an old
+       * Family Member session from this browser.
+       */
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(
+          "sahabaquest_family_member_session"
+        );
+      }
 
       const { data, error } =
         await supabase.auth.signInWithPassword({
@@ -163,14 +191,24 @@ export default function LoginPage() {
           accountType
         );
 
+        /*
+         * Make absolutely sure the newly authenticated normal
+         * account starts without any Family Member session.
+         */
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem(
+            "sahabaquest_family_member_session"
+          );
+        }
+
         /* =================================================
            SEND USER TO THE CORRECT DASHBOARD
         ================================================== */
 
         if (accountType === "family") {
-          router.push("/family-dashboard");
+          router.replace("/family-dashboard");
         } else {
-          router.push("/dashboard");
+          router.replace("/dashboard");
         }
       }
     } catch (error) {

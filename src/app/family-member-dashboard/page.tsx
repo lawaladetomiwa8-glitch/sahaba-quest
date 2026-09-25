@@ -189,7 +189,7 @@ export default function FamilyMemberDashboardPage() {
 
   function handleLogout() {
     sessionStorage.removeItem(SESSION_KEY);
-    router.push("/family-member-test");
+    router.push("/family-member-login");
   }
 
   if (loading || !progress) {
@@ -241,7 +241,7 @@ export default function FamilyMemberDashboardPage() {
               <button
                 type="button"
                 onClick={() =>
-                  router.push("/family-member-test")
+                  router.push("/family-member-quiz")
                 }
                 className="sq-button-primary"
                 style={{

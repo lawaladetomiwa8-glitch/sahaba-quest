@@ -5,44 +5,147 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
 
-type MemberProgress = {
-  member_id: string;
-  display_name: string;
-  family_id: string;
-  total_xp: number;
+type AccountType = "free" | "individual" | "family";
+
+type Profile = {
+  username: string | null;
+  display_name: string | null;
+  account_type: AccountType;
+};
+
+type Progress = {
   current_level: number;
+  total_xp: number;
   questions_answered: number;
   correct_answers: number;
   current_streak: number;
   best_streak: number;
-  accuracy: number;
-  family_total_xp: number;
-  family_member_count: number;
 };
 
-type LeaderboardMember = {
-  rank: number;
-  member_id: string;
+type SubscriptionPlan = {
+  plan_type: "plus" | "family" | "school";
   display_name: string;
-  total_xp: number;
-  current_level: number;
-  current_streak: number;
-  best_streak: number;
-  questions_answered: number;
-  correct_answers: number;
-  accuracy: number;
-  is_current_member: boolean;
 };
 
-const SESSION_KEY = "sahabaquest_family_member_session";
+type Subscription = {
+  status: string;
+  current_period_end: string;
+  plan: SubscriptionPlan | null;
+};
 
-export default function FamilyMemberDashboardPage() {
+type SubscriptionQueryResult = {
+  status: string;
+  current_period_end: string;
+  subscription_plans:
+    | SubscriptionPlan
+    | SubscriptionPlan[]
+    | null;
+};
+
+/*
+ * SAHABA QUEST SOCIAL LINKS
+ *
+ * Facebook and Instagram are placeholders for now.
+ * Replace "#" with the real links when they are available.
+ */
+const SOCIAL_LINKS = {
+  instagram: "#",
+  facebook: "#",
+
+  brothersWhatsApp:
+    "https://chat.whatsapp.com/HvS4ao1IsipHW44EbRZjjw?s=cl&p=a&mlu=4&ilr=4",
+
+  sistersWhatsApp:
+    "https://chat.whatsapp.com/GdfMHlXEeP16x95g454o0e?s=cl&p=a&mlu=4&ilr=4",
+};
+
+/*
+ * SOCIAL MEDIA ICONS
+ */
+
+function InstagramIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="5"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+
+      <circle
+        cx="12"
+        cy="12"
+        r="4"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+
+      <circle
+        cx="17.5"
+        cy="6.5"
+        r="1.2"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path d="M14 8h3V4.5c-.5-.1-2-.2-3.7-.2-3.7 0-6.2 2.2-6.2 6.3V14H4v4h3.1v6h3.8v-6h3.2l.5-4h-3.7v-2.9c0-1.2.3-2.1 2.1-2.1Z" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.5 0 .2 5.3.2 11.9c0 2.1.6 4.1 1.6 5.9L0 24l6.4-1.7a11.8 11.8 0 0 0 5.7 1.5h.1c6.6 0 11.8-5.3 11.8-11.9 0-3.2-1.2-6.2-3.5-8.4Zm-8.4 18.2h-.1c-1.8 0-3.6-.5-5.1-1.4l-.4-.2-3.8 1 1-3.7-.2-.4a9.7 9.7 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.7 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.6-.8-2.7-1.5-3.8-3.3-.3-.5.3-.5.8-1.7.1-.2 0-.4 0-.5 0-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.1 3c.1.2 2 3.1 4.8 4.3 1.8.8 2.5.9 3.4.8.5-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.4Z" />
+    </svg>
+  );
+}
+
+export default function DashboardPage() {
   const router = useRouter();
 
-  const [progress, setProgress] = useState<MemberProgress | null>(null);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("Loading your Family dashboard...");
+  const [profile, setProfile] =
+    useState<Profile | null>(null);
+
+  const [progress, setProgress] =
+    useState<Progress | null>(null);
+
+  const [subscription, setSubscription] =
+    useState<Subscription | null>(null);
+
+  const [message, setMessage] = useState(
+    "Loading your dashboard..."
+  );
 
   useEffect(() => {
     loadDashboard();
@@ -50,149 +153,226 @@ export default function FamilyMemberDashboardPage() {
 
   async function loadDashboard() {
     try {
-      setLoading(true);
-      setMessage("Loading your Family dashboard...");
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (typeof window === "undefined") {
+      if (userError) {
+        console.error(
+          "User lookup error:",
+          userError
+        );
+
+        setMessage(
+          "We could not load your account."
+        );
+
         return;
       }
 
-      const token = sessionStorage.getItem(SESSION_KEY);
-
-      if (!token) {
-        setMessage(
-          "Your Family Member session has ended. Please return to the Family Member sign-in page."
-        );
+      if (!user) {
+        setMessage("You are not logged in.");
         return;
       }
 
       /*
-       * Verify that the stored Family Member session is still active.
+       * PROFILE
+       *
+       * account_type is now the source of truth
+       * for the user's account experience.
        */
       const {
-        data: sessionData,
-        error: sessionError,
-      } = await supabase.rpc("get_family_member_session", {
-        p_session_token: token,
-      });
+        data: profileData,
+        error: profileError,
+      } = await supabase
+        .from("profiles")
+        .select(
+          "username, display_name, account_type"
+        )
+        .eq("id", user.id)
+        .single();
 
-      if (sessionError) {
+      if (profileError) {
         console.error(
-          "Family Member session lookup error:",
-          sessionError
+          "Profile lookup error:",
+          profileError
         );
 
-        sessionStorage.removeItem(SESSION_KEY);
-
         setMessage(
-          "Your Family Member session has expired. Please sign in again."
+          "We could not load your profile."
         );
 
         return;
       }
 
+      const accountType =
+        profileData.account_type;
+
+      /*
+       * Only the three active account types
+       * are allowed in V1.
+       */
       if (
-        !sessionData ||
-        !Array.isArray(sessionData) ||
-        sessionData.length === 0
+        accountType !== "free" &&
+        accountType !== "individual" &&
+        accountType !== "family"
       ) {
-        sessionStorage.removeItem(SESSION_KEY);
+        console.error(
+          "Invalid account type:",
+          accountType
+        );
 
         setMessage(
-          "Your Family Member session has expired. Please sign in again."
+          "Your account type could not be verified."
         );
 
         return;
       }
 
       /*
-       * Load Family Member progress.
+       * FAMILY ROUTING
+       *
+       * Family users have their own dashboard and should
+       * never remain on the Individual/standard dashboard.
+       *
+       * /family-dashboard already protects itself and only
+       * accepts Family accounts, so this does not create
+       * a redirect loop.
+       */
+      if (accountType === "family") {
+        router.replace("/family-dashboard");
+        return;
+      }
+
+      /*
+       * PLAYER PROGRESS
        */
       const {
         data: progressData,
         error: progressError,
-      } = await supabase.rpc("get_family_member_progress", {
-        p_session_token: token,
-      });
+      } = await supabase
+        .from("player_progress")
+        .select(
+          `
+            current_level,
+            total_xp,
+            questions_answered,
+            correct_answers,
+            current_streak,
+            best_streak
+          `
+        )
+        .eq("user_id", user.id)
+        .single();
 
       if (progressError) {
         console.error(
-          "Family Member progress error:",
+          "Progress lookup error:",
           progressError
         );
 
         setMessage(
-          `We could not load your progress: ${progressError.message}`
-        );
-
-        return;
-      }
-
-      if (
-        !progressData ||
-        !Array.isArray(progressData) ||
-        progressData.length === 0
-      ) {
-        setMessage(
-          "No Family Member progress was found."
+          "We could not load your game progress."
         );
 
         return;
       }
 
       /*
-       * Load private Family Member leaderboard.
+       * ACTIVE SUBSCRIPTION
+       *
+       * We only retrieve active subscriptions.
+       * The newest ending subscription is selected.
        */
       const {
-        data: leaderboardData,
-        error: leaderboardError,
-      } = await supabase.rpc("get_family_member_leaderboard", {
-        p_session_token: token,
-      });
+        data: subscriptionData,
+        error: subscriptionError,
+      } = await supabase
+        .from("subscriptions")
+        .select(
+          `
+            status,
+            current_period_end,
+            subscription_plans (
+              plan_type,
+              display_name
+            )
+          `
+        )
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("current_period_end", {
+          ascending: false,
+        })
+        .limit(1)
+        .maybeSingle();
 
-      if (leaderboardError) {
+      if (subscriptionError) {
         console.error(
-          "Family Member leaderboard error:",
-          leaderboardError
+          "Subscription lookup error:",
+          subscriptionError
         );
 
-        setMessage(
-          `Your progress loaded, but the Family leaderboard could not be loaded: ${leaderboardError.message}`
-        );
+        setSubscription(null);
+      } else if (subscriptionData) {
+        const subscriptionResult =
+          subscriptionData as unknown as SubscriptionQueryResult;
 
-        setProgress(progressData[0] as MemberProgress);
-        setLeaderboard([]);
-        return;
+        let plan: SubscriptionPlan | null =
+          null;
+
+        if (
+          Array.isArray(
+            subscriptionResult.subscription_plans
+          )
+        ) {
+          plan =
+            subscriptionResult.subscription_plans[0] ||
+            null;
+        } else {
+          plan =
+            subscriptionResult.subscription_plans ||
+            null;
+        }
+
+        setSubscription({
+          status:
+            subscriptionResult.status,
+
+          current_period_end:
+            subscriptionResult.current_period_end,
+
+          plan,
+        });
+      } else {
+        setSubscription(null);
       }
 
-      setProgress(progressData[0] as MemberProgress);
-      setLeaderboard(
-        Array.isArray(leaderboardData)
-          ? (leaderboardData as LeaderboardMember[])
-          : []
-      );
+      setProfile({
+        username: profileData.username,
+        display_name: profileData.display_name,
+        account_type: accountType,
+      });
 
+      setProgress(progressData);
       setMessage("");
     } catch (error) {
       console.error(
-        "Family Member dashboard loading error:",
+        "Dashboard loading error:",
         error
       );
 
       setMessage(
-        "Something went wrong while loading your Family dashboard."
+        "Something went wrong while loading your dashboard."
       );
-    } finally {
-      setLoading(false);
     }
   }
 
-  function handleLogout() {
-    sessionStorage.removeItem(SESSION_KEY);
-    router.push("/family-member-test");
-  }
-
-  if (loading || !progress) {
+  /*
+   * LOADING / ERROR STATE
+   */
+  if (!profile || !progress) {
     return (
       <main className="sq-page">
         <div className="sq-container">
@@ -211,7 +391,8 @@ export default function FamilyMemberDashboardPage() {
                 height: "64px",
                 margin: "0 auto 20px",
                 borderRadius: "20px",
-                background: "var(--primary-light)",
+                background:
+                  "var(--primary-light)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -231,41 +412,79 @@ export default function FamilyMemberDashboardPage() {
               className="sq-subtitle"
               style={{
                 marginTop: "12px",
-                lineHeight: 1.7,
               }}
             >
               {message}
             </p>
-
-            {!loading && (
-              <button
-                type="button"
-                onClick={() =>
-                  router.push("/family-member-test")
-                }
-                className="sq-button-primary"
-                style={{
-                  marginTop: "22px",
-                  minHeight: "46px",
-                  padding: "0 20px",
-                  border: "none",
-                }}
-              >
-                Return to Family Member Sign In
-              </button>
-            )}
           </div>
         </div>
       </main>
     );
   }
 
+  /*
+   * PLAYER NAME
+   */
+  const playerName =
+    profile.display_name ||
+    profile.username ||
+    "Player";
+
+  /*
+   * ACCOUNT DISPLAY
+   */
+  const accountLabels: Record<
+    AccountType,
+    string
+  > = {
+    free: "Free Account",
+    individual: "Individual Account",
+    family: "Family Account",
+  };
+
+  const accountDescriptions: Record<
+    AccountType,
+    string
+  > = {
+    free:
+      "You're currently using the free Sahaba Quest experience.",
+    individual:
+      "You're using the Individual Sahaba Quest experience.",
+    family:
+      "You're using the Family Sahaba Quest experience.",
+  };
+
+  const accountLabel =
+    accountLabels[profile.account_type];
+
+  const accountDescription =
+    accountDescriptions[profile.account_type];
+
+  /*
+   * ACCURACY
+   */
+  const accuracy =
+    progress.questions_answered > 0
+      ? Math.round(
+          (progress.correct_answers /
+            progress.questions_answered) *
+            100
+        )
+      : 0;
+
+  /*
+   * CURRENT LEVEL QUESTION PROGRESS
+   */
   const questionsInCurrentLevel =
     progress.questions_answered % 50;
 
   const correctInCurrentLevel =
     progress.correct_answers % 50;
 
+  /*
+   * If the player has completed exactly 50 questions,
+   * show 100% rather than 0%.
+   */
   const levelQuestionProgress =
     questionsInCurrentLevel === 0 &&
     progress.questions_answered > 0
@@ -275,13 +494,27 @@ export default function FamilyMemberDashboardPage() {
           100
         );
 
+  /*
+   * REQUIRED CORRECT ANSWERS TO PASS
+   */
   const levelCorrectProgress = Math.min(
     (correctInCurrentLevel / 25) * 100,
     100
   );
 
-  const displayedLeaderboard =
-    leaderboard.slice(0, 5);
+  /*
+   * DISPLAY DATE
+   */
+  const subscriptionEndDate =
+    subscription?.current_period_end
+      ? new Date(
+          subscription.current_period_end
+        ).toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "";
 
   return (
     <main
@@ -293,6 +526,7 @@ export default function FamilyMemberDashboardPage() {
       }}
     >
       <div className="sq-container">
+
         {/* NAVIGATION */}
         <div
           style={{
@@ -321,7 +555,8 @@ export default function FamilyMemberDashboardPage() {
               width: "220px",
               height: "220px",
               borderRadius: "50%",
-              background: "var(--primary-light)",
+              background:
+                "var(--primary-light)",
               opacity: 0.6,
             }}
           />
@@ -347,18 +582,33 @@ export default function FamilyMemberDashboardPage() {
               <span
                 className="sq-badge"
                 style={{
-                  background: "#fef3c7",
-                  color: "#92400e",
+                  background:
+                    profile.account_type ===
+                    "family"
+                      ? "#fef3c7"
+                      : profile.account_type ===
+                        "individual"
+                      ? "#dbeafe"
+                      : "var(--primary-light)",
+                  color:
+                    profile.account_type ===
+                    "family"
+                      ? "#92400e"
+                      : profile.account_type ===
+                        "individual"
+                      ? "#1d4ed8"
+                      : "var(--primary-dark)",
                 }}
               >
-                Family Member
+                {accountLabel}
               </span>
             </div>
 
             <h1
               style={{
                 margin: "18px 0 8px",
-                fontSize: "clamp(30px, 5vw, 48px)",
+                fontSize:
+                  "clamp(30px, 5vw, 48px)",
                 lineHeight: 1.1,
                 letterSpacing: "-1.2px",
                 fontWeight: 900,
@@ -370,7 +620,7 @@ export default function FamilyMemberDashboardPage() {
                   color: "var(--primary)",
                 }}
               >
-                {progress.display_name}
+                {playerName}
               </span>{" "}
               👋
             </h1>
@@ -384,10 +634,10 @@ export default function FamilyMemberDashboardPage() {
                 lineHeight: 1.7,
               }}
             >
-              Welcome back to your Family Quest.
-              Keep learning, build your streak,
-              and see how you are progressing with
-              your family.
+              Ready to continue your Sahaba
+              journey? Test your knowledge,
+              build your streak, and learn
+              something valuable today.
             </p>
 
             <div
@@ -399,28 +649,23 @@ export default function FamilyMemberDashboardPage() {
               }}
             >
               <a
-                href="/family-member-test"
+                href="/quiz"
                 className="sq-button-primary"
               >
                 🎮 Continue Quest
               </a>
 
-              <button
-                type="button"
-                onClick={loadDashboard}
+              <a
+                href="/progress"
                 className="sq-button-secondary"
-                style={{
-                  border: "none",
-                  cursor: "pointer",
-                }}
               >
-                ↻ Refresh Progress
-              </button>
+                View Progress
+              </a>
             </div>
           </div>
         </section>
 
-        {/* FAMILY ACCOUNT */}
+        {/* ACCOUNT TYPE */}
         <section
           className="sq-card"
           style={{
@@ -441,7 +686,7 @@ export default function FamilyMemberDashboardPage() {
           >
             <div>
               <div className="sq-badge">
-                Family Quest
+                Account Type
               </div>
 
               <h2
@@ -451,7 +696,7 @@ export default function FamilyMemberDashboardPage() {
                   fontWeight: 900,
                 }}
               >
-                Your Family Progress
+                {accountLabel}
               </h2>
 
               <p
@@ -462,27 +707,28 @@ export default function FamilyMemberDashboardPage() {
                   lineHeight: 1.6,
                 }}
               >
-                Your personal progress is separate
-                from the Family total and your
-                Family members compete privately
-                within this Family.
+                {accountDescription}
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="sq-button-secondary"
-              style={{
-                minHeight: "44px",
-                padding: "0 18px",
-                border: "1px solid var(--border)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Switch Member
-            </button>
+            {profile.account_type ===
+              "free" && (
+              <a
+                href="/pricing"
+                className="sq-button-primary"
+                style={{
+                  minHeight: "44px",
+                  padding: "0 18px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Explore Plans →
+              </a>
+            )}
           </div>
         </section>
 
@@ -533,7 +779,7 @@ export default function FamilyMemberDashboardPage() {
                 fontSize: "13px",
               }}
             >
-              Your Family Quest XP
+              Experience earned
             </div>
           </div>
 
@@ -570,7 +816,7 @@ export default function FamilyMemberDashboardPage() {
             </div>
 
             <div className="sq-stat-value">
-              {progress.accuracy}%
+              {accuracy}%
             </div>
 
             <div
@@ -585,14 +831,15 @@ export default function FamilyMemberDashboardPage() {
           </div>
         </section>
 
-        {/* FAMILY TOTAL */}
+        {/* SUBSCRIPTION */}
         <section
           className="sq-card"
           style={{
             marginTop: "20px",
             padding: "26px 28px",
-            background:
-              "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
+            background: subscription
+              ? "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)"
+              : "linear-gradient(135deg, #ffffff 0%, #f8faf9 100%)",
           }}
         >
           <div
@@ -604,67 +851,102 @@ export default function FamilyMemberDashboardPage() {
               flexWrap: "wrap",
             }}
           >
-            <div>
-              <div className="sq-badge">
-                Family XP
-              </div>
-
-              <h2
-                style={{
-                  margin: "10px 0 5px",
-                  fontSize: "22px",
-                  fontWeight: 900,
-                }}
-              >
-                {progress.family_total_xp.toLocaleString()} XP
-              </h2>
-
-              <p
-                style={{
-                  margin: 0,
-                  color: "var(--muted)",
-                  fontSize: "13px",
-                  lineHeight: 1.6,
-                }}
-              >
-                Combined XP earned by active Family
-                Members.
-              </p>
-            </div>
-
             <div
               style={{
-                minWidth: "120px",
-                textAlign: "right",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "16px",
               }}
             >
               <div
                 style={{
-                  color: "var(--muted)",
-                  fontSize: "12px",
-                  fontWeight: 700,
+                  width: "48px",
+                  height: "48px",
+                  flexShrink: 0,
+                  borderRadius: "14px",
+                  background:
+                    "var(--primary-light)",
+                  color: "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "21px",
+                  fontWeight: 900,
                 }}
               >
-                Active Members
+                {subscription ? "✓" : "✦"}
               </div>
 
-              <div
-                style={{
-                  marginTop: "4px",
-                  fontSize: "30px",
-                  fontWeight: 900,
-                  color: "var(--primary)",
-                }}
-              >
-                {progress.family_member_count}
+              <div>
+                <div className="sq-badge">
+                  Your Subscription
+                </div>
+
+                <h2
+                  style={{
+                    margin: "10px 0 5px",
+                    fontSize: "22px",
+                    fontWeight: 900,
+                  }}
+                >
+                  {subscription?.plan
+                    ?.display_name ||
+                    "Sahaba Quest Free"}
+                </h2>
+
+                <p
+                  style={{
+                    margin: 0,
+                    color: "var(--muted)",
+                    fontSize: "13px",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {subscription
+                    ? "Your subscription is active and your premium access is available."
+                    : "You are currently on the free plan. Continue your journey or unlock more levels."}
+                </p>
+
+                {subscription &&
+                  subscriptionEndDate && (
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        color: "var(--success)",
+                        fontSize: "12px",
+                        fontWeight: 800,
+                      }}
+                    >
+                      Active until{" "}
+                      {subscriptionEndDate}
+                    </div>
+                  )}
               </div>
             </div>
+
+            {!subscription && (
+              <a
+                href="/pricing"
+                className="sq-button-primary"
+                style={{
+                  minHeight: "46px",
+                  padding: "0 20px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                View Plans →
+              </a>
+            )}
           </div>
         </section>
 
         {/* MAIN CONTENT GRID */}
         <section
-          className="family-member-main-grid"
+          className="dashboard-main-grid"
           style={{
             display: "grid",
             gridTemplateColumns:
@@ -673,7 +955,7 @@ export default function FamilyMemberDashboardPage() {
             marginTop: "20px",
           }}
         >
-          {/* YOUR JOURNEY */}
+          {/* PROGRESS CARD */}
           <div
             className="sq-card"
             style={{
@@ -700,7 +982,8 @@ export default function FamilyMemberDashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  Level {progress.current_level}
+                  Level{" "}
+                  {progress.current_level}
                 </h2>
 
                 <p
@@ -710,8 +993,10 @@ export default function FamilyMemberDashboardPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Keep answering questions to
-                  strengthen your knowledge.
+                  Keep answering
+                  questions to
+                  strengthen your
+                  knowledge.
                 </p>
               </div>
 
@@ -756,7 +1041,8 @@ export default function FamilyMemberDashboardPage() {
                     color: "var(--primary)",
                   }}
                 >
-                  {questionsInCurrentLevel}/50
+                  {questionsInCurrentLevel}
+                  /50
                 </span>
               </div>
 
@@ -800,7 +1086,8 @@ export default function FamilyMemberDashboardPage() {
                     color: "var(--primary)",
                   }}
                 >
-                  {correctInCurrentLevel}/25
+                  {correctInCurrentLevel}
+                  /25
                 </span>
               </div>
 
@@ -904,7 +1191,8 @@ export default function FamilyMemberDashboardPage() {
                 fontWeight: 800,
               }}
             >
-              What do you want to do?
+              What do you want to
+              do?
             </h2>
 
             <div
@@ -914,7 +1202,7 @@ export default function FamilyMemberDashboardPage() {
               }}
             >
               <a
-                href="/family-member-test"
+                href="/quiz"
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
@@ -928,13 +1216,15 @@ export default function FamilyMemberDashboardPage() {
                   textDecoration: "none",
                 }}
               >
-                <span>🎮 Play Quiz</span>
+                <span>
+                  🎮 Play Quiz
+                </span>
+
                 <span>→</span>
               </a>
 
-              <button
-                type="button"
-                onClick={loadDashboard}
+              <a
+                href="/leaderboard"
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
@@ -945,19 +1235,18 @@ export default function FamilyMemberDashboardPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "inherit",
-                  textAlign: "left",
+                  textDecoration: "none",
                 }}
               >
-                <span>📊 Refresh Progress</span>
-                <span>→</span>
-              </button>
+                <span>
+                  🏆 Leaderboard
+                </span>
 
-              <button
-                type="button"
-                onClick={handleLogout}
+                <span>→</span>
+              </a>
+
+              <a
+                href="/challenges"
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
@@ -967,226 +1256,37 @@ export default function FamilyMemberDashboardPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "inherit",
-                  textAlign: "left",
+                  textDecoration: "none",
                 }}
               >
-                <span>👤 Switch Member</span>
+                <span>
+                  🎯 Challenges
+                </span>
+
                 <span>→</span>
-              </button>
-            </div>
-          </div>
-        </section>
+              </a>
 
-        {/* FAMILY LEADERBOARD */}
-        <section
-          className="sq-card"
-          style={{
-            marginTop: "20px",
-            padding: "28px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              gap: "20px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <div className="sq-badge">
-                Family Competition
-              </div>
-
-              <h2
+              <a
+                href="/profile"
                 style={{
-                  margin: "16px 0 6px",
-                  fontSize: "24px",
-                  fontWeight: 800,
-                }}
-              >
-                Family Leaderboard
-              </h2>
-
-              <p
-                style={{
-                  margin: 0,
-                  color: "var(--muted)",
-                  lineHeight: 1.6,
-                }}
-              >
-                See how you are progressing
-                alongside your Family Members.
-              </p>
-            </div>
-
-            <div
-              style={{
-                color: "var(--muted)",
-                fontSize: "13px",
-                fontWeight: 700,
-              }}
-            >
-              {leaderboard.length} active member
-              {leaderboard.length === 1 ? "" : "s"}
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: "24px",
-              display: "grid",
-              gap: "10px",
-            }}
-          >
-            {displayedLeaderboard.length > 0 ? (
-              displayedLeaderboard.map((member) => (
-                <div
-                  key={member.member_id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "52px minmax(0, 1fr) auto",
-                    alignItems: "center",
-                    gap: "14px",
-                    padding: "16px",
-                    borderRadius: "16px",
-                    border:
-                      member.is_current_member
-                        ? "1px solid var(--primary)"
-                        : "1px solid var(--border)",
-                    background:
-                      member.is_current_member
-                        ? "var(--primary-light)"
-                        : "#f8faf9",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "42px",
-                      height: "42px",
-                      borderRadius: "14px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background:
-                        member.rank === 1
-                          ? "#fef3c7"
-                          : member.rank === 2
-                          ? "#e5e7eb"
-                          : member.rank === 3
-                          ? "#fed7aa"
-                          : "white",
-                      color:
-                        member.rank <= 3
-                          ? "#92400e"
-                          : "var(--foreground)",
-                      fontWeight: 900,
-                    }}
-                  >
-                    {member.rank <= 3
-                      ? ["🥇", "🥈", "🥉"][
-                          member.rank - 1
-                        ]
-                      : member.rank}
-                  </div>
-
-                  <div
-                    style={{
-                      minWidth: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <strong
-                        style={{
-                          fontSize: "15px",
-                        }}
-                      >
-                        {member.display_name}
-                      </strong>
-
-                      {member.is_current_member && (
-                        <span
-                          className="sq-badge"
-                          style={{
-                            fontSize: "10px",
-                            padding:
-                              "4px 8px",
-                          }}
-                        >
-                          You
-                        </span>
-                      )}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: "4px",
-                        color: "var(--muted)",
-                        fontSize: "12px",
-                      }}
-                    >
-                      Level {member.current_level}
-                      {" • "}
-                      {member.accuracy}% accuracy
-                      {" • "}
-                      🔥 {member.current_streak}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      textAlign: "right",
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: "var(--primary)",
-                        fontSize: "17px",
-                        fontWeight: 900,
-                      }}
-                    >
-                      {member.total_xp.toLocaleString()}
-                    </div>
-
-                    <div
-                      style={{
-                        color: "var(--muted)",
-                        fontSize: "11px",
-                        marginTop: "2px",
-                      }}
-                    >
-                      XP
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div
-                style={{
-                  padding: "20px",
+                  padding: "17px",
                   borderRadius: "16px",
-                  background: "#f8faf9",
-                  border:
-                    "1px solid var(--border)",
-                  color: "var(--muted)",
+                  background: "#f1f5f3",
+                  color: "var(--foreground)",
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  textDecoration: "none",
                 }}
               >
-                No Family Member leaderboard
-                data is available yet.
-              </div>
-            )}
+                <span>
+                  👤 My Profile
+                </span>
+
+                <span>→</span>
+              </a>
+            </div>
           </div>
         </section>
 
@@ -1225,7 +1325,7 @@ export default function FamilyMemberDashboardPage() {
                   opacity: 0.8,
                 }}
               >
-                Family Quest
+                Daily reminder
               </div>
 
               <h2
@@ -1235,8 +1335,9 @@ export default function FamilyMemberDashboardPage() {
                   fontWeight: 900,
                 }}
               >
-                Learn together.
-                Grow together.
+                Learn about those
+                who walked with the
+                Prophet ﷺ.
               </h2>
 
               <p
@@ -1247,15 +1348,16 @@ export default function FamilyMemberDashboardPage() {
                 }}
               >
                 Every question is an
-                opportunity to increase your
-                knowledge and strengthen your
-                connection with the lives of the
-                Sahabah.
+                opportunity to increase
+                your knowledge and
+                strengthen your
+                connection with the
+                lives of the Sahabah.
               </p>
             </div>
 
             <a
-              href="/family-member-test"
+              href="/quiz"
               style={{
                 minHeight: "50px",
                 padding: "0 22px",
@@ -1269,8 +1371,379 @@ export default function FamilyMemberDashboardPage() {
                 textDecoration: "none",
               }}
             >
-              Continue Learning →
+              Start Learning →
             </a>
+          </div>
+        </section>
+
+        {/* STAY CONNECTED */}
+        <section
+          className="sq-card social-connect-card"
+          style={{
+            marginTop: "20px",
+            padding: "32px",
+            background:
+              "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          {/* DECORATIVE CIRCLE */}
+          <div
+            style={{
+              position: "absolute",
+              right: "-70px",
+              top: "-80px",
+              width: "220px",
+              height: "220px",
+              borderRadius: "50%",
+              background:
+                "var(--primary-light)",
+              opacity: 0.45,
+              pointerEvents: "none",
+            }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <div className="sq-badge">
+              Stay Connected
+            </div>
+
+            <h2
+              style={{
+                margin: "14px 0 8px",
+                fontSize:
+                  "clamp(24px, 4vw, 30px)",
+                fontWeight: 900,
+              }}
+            >
+              Don't miss the next
+              Sahaba episode.
+            </h2>
+
+            <p
+              style={{
+                margin: 0,
+                maxWidth: "720px",
+                color: "var(--muted)",
+                lineHeight: 1.7,
+                fontSize: "15px",
+              }}
+            >
+              Follow Sahaba Quest and join
+              our WhatsApp communities to
+              receive weekly{" "}
+              <strong>
+                Walking with the Sahaba
+              </strong>{" "}
+              episodes, platform updates,
+              new challenges and other
+              important announcements.
+            </p>
+
+            {/* SOCIAL LINKS */}
+            <div
+              className="social-connect-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(4, minmax(0, 1fr))",
+                gap: "14px",
+                marginTop: "24px",
+              }}
+            >
+              {/* INSTAGRAM */}
+              <a
+                href={SOCIAL_LINKS.instagram}
+                onClick={(event) => {
+                  if (
+                    SOCIAL_LINKS.instagram ===
+                    "#"
+                  ) {
+                    event.preventDefault();
+                  }
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-connect-item"
+                style={{
+                  textDecoration: "none",
+                  color: "var(--foreground)",
+                  padding: "20px",
+                  borderRadius: "18px",
+                  border:
+                    "1px solid var(--border)",
+                  background: "white",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: "145px",
+                  transition:
+                    "transform 0.2s ease, box-shadow 0.2s ease",
+                  cursor:
+                    SOCIAL_LINKS.instagram ===
+                    "#"
+                      ? "default"
+                      : "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background:
+                      "var(--primary-light)",
+                    color: "#E1306C",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <InstagramIcon />
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "16px",
+                  }}
+                >
+                  Instagram
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    color: "var(--muted)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Coming soon
+                </div>
+              </a>
+
+              {/* FACEBOOK */}
+              <a
+                href={SOCIAL_LINKS.facebook}
+                onClick={(event) => {
+                  if (
+                    SOCIAL_LINKS.facebook ===
+                    "#"
+                  ) {
+                    event.preventDefault();
+                  }
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-connect-item"
+                style={{
+                  textDecoration: "none",
+                  color: "var(--foreground)",
+                  padding: "20px",
+                  borderRadius: "18px",
+                  border:
+                    "1px solid var(--border)",
+                  background: "white",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: "145px",
+                  transition:
+                    "transform 0.2s ease, box-shadow 0.2s ease",
+                  cursor:
+                    SOCIAL_LINKS.facebook ===
+                    "#"
+                      ? "default"
+                      : "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background:
+                      "var(--primary-light)",
+                    color: "#1877F2",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <FacebookIcon />
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "16px",
+                  }}
+                >
+                  Facebook
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    color: "var(--muted)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Coming soon
+                </div>
+              </a>
+
+              {/* BROTHERS WHATSAPP */}
+              <a
+                href={
+                  SOCIAL_LINKS.brothersWhatsApp
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-connect-item"
+                style={{
+                  textDecoration: "none",
+                  color: "var(--foreground)",
+                  padding: "20px",
+                  borderRadius: "18px",
+                  border:
+                    "1px solid var(--border)",
+                  background: "white",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: "145px",
+                  transition:
+                    "transform 0.2s ease, box-shadow 0.2s ease",
+                }}
+              >
+                <div
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background:
+                      "var(--primary-light)",
+                    color: "#25D366",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <WhatsAppIcon />
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "16px",
+                  }}
+                >
+                  Brothers' Group
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    color: "var(--muted)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Join for weekly
+                  episodes & updates →
+                </div>
+              </a>
+
+              {/* SISTERS WHATSAPP */}
+              <a
+                href={
+                  SOCIAL_LINKS.sistersWhatsApp
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-connect-item"
+                style={{
+                  textDecoration: "none",
+                  color: "var(--foreground)",
+                  padding: "20px",
+                  borderRadius: "18px",
+                  border:
+                    "1px solid var(--border)",
+                  background: "white",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: "145px",
+                  transition:
+                    "transform 0.2s ease, box-shadow 0.2s ease",
+                }}
+              >
+                <div
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background:
+                      "var(--primary-light)",
+                    color: "#25D366",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <WhatsAppIcon />
+                </div>
+
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "16px",
+                  }}
+                >
+                  Sisters' Group
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "5px",
+                    color: "var(--muted)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Join for weekly
+                  episodes & updates →
+                </div>
+              </a>
+            </div>
+
+            {/* WEEKLY EPISODE MESSAGE */}
+            <div
+              style={{
+                marginTop: "18px",
+                padding: "15px 18px",
+                borderRadius: "15px",
+                background:
+                  "var(--primary-light)",
+                color: "var(--primary-dark)",
+                fontSize: "13px",
+                lineHeight: 1.6,
+                fontWeight: 700,
+              }}
+            >
+              📖 New Sahaba episode every
+              week — stay connected so you
+              don't miss it.
+            </div>
           </div>
         </section>
 
@@ -1283,30 +1756,81 @@ export default function FamilyMemberDashboardPage() {
             fontSize: "12px",
           }}
         >
-          Sahaba Quest • Learn. Remember. Compete.
+          Sahaba Quest • Learn.
+          Remember. Compete.
         </footer>
       </div>
 
+      {/* RESPONSIVE DASHBOARD FIX */}
       <style jsx>{`
-        .family-member-main-grid {
-          width: 100%;
+        .social-connect-item:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 25px
+            rgba(15, 118, 110, 0.08);
+        }
+
+        @media (max-width: 1000px) {
+          .social-connect-grid {
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr)) !important;
+          }
         }
 
         @media (max-width: 800px) {
-          .family-member-main-grid {
+          .dashboard-main-grid {
             grid-template-columns: 1fr !important;
             gap: 16px !important;
+            width: 100% !important;
           }
 
-          .family-member-main-grid > * {
+          .dashboard-main-grid > * {
             width: 100% !important;
             min-width: 0 !important;
           }
         }
 
         @media (max-width: 600px) {
-          .family-member-main-grid .sq-card {
+          nav {
+            margin-bottom: 18px !important;
+          }
+
+          .dashboard-main-grid {
+            gap: 16px !important;
+          }
+
+          .dashboard-main-grid .sq-card {
             padding: 22px !important;
+          }
+
+          .dashboard-main-grid
+            .sq-card
+            > div:first-child {
+            min-width: 0;
+          }
+
+          .dashboard-main-grid
+            .sq-card
+            h2 {
+            line-height: 1.25 !important;
+          }
+
+          .dashboard-main-grid
+            .sq-card
+            p {
+            max-width: 100% !important;
+          }
+
+          .social-connect-card {
+            padding: 22px !important;
+          }
+
+          .social-connect-grid {
+            grid-template-columns:
+              1fr !important;
+          }
+
+          .social-connect-item {
+            min-height: 120px !important;
           }
         }
       `}</style>
