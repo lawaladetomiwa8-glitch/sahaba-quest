@@ -399,7 +399,7 @@ export default function FamilyMemberDashboardPage() {
               }}
             >
               <a
-                href="/family-member-test"
+                href="/family-member-quiz"
                 className="sq-button-primary"
               >
                 🎮 Continue Quest
@@ -914,7 +914,7 @@ export default function FamilyMemberDashboardPage() {
               }}
             >
               <a
-                href="/family-member-test"
+                href="/family-member-quiz"
                 style={{
                   padding: "17px",
                   borderRadius: "16px",
@@ -1255,7 +1255,7 @@ export default function FamilyMemberDashboardPage() {
             </div>
 
             <a
-              href="/family-member-test"
+              href="/family-member-quiz"
               style={{
                 minHeight: "50px",
                 padding: "0 22px",
