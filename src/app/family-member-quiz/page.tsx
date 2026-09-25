@@ -82,6 +82,38 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+/*
+ * Family Member progress can contain NULL values for a newly created
+ * member. The quiz itself requires a real level from 1 to 10.
+ *
+ * Treat a missing/invalid level as Level 1 rather than sending NULL
+ * (or 0) to start_family_member_quiz.
+ */
+function normalizeFamilyMemberLevel(value: unknown): number {
+  const level = Number(value);
+
+  if (!Number.isFinite(level) || level < 1) {
+    return 1;
+  }
+
+  return Math.min(Math.floor(level), 10);
+}
+
+function normalizeMemberProgress(
+  value: Partial<MemberProgress>
+): MemberProgress {
+  return {
+    member_id: String(value.member_id ?? ""),
+    display_name: String(value.display_name ?? "Family Member"),
+    current_level: normalizeFamilyMemberLevel(value.current_level),
+    total_xp: Number(value.total_xp ?? 0),
+    questions_answered: Number(value.questions_answered ?? 0),
+    correct_answers: Number(value.correct_answers ?? 0),
+    current_streak: Number(value.current_streak ?? 0),
+    best_streak: Number(value.best_streak ?? 0),
+  };
+}
+
 export default function FamilyMemberQuizPage() {
   const router = useRouter();
 
@@ -159,10 +191,24 @@ export default function FamilyMemberQuizPage() {
         throw new Error("No Family Member progress was found.");
       }
 
-      const memberProgress = progressData[0] as MemberProgress;
+      /*
+       * Normalize the RPC response before using current_level.
+       *
+       * This is the exact point that matters for the Lawal account:
+       * if current_level comes back NULL from Supabase, we start at
+       * Level 1 instead of sending NULL to the RPC.
+       */
+      const memberProgress = normalizeMemberProgress(
+        progressData[0] as Partial<MemberProgress>
+      );
+
       setProgress(memberProgress);
 
-      await startQuiz(token, memberProgress.current_level, session.display_name);
+      await startQuiz(
+        token,
+        normalizeFamilyMemberLevel(memberProgress.current_level),
+        session.display_name
+      );
     } catch (err) {
       console.error("Family Member quiz initialisation error:", err);
       setError(getErrorMessage(err, "We could not start your Family Quest."));
@@ -172,6 +218,8 @@ export default function FamilyMemberQuizPage() {
   }
 
   async function startQuiz(token: string, level: number, displayName?: string) {
+    const safeLevel = normalizeFamilyMemberLevel(level);
+
     setStarting(true);
     setError("");
     setAnswerResult(null);
@@ -185,7 +233,7 @@ export default function FamilyMemberQuizPage() {
         "start_family_member_quiz",
         {
           p_session_token: token,
-          p_level: level,
+          p_level: safeLevel,
           p_track: "individual",
         }
       );
@@ -209,11 +257,23 @@ export default function FamilyMemberQuizPage() {
     }
   }
 
-  function startTimer(questionStartedAt: string) {
+  /*
+   * IMPORTANT:
+   * The timer is started from a useEffect after `question` has actually
+   * been committed to React state. Starting it immediately after
+   * setQuestion(...) can call submitAnswer() while `question` is still the
+   * previous value, which makes the timeout submission silently return.
+   */
+  useEffect(() => {
     clearTimer();
     timeoutSubmittedRef.current = false;
 
-    const started = new Date(questionStartedAt).getTime();
+    if (!question || !gameSession || answerResult) {
+      return;
+    }
+
+    const started = new Date(question.question_started_at).getTime();
+
     const updateRemaining = () => {
       const elapsed = Date.now() - started;
       const remaining = Math.max(
@@ -228,7 +288,10 @@ export default function FamilyMemberQuizPage() {
     const remaining = updateRemaining();
 
     if (remaining <= 0) {
-      void submitAnswer("", true);
+      if (!timeoutSubmittedRef.current) {
+        timeoutSubmittedRef.current = true;
+        void submitAnswer("", true);
+      }
       return;
     }
 
@@ -237,13 +300,20 @@ export default function FamilyMemberQuizPage() {
 
       if (nextRemaining <= 0) {
         clearTimer();
+
         if (!timeoutSubmittedRef.current) {
           timeoutSubmittedRef.current = true;
           void submitAnswer("", true);
         }
       }
     }, 250);
-  }
+
+    return () => {
+      clearTimer();
+    };
+    // The effect intentionally tracks the active question/session/result.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, gameSession, answerResult]);
 
   async function loadQuestion(token: string, sessionId: string) {
     const loadId = ++questionLoadIdRef.current;
@@ -252,6 +322,7 @@ export default function FamilyMemberQuizPage() {
     setError("");
     setSelectedAnswer("");
     setAnswerResult(null);
+    setQuestion(null);
     clearTimer();
     setTimeLeft(QUESTION_TIME_SECONDS);
 
@@ -275,7 +346,6 @@ export default function FamilyMemberQuizPage() {
 
       const nextQuestion = data[0] as QuizQuestion;
       setQuestion(nextQuestion);
-      startTimer(nextQuestion.question_started_at);
     } catch (err) {
       console.error("Family Member question error:", err);
       setError(getErrorMessage(err, "We could not load the next question."));
@@ -378,7 +448,9 @@ export default function FamilyMemberQuizPage() {
       return;
     }
 
-    const nextLevel = progress?.current_level ?? gameSession?.level ?? 1;
+    const nextLevel = normalizeFamilyMemberLevel(
+      progress?.current_level ?? gameSession?.level ?? 1
+    );
 
     if (nextLevel >= 10) {
       router.push("/family-member-dashboard");
@@ -541,7 +613,7 @@ export default function FamilyMemberQuizPage() {
               </p>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: "var(--primary)" }}>{progress?.total_xp.toLocaleString() ?? 0} XP</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "var(--primary)" }}>{Number(progress?.total_xp ?? 0).toLocaleString()} XP</div>
               <div style={{ color: "var(--muted)", fontSize: 12 }}>Total XP</div>
             </div>
           </div>

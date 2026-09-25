@@ -20,6 +20,18 @@ type FamilyProgress = {
   best_streak: number;
 };
 
+type FamilyQuestSession = {
+  id: string;
+  level: number;
+  status: string;
+  questions_answered: number;
+  correct_answers: number;
+  score: number;
+  current_question_id: string | null;
+  current_question_started_at: string | null;
+  started_at: string;
+};
+
 type SubscriptionPlan = {
   plan_type: "plus" | "family" | "school";
   display_name: string;
@@ -134,6 +146,9 @@ export default function FamilyDashboardPage() {
 
   const [progress, setProgress] =
     useState<FamilyProgress | null>(null);
+
+  const [activeQuestSession, setActiveQuestSession] =
+    useState<FamilyQuestSession | null>(null);
 
   const [subscription, setSubscription] =
     useState<Subscription | null>(null);
@@ -267,6 +282,52 @@ export default function FamilyDashboardPage() {
 
         familyProgress =
           createdProgress as FamilyProgress;
+      }
+
+      /*
+       * ACTIVE FAMILY QUEST SESSION
+       *
+       * IMPORTANT: this is the Family Owner's quest only.
+       * Family Member sessions always have family_member_id set,
+       * so they are deliberately excluded here.
+       */
+      const {
+        data: questSessionData,
+        error: questSessionError,
+      } = await supabase
+        .from("game_sessions")
+        .select(
+          `
+            id,
+            level,
+            status,
+            questions_answered,
+            correct_answers,
+            score,
+            current_question_id,
+            current_question_started_at,
+            started_at
+          `
+        )
+        .eq("user_id", user.id)
+        .eq("track", "family")
+        .eq("status", "in_progress")
+        .is("family_member_id", null)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (questSessionError) {
+        console.error(
+          "Family Quest session lookup error:",
+          questSessionError
+        );
+
+        setActiveQuestSession(null);
+      } else {
+        setActiveQuestSession(
+          questSessionData as FamilyQuestSession | null
+        );
       }
 
       /*
@@ -424,42 +485,57 @@ export default function FamilyDashboardPage() {
     "Family";
 
   /*
-   * ACCURACY
+   * CURRENT FAMILY QUEST PROGRESS
+   *
+   * Never derive the current level's 50-question progress
+   * from lifetime family_player_progress totals.
+   * The active game session is the source of truth for the
+   * current level/attempt.
    */
+  const currentQuestQuestions = Math.min(
+    Number(activeQuestSession?.questions_answered ?? 0),
+    50
+  );
+
+  const currentQuestCorrect = Math.min(
+    Number(activeQuestSession?.correct_answers ?? 0),
+    50
+  );
+
   const accuracy =
-    progress.questions_answered > 0
+    currentQuestQuestions > 0
       ? Math.round(
-          (progress.correct_answers /
-            progress.questions_answered) *
+          (currentQuestCorrect / currentQuestQuestions) *
             100
         )
       : 0;
 
-  /*
-   * LEVEL PROGRESS
-   */
   const questionsInCurrentLevel =
-    progress.questions_answered % 50;
+    currentQuestQuestions;
 
   const correctInCurrentLevel =
-    progress.correct_answers % 50;
+    currentQuestCorrect;
 
   const levelQuestionProgress =
-    questionsInCurrentLevel === 0 &&
-    progress.questions_answered > 0
-      ? 100
-      : Math.min(
-          (questionsInCurrentLevel / 50) *
-            100,
-          100
-        );
+    Math.min(
+      (questionsInCurrentLevel / 50) * 100,
+      100
+    );
 
   const levelCorrectProgress =
     Math.min(
-      (correctInCurrentLevel / 25) *
-        100,
+      (correctInCurrentLevel / 25) * 100,
       100
     );
+
+  const familyQuestActionLabel =
+    activeQuestSession
+      ? "Continue Family Quest"
+      : "Start Family Quest";
+
+  const displayLevel =
+    activeQuestSession?.level ??
+    progress.current_level;
 
   const subscriptionEndDate =
     subscription?.current_period_end
@@ -532,7 +608,7 @@ export default function FamilyDashboardPage() {
               }}
             >
               <span className="sq-badge">
-                Level {progress.current_level}
+                Level {displayLevel}
               </span>
 
               <span
@@ -595,7 +671,7 @@ export default function FamilyDashboardPage() {
                 href="/family-quest"
                 className="sq-button-primary"
               >
-                👨‍👩‍👧‍👦 Start Family Quest
+                👨‍👩‍👧‍👦 {familyQuestActionLabel}
               </a>
 
               <a
@@ -675,7 +751,7 @@ export default function FamilyDashboardPage() {
             </div>
 
             <div className="sq-stat-value">
-              {progress.current_level}
+              {displayLevel}
             </div>
 
             <div
@@ -753,7 +829,7 @@ export default function FamilyDashboardPage() {
                 fontSize: "13px",
               }}
             >
-              {progress.correct_answers} correct
+              {correctInCurrentLevel} correct in this level
             </div>
           </div>
         </section>
@@ -896,7 +972,7 @@ export default function FamilyDashboardPage() {
                   }}
                 >
                   Family Level{" "}
-                  {progress.current_level}
+                  {displayLevel}
                 </h2>
 
                 <p
@@ -1042,7 +1118,7 @@ export default function FamilyDashboardPage() {
                     fontWeight: 700,
                   }}
                 >
-                  Questions Answered
+                  Questions Answered This Level
                 </div>
 
                 <div
@@ -1052,7 +1128,7 @@ export default function FamilyDashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {progress.questions_answered}
+                  {currentQuestQuestions}
                 </div>
               </div>
 
@@ -1082,7 +1158,7 @@ export default function FamilyDashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {progress.correct_answers}
+                  {currentQuestCorrect}
                 </div>
               </div>
             </div>
@@ -1133,7 +1209,7 @@ export default function FamilyDashboardPage() {
                 }}
               >
                 <span>
-                  👨‍👩‍👧‍👦 Family Quest
+                  👨‍👩‍👧‍👦 {familyQuestActionLabel}
                 </span>
 
                 <span>→</span>
@@ -1157,28 +1233,6 @@ export default function FamilyDashboardPage() {
               >
                 <span>
                   🏆 Family Leaderboard
-                </span>
-
-                <span>→</span>
-              </a>
-
-              <a
-                href="/family-progress"
-                style={{
-                  padding: "17px",
-                  borderRadius: "16px",
-                  background: "var(--primary-light)",
-                  color: "var(--primary-dark)",
-                  fontWeight: 800,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent:
-                    "space-between",
-                  textDecoration: "none",
-                }}
-              >
-                <span>
-                  📈 Family Progress
                 </span>
 
                 <span>→</span>
@@ -1318,7 +1372,7 @@ export default function FamilyDashboardPage() {
                 textDecoration: "none",
               }}
             >
-              Start Family Learning →
+              {activeQuestSession ? "Continue Family Learning →" : "Start Family Learning →"}
             </a>
           </div>
         </section>

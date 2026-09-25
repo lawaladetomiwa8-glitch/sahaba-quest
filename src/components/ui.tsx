@@ -51,6 +51,14 @@ const individualNavigation: NavigationItem[] = [
   },
 ];
 
+const familyMemberNavigation: NavigationItem[] = [
+  { label: "Home", href: "/family-member-dashboard", icon: "⌂" },
+  { label: "Play", href: "/family-member-quiz", icon: "▶" },
+  { label: "My Progress", href: "/family-member-dashboard#progress", icon: "↗" },
+  { label: "Family Ranking", href: "/family-member-dashboard#leaderboard", icon: "★" },
+  { label: "Switch Member", href: "/family-member-login", icon: "⇄" },
+];
+
 const familyNavigation: NavigationItem[] = [
   {
     label: "Home",
@@ -66,6 +74,11 @@ const familyNavigation: NavigationItem[] = [
     label: "Progress",
     href: "/family-progress",
     icon: "↗",
+  },
+  {
+    label: "Members",
+    href: "/family-members",
+    icon: "👥",
   },
   {
     label: "Leaderboard",
@@ -182,9 +195,20 @@ export function AppNavbar() {
     pathname === "/family-leaderboard" ||
     pathname === "/family-challenges" ||
     pathname.startsWith("/family-challenges/") ||
-    pathname === "/family-profile";
+    pathname === "/family-profile" ||
+    pathname === "/family-members";
+
+  const isFamilyMemberPath =
+    pathname === "/family-member-dashboard" ||
+    pathname === "/family-member-quiz";
 
   const navigation = useMemo(() => {
+    // A stored member token must NEVER override the Owner navigation.
+    // The URL identifies which dashboard is currently being viewed.
+    if (isFamilyMemberPath) {
+      return familyMemberNavigation;
+    }
+
     if (accountType === "family") {
       return familyNavigation;
     }
@@ -198,17 +222,7 @@ export function AppNavbar() {
     }
 
     return individualNavigation;
-  }, [accountType, isFamilyPath]);
-
-  /*
-   * ---------------------------------------------------------
-   * CORRECT LOGO DESTINATION
-   * ---------------------------------------------------------
-   */
-  const homeHref =
-    accountType === "family" || isFamilyPath
-      ? "/family-dashboard"
-      : "/dashboard";
+  }, [accountType, isFamilyPath, isFamilyMemberPath, pathname]);
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
@@ -221,15 +235,11 @@ export function AppNavbar() {
    */
   function isNavigationActive(href: string) {
     if (href === "/dashboard") {
-      return (
-        pathname === "/dashboard"
-      );
+      return pathname === "/dashboard";
     }
 
     if (href === "/family-dashboard") {
-      return (
-        pathname === "/family-dashboard"
-      );
+      return pathname === "/family-dashboard";
     }
 
     if (href === "/quiz") {
@@ -278,6 +288,22 @@ export function AppNavbar() {
       return pathname === "/family-profile";
     }
 
+    if (href === "/family-members") {
+      return pathname === "/family-members";
+    }
+
+    if (href === "/family-member-dashboard") {
+      return pathname === "/family-member-dashboard";
+    }
+
+    if (href === "/family-member-quiz") {
+      return pathname === "/family-member-quiz";
+    }
+
+    if (href === "/family-member-login") {
+      return pathname === "/family-member-login";
+    }
+
     if (href === "/pricing") {
       return pathname === "/pricing";
     }
@@ -292,13 +318,6 @@ export function AppNavbar() {
       ====================================================== */}
 
       <nav className="sq-nav">
-        <Link
-          href={homeHref}
-          className="sq-logo"
-        >
-          Sahaba Quest
-        </Link>
-
         <div className="sq-nav-links">
           {navigation.map((item) => {
             const isActive =
@@ -333,14 +352,6 @@ export function AppNavbar() {
 
       <nav className="sq-mobile-nav">
         <div className="sq-mobile-header">
-          <Link
-            href={homeHref}
-            className="sq-mobile-logo"
-            onClick={closeMobileMenu}
-          >
-            Sahaba Quest
-          </Link>
-
           <button
             type="button"
             className="sq-mobile-menu-button"

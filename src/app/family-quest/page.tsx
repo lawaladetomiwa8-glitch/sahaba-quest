@@ -20,6 +20,9 @@ type GameSession = {
   id: string;
   level: number;
   status: string;
+  questions_answered: number;
+  correct_answers: number;
+  score: number;
   current_question_id: string | null;
   current_question_started_at: string | null;
 };
@@ -435,6 +438,9 @@ export default function FamilyQuestPage() {
             id: sessionId,
             level,
             status: "in_progress",
+            questions_answered: 0,
+            correct_answers: 0,
+            score: 0,
             current_question_id:
               null,
             current_question_started_at:
@@ -483,68 +489,33 @@ export default function FamilyQuestPage() {
         );
 
         /*
-         * Load attempts so we know where
-         * the player is in the 50-question quest.
+         * The game session is the source of truth for the current
+         * Family Quest position. This prevents the Family Owner's
+         * progress from being confused with Family Member progress.
+         *
+         * Example: 14 answered means the next question is Question 15.
          */
-        const {
-          data: attempts,
-          error: attemptsError,
-        } = await supabase
-          .from(
-            "family_question_attempts"
-          )
-          .select(
-            "question_id, is_correct, xp_earned"
-          )
-          .eq(
-            "session_id",
-            existingSession.id
-          )
-          .eq(
-            "user_id",
-            userId
-          )
-          .order(
-            "answered_at",
-            {
-              ascending: true,
-            }
-          );
+        const answered = Math.max(
+          0,
+          Number(existingSession.questions_answered || 0)
+        );
 
-        if (attemptsError) {
-          throw new Error(
-            attemptsError.message
-          );
-        }
+        const correct = Math.max(
+          0,
+          Number(existingSession.correct_answers || 0)
+        );
 
-        const attemptRows =
-          attempts || [];
+        const xp = Math.max(
+          0,
+          Number(existingSession.score || 0)
+        );
 
         setQuestionNumber(
-          attemptRows.length + 1
+          Math.min(answered + 1, TOTAL_QUESTIONS)
         );
 
-        setCorrectCount(
-          attemptRows.filter(
-            (attempt) =>
-              attempt.is_correct
-          ).length
-        );
-
-        setSessionXp(
-          attemptRows.reduce(
-            (
-              total,
-              attempt
-            ) =>
-              total +
-              Number(
-                attempt.xp_earned ||
-                  0
-              ),
-            0
-          )
-        );
+        setCorrectCount(correct);
+        setSessionXp(xp);
 
         /*
          * If there is already an active
@@ -814,6 +785,9 @@ export default function FamilyQuestPage() {
                   id,
                   level,
                   status,
+                  questions_answered,
+                  correct_answers,
+                  score,
                   current_question_id,
                   current_question_started_at
                 `
@@ -821,6 +795,10 @@ export default function FamilyQuestPage() {
               .eq(
                 "user_id",
                 user.id
+              )
+              .is(
+                "family_member_id",
+                null
               )
               .eq(
                 "track",
@@ -950,6 +928,22 @@ export default function FamilyQuestPage() {
               answerResult.xp_earned ||
                 0
             )
+        );
+
+        setSession((current) =>
+          current
+            ? {
+                ...current,
+                questions_answered:
+                  current.questions_answered + 1,
+                correct_answers:
+                  current.correct_answers +
+                  (answerResult.is_correct ? 1 : 0),
+                score:
+                  current.score +
+                  Number(answerResult.xp_earned || 0),
+              }
+            : current
         );
 
         /*
@@ -1285,11 +1279,10 @@ export default function FamilyQuestPage() {
         );
 
         setQuestionNumber(
-          (current) =>
-            Math.min(
-              TOTAL_QUESTIONS,
-              current + 1
-            )
+          Math.min(
+            TOTAL_QUESTIONS,
+            Number(session.questions_answered || 0) + 1
+          )
         );
       } catch (err) {
         setError(
@@ -1317,7 +1310,7 @@ export default function FamilyQuestPage() {
 
       const confirmed =
         window.confirm(
-          "Are you sure you want to leave Family Quest? Your progress in this quest will be forfeited."
+          "Are you sure you want to abandon this Family Quest? Your progress in this unfinished quest will be forfeited. If you only want to leave and continue later, cancel this dialog."
         );
 
       if (!confirmed) {
@@ -1548,6 +1541,12 @@ export default function FamilyQuestPage() {
                 Level{" "}
                 {session?.level}
               </h1>
+
+              {session && session.questions_answered > 0 && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Resuming your Family Quest — {session.questions_answered} of {TOTAL_QUESTIONS} answered
+                </p>
+              )}
             </div>
 
             <div className="text-right">
@@ -1800,7 +1799,7 @@ export default function FamilyQuestPage() {
               }
               className="text-sm text-slate-500 hover:text-red-600"
             >
-              Leave Family Quest
+              Abandon Family Quest
             </button>
           </div>
 
