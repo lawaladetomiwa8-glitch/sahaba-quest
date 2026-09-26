@@ -20,21 +20,6 @@ type MemberProgress = {
   family_member_count: number;
 };
 
-type ActiveMemberSession = {
-  session_id: string;
-  member_id: string;
-  family_id: string;
-  display_name: string;
-  level: number;
-  track: string;
-  questions_answered: number;
-  correct_answers: number;
-  score: number;
-  current_question_id: string | null;
-  current_question_started_at: string | null;
-  started_at: string;
-};
-
 type LeaderboardMember = {
   rank: number;
   member_id: string;
@@ -56,7 +41,6 @@ export default function FamilyMemberDashboardPage() {
 
   const [progress, setProgress] = useState<MemberProgress | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardMember[]>([]);
-  const [activeQuestSession, setActiveQuestSession] = useState<ActiveMemberSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("Loading your Family dashboard...");
 
@@ -157,36 +141,6 @@ export default function FamilyMemberDashboardPage() {
       }
 
       /*
-       * Load ONLY this member's active quiz session.
-       * This is the source of truth for the current 50-question level.
-       * It does not create a session.
-       */
-      const {
-        data: activeSessionData,
-        error: activeSessionError,
-      } = await supabase.rpc("get_family_member_active_session", {
-        p_session_token: token,
-      });
-
-      if (activeSessionError) {
-        console.error(
-          "Family Member active session error:",
-          activeSessionError
-        );
-
-        setActiveQuestSession(null);
-      } else if (
-        Array.isArray(activeSessionData) &&
-        activeSessionData.length > 0
-      ) {
-        setActiveQuestSession(
-          activeSessionData[0] as ActiveMemberSession
-        );
-      } else {
-        setActiveQuestSession(null);
-      }
-
-      /*
        * Load private Family Member leaderboard.
        */
       const {
@@ -211,80 +165,13 @@ export default function FamilyMemberDashboardPage() {
         return;
       }
 
-      /*
-       * Supabase can return nullable numeric values when a progress
-       * record was created before all counters were populated.
-       *
-       * Normalize the RPC response here so the UI never calls
-       * methods such as `.toLocaleString()` on null.
-       */
-      const rawProgress = progressData[0] as Partial<MemberProgress>;
-
-      const normalizedProgress: MemberProgress = {
-        member_id: String(rawProgress.member_id ?? ""),
-        display_name: String(
-          rawProgress.display_name ?? "Family Member"
-        ),
-        family_id: String(rawProgress.family_id ?? ""),
-        total_xp: Number(rawProgress.total_xp ?? 0),
-        current_level: Number(rawProgress.current_level ?? 1),
-        questions_answered: Number(
-          rawProgress.questions_answered ?? 0
-        ),
-        correct_answers: Number(
-          rawProgress.correct_answers ?? 0
-        ),
-        current_streak: Number(
-          rawProgress.current_streak ?? 0
-        ),
-        best_streak: Number(
-          rawProgress.best_streak ?? 0
-        ),
-        accuracy: Number(rawProgress.accuracy ?? 0),
-        family_total_xp: Number(
-          rawProgress.family_total_xp ?? 0
-        ),
-        family_member_count: Number(
-          rawProgress.family_member_count ?? 0
-        ),
-      };
-
-      setProgress(normalizedProgress);
-
-      const normalizedLeaderboard: LeaderboardMember[] =
+      setProgress(progressData[0] as MemberProgress);
+      setLeaderboard(
         Array.isArray(leaderboardData)
-          ? (leaderboardData as Partial<LeaderboardMember>[]).map(
-              (member) => ({
-                rank: Number(member.rank ?? 0),
-                member_id: String(member.member_id ?? ""),
-                display_name: String(
-                  member.display_name ?? "Family Member"
-                ),
-                total_xp: Number(member.total_xp ?? 0),
-                current_level: Number(
-                  member.current_level ?? 1
-                ),
-                current_streak: Number(
-                  member.current_streak ?? 0
-                ),
-                best_streak: Number(
-                  member.best_streak ?? 0
-                ),
-                questions_answered: Number(
-                  member.questions_answered ?? 0
-                ),
-                correct_answers: Number(
-                  member.correct_answers ?? 0
-                ),
-                accuracy: Number(member.accuracy ?? 0),
-                is_current_member: Boolean(
-                  member.is_current_member
-                ),
-              })
-            )
-          : [];
+          ? (leaderboardData as LeaderboardMember[])
+          : []
+      );
 
-      setLeaderboard(normalizedLeaderboard);
       setMessage("");
     } catch (error) {
       console.error(
@@ -302,7 +189,7 @@ export default function FamilyMemberDashboardPage() {
 
   function handleLogout() {
     sessionStorage.removeItem(SESSION_KEY);
-    router.push("/family-member-login");
+    router.push("/family-member-test");
   }
 
   if (loading || !progress) {
@@ -354,7 +241,7 @@ export default function FamilyMemberDashboardPage() {
               <button
                 type="button"
                 onClick={() =>
-                  router.push("/family-member-login")
+                  router.push("/family-member-test")
                 }
                 className="sq-button-primary"
                 style={{
@@ -373,49 +260,25 @@ export default function FamilyMemberDashboardPage() {
     );
   }
 
-  /*
-   * CURRENT LEVEL PROGRESS
-   *
-   * Lifetime member totals are intentionally NOT used here.
-   * The active game session is the source of truth for the current
-   * 50-question level and therefore cannot leak into the Family Owner dashboard.
-   */
-  const questionsInCurrentLevel = Math.min(
-    Number(activeQuestSession?.questions_answered ?? 0),
-    50
-  );
+  const questionsInCurrentLevel =
+    progress.questions_answered % 50;
 
-  const correctInCurrentLevel = Math.min(
-    Number(activeQuestSession?.correct_answers ?? 0),
-    50
-  );
+  const correctInCurrentLevel =
+    progress.correct_answers % 50;
 
   const levelQuestionProgress =
-    Math.min(
-      (questionsInCurrentLevel / 50) * 100,
-      100
-    );
+    questionsInCurrentLevel === 0 &&
+    progress.questions_answered > 0
+      ? 100
+      : Math.min(
+          (questionsInCurrentLevel / 50) * 100,
+          100
+        );
 
   const levelCorrectProgress = Math.min(
     (correctInCurrentLevel / 25) * 100,
     100
   );
-
-  const levelAccuracy =
-    questionsInCurrentLevel > 0
-      ? Math.round(
-          (correctInCurrentLevel / questionsInCurrentLevel) * 100
-        )
-      : 0;
-
-  const memberQuestActionLabel =
-    activeQuestSession
-      ? "Continue Quest"
-      : "Start Quest";
-
-  const displayLevel =
-    activeQuestSession?.level ??
-    progress.current_level;
 
   const displayedLeaderboard =
     leaderboard.slice(0, 5);
@@ -430,14 +293,127 @@ export default function FamilyMemberDashboardPage() {
       }}
     >
       <div className="sq-container">
-        {/* NAVIGATION */}
-        <div
+
+        {/* FAMILY MEMBER NAVIGATION */}
+        <nav
+          aria-label="Family Member navigation"
           style={{
-            marginBottom: "28px",
+            position: "sticky",
+            top: "12px",
+            zIndex: 50,
+            marginBottom: "20px",
+            border: "1px solid var(--border)",
+            borderRadius: "18px",
+            background: "rgba(255,255,255,0.97)",
+            backdropFilter: "blur(12px)",
+            boxShadow: "0 8px 30px rgba(15,23,42,0.08)",
+            padding: "10px 12px",
           }}
         >
-          <AppNavbar />
-        </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "12px",
+                  background: "var(--primary-light)",
+                  color: "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  flexShrink: 0,
+                }}
+              >
+                SQ
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 900, color: "var(--foreground)" }}>
+                  Family Member Mode
+                </div>
+                <div style={{ color: "var(--muted)", fontSize: "12px", marginTop: "3px" }}>
+                  {progress.display_name}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => router.push("/family-member-dashboard")}
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "#ffffff",
+                  color: "var(--foreground)",
+                  borderRadius: "12px",
+                  padding: "9px 13px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Dashboard
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/family-member-challenges")}
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "#ffffff",
+                  color: "var(--foreground)",
+                  borderRadius: "12px",
+                  padding: "9px 13px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Challenges
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/family-dashboard")}
+                style={{
+                  border: "none",
+                  background: "var(--primary)",
+                  color: "#ffffff",
+                  borderRadius: "12px",
+                  padding: "9px 14px",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  boxShadow: "0 5px 16px rgba(16,185,129,0.20)",
+                }}
+              >
+                ← Family Dashboard
+              </button>
+            </div>
+          </div>
+        </nav>
+
 
         {/* WELCOME HERO */}
         <section
@@ -478,7 +454,7 @@ export default function FamilyMemberDashboardPage() {
               }}
             >
               <span className="sq-badge">
-                Level {displayLevel}
+                Level {progress.current_level}
               </span>
 
               <span
@@ -539,7 +515,7 @@ export default function FamilyMemberDashboardPage() {
                 href="/family-member-quiz"
                 className="sq-button-primary"
               >
-                🎮 {memberQuestActionLabel}
+                🎮 Continue Quest
               </a>
 
               <button
@@ -559,7 +535,6 @@ export default function FamilyMemberDashboardPage() {
 
         {/* FAMILY ACCOUNT */}
         <section
-          id="progress"
           className="sq-card"
           style={{
             marginTop: "20px",
@@ -661,7 +636,7 @@ export default function FamilyMemberDashboardPage() {
             </div>
 
             <div className="sq-stat-value">
-              {Number(progress.total_xp ?? 0).toLocaleString()}
+              {progress.total_xp.toLocaleString()}
             </div>
 
             <div
@@ -708,7 +683,7 @@ export default function FamilyMemberDashboardPage() {
             </div>
 
             <div className="sq-stat-value">
-              {levelAccuracy}%
+              {progress.accuracy}%
             </div>
 
             <div
@@ -718,7 +693,7 @@ export default function FamilyMemberDashboardPage() {
                 fontSize: "13px",
               }}
             >
-              {correctInCurrentLevel} correct in this level
+              {progress.correct_answers} correct
             </div>
           </div>
         </section>
@@ -754,7 +729,7 @@ export default function FamilyMemberDashboardPage() {
                   fontWeight: 900,
                 }}
               >
-                {Number(progress.family_total_xp ?? 0).toLocaleString()} XP
+                {progress.family_total_xp.toLocaleString()} XP
               </h2>
 
               <p
@@ -838,7 +813,7 @@ export default function FamilyMemberDashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  Level {displayLevel}
+                  Level {progress.current_level}
                 </h2>
 
                 <p
@@ -978,7 +953,7 @@ export default function FamilyMemberDashboardPage() {
                     fontWeight: 700,
                   }}
                 >
-                  Questions Answered This Level
+                  Questions Answered
                 </div>
 
                 <div
@@ -988,7 +963,7 @@ export default function FamilyMemberDashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {questionsInCurrentLevel}
+                  {progress.questions_answered}
                 </div>
               </div>
 
@@ -1018,7 +993,7 @@ export default function FamilyMemberDashboardPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {correctInCurrentLevel}
+                  {progress.correct_answers}
                 </div>
               </div>
             </div>
@@ -1120,7 +1095,6 @@ export default function FamilyMemberDashboardPage() {
 
         {/* FAMILY LEADERBOARD */}
         <section
-          id="leaderboard"
           className="sq-card"
           style={{
             marginTop: "20px",
@@ -1296,7 +1270,7 @@ export default function FamilyMemberDashboardPage() {
                         fontWeight: 900,
                       }}
                     >
-                      {Number(member.total_xp ?? 0).toLocaleString()}
+                      {member.total_xp.toLocaleString()}
                     </div>
 
                     <div
