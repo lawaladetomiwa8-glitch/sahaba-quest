@@ -370,6 +370,7 @@ export default function FamilyMembersPage() {
         </section>
 
         <section
+          className="family-members-layout"
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.1fr)",
@@ -478,6 +479,7 @@ export default function FamilyMembersPage() {
                 members.map((member) => (
                   <div
                     key={member.member_id}
+                    className="family-member-card"
                     style={{
                       padding: "17px",
                       border: "1px solid var(--border)",
@@ -620,6 +622,7 @@ export default function FamilyMembersPage() {
                         </div>
 
                         <div
+                          className="family-member-stats"
                           style={{
                             display: "grid",
                             gridTemplateColumns:
@@ -647,6 +650,7 @@ export default function FamilyMembersPage() {
                         </div>
 
                         <div
+                          className="family-member-actions"
                           style={{
                             display: "flex",
                             gap: "8px",
@@ -738,9 +742,77 @@ export default function FamilyMembersPage() {
       </div>
 
       <style jsx>{`
+        /*
+         * FAMILY MEMBERS PAGE — MOBILE ONLY
+         *
+         * This is intentionally scoped to this page so the recent
+         * global navbar/header and spacing fixes are not affected.
+         */
+
+        .family-members-layout {
+          width: 100%;
+          min-width: 0;
+        }
+
         @media (max-width: 850px) {
-          section[style*="grid-template-columns: minmax(0, 0.9fr)"] {
+          .family-members-layout {
             grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+
+          .family-members-layout > section {
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .family-members-layout > section {
+            padding: 20px !important;
+          }
+
+          .family-members-layout input {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          .family-members-layout .family-member-card {
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+          }
+
+          .family-members-layout .family-member-stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 6px !important;
+          }
+
+          .family-members-layout .family-member-stats > div {
+            min-width: 0 !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+          }
+
+          .family-members-layout .family-member-stats > div > div {
+            overflow-wrap: anywhere !important;
+          }
+
+          .family-members-layout .family-member-actions {
+            width: 100%;
+            flex-direction: column !important;
+          }
+
+          .family-members-layout .family-member-actions button {
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          .family-members-layout .sq-badge {
+            max-width: 100%;
+            box-sizing: border-box;
           }
         }
       `}</style>
