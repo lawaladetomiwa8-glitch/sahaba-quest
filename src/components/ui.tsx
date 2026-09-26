@@ -438,7 +438,7 @@ export function AppNavbar() {
         className="sq-mobile-nav"
         style={{
           position: "relative",
-          zIndex: 50,
+          zIndex: 100,
           background: "#ffffff",
           borderBottom: "1px solid #dfe9e7",
           boxShadow: "0 4px 18px rgba(6, 63, 59, 0.06)",
@@ -491,13 +491,33 @@ export function AppNavbar() {
             </span>
             <span
               style={{
-                color: "#123b38",
-                fontSize: "14px",
-                fontWeight: 900,
-                letterSpacing: "-0.25px",
+                display: "flex",
+                flexDirection: "column",
+                lineHeight: 1.05,
               }}
             >
-              Sahaba Quest
+              <span
+                style={{
+                  color: "#123b38",
+                  fontSize: "15px",
+                  fontWeight: 900,
+                  letterSpacing: "-0.3px",
+                }}
+              >
+                Sahaba Quest
+              </span>
+
+              <span
+                style={{
+                  marginTop: "4px",
+                  color: "#08766d",
+                  fontSize: "7px",
+                  fontWeight: 800,
+                  letterSpacing: "1.1px",
+                }}
+              >
+                LEARN • REMEMBER • COMPETE
+              </span>
             </span>
           </Link>
 
@@ -558,6 +578,75 @@ export function AppNavbar() {
           </div>
         )}
       </nav>
+
+      {/* =====================================================
+          RESPONSIVE NAVIGATION
+          Desktop keeps the existing full navigation.
+          Mobile shows only ONE header: the branded header
+          with the hamburger menu.
+      ====================================================== */}
+      <style jsx>{`
+        /* Desktop */
+        .sq-nav {
+          display: flex;
+        }
+
+        .sq-mobile-nav {
+          display: none;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+          .sq-nav {
+            display: none !important;
+          }
+
+          .sq-mobile-nav {
+            display: block !important;
+            width: 100%;
+            margin: 0;
+            border-radius: 0;
+          }
+
+          .sq-mobile-header {
+            width: 100%;
+            min-height: 68px;
+            box-sizing: border-box;
+          }
+
+          .sq-mobile-header > a {
+            min-width: 0;
+            flex: 1;
+          }
+
+          .sq-mobile-menu-button {
+            flex-shrink: 0;
+          }
+
+          /*
+           * IMPORTANT:
+           * The mobile navigation menu overlays the page instead
+           * of taking up space in the document flow.
+           *
+           * This means opening ☰ will NOT push the dashboard
+           * content downward. The menu simply appears underneath
+           * the header and disappears again when closed.
+           */
+          .sq-mobile-menu {
+            position: absolute !important;
+            top: 100% !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 9999 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            background: #ffffff !important;
+            border-top: 1px solid #dfe9e7 !important;
+            border-bottom: 1px solid #dfe9e7 !important;
+            box-shadow: 0 12px 28px rgba(6, 63, 59, 0.14) !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

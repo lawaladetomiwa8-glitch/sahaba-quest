@@ -529,6 +529,7 @@ export default function DashboardPage() {
 
         {/* NAVIGATION */}
         <div
+          className="dashboard-navbar-wrapper"
           style={{
             marginBottom: "28px",
           }}
@@ -1790,8 +1791,13 @@ export default function DashboardPage() {
         }
 
         @media (max-width: 600px) {
-          nav {
-            margin-bottom: 18px !important;
+          /*
+           * Keep the mobile navbar close to the top of the screen.
+           * The desktop spacing remains unchanged.
+           */
+          .dashboard-navbar-wrapper {
+            margin-top: -10px !important;
+            margin-bottom: 14px !important;
           }
 
           .dashboard-main-grid {

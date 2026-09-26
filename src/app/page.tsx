@@ -68,36 +68,64 @@ export default function Home() {
   }
 
   async function handleForgotPassword() {
-    if (!email) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail) {
       setMessageType("error");
       setMessage("Please enter your email address first.");
       return;
     }
 
-    setResetLoading(true);
-    setMessage("");
+    try {
+      setResetLoading(true);
+      setMessage("");
 
-    const redirectTo = `${window.location.origin}/update-password`;
+      /*
+       * Always send password-reset users to the production
+       * password-update page on the Sahaba Quest domain.
+       *
+       * This keeps the reset flow consistent whether the user
+       * starts it from the homepage or from /login.
+       */
+      const redirectTo =
+        "https://sahabaquest.com.ng/update-password";
 
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      email,
-      {
-        redirectTo,
+      const { error } =
+        await supabase.auth.resetPasswordForEmail(
+          cleanEmail,
+          {
+            redirectTo,
+          }
+        );
+
+      if (error) {
+        console.error(
+          "Password reset error:",
+          error
+        );
+
+        setMessageType("error");
+        setMessage(error.message);
+        return;
       }
-    );
 
-    setResetLoading(false);
+      setMessageType("success");
+      setMessage(
+        "If an account exists with this email, a password reset link has been sent. Please check your inbox."
+      );
+    } catch (error) {
+      console.error(
+        "Unexpected password reset error:",
+        error
+      );
 
-    if (error) {
       setMessageType("error");
-      setMessage(error.message);
-      return;
+      setMessage(
+        "Unable to send the password reset email. Please try again."
+      );
+    } finally {
+      setResetLoading(false);
     }
-
-    setMessageType("success");
-    setMessage(
-      "If an account exists with this email, a password reset link has been sent. Please check your inbox."
-    );
   }
 
   async function handleLogout() {
