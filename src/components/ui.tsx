@@ -317,7 +317,91 @@ export function AppNavbar() {
           DESKTOP NAVIGATION
       ====================================================== */}
 
-      <nav className="sq-nav">
+      <nav
+        className="sq-nav"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "24px",
+          padding: "12px 24px",
+          background: "rgba(255, 255, 255, 0.96)",
+          borderBottom: "1px solid #dfe9e7",
+          boxShadow: "0 4px 18px rgba(6, 63, 59, 0.06)",
+          position: "relative",
+          zIndex: 50,
+        }}
+      >
+        <Link
+          href={
+            isFamilyMemberPath
+              ? "/family-member-dashboard"
+              : accountType === "family"
+                ? "/family-dashboard"
+                : "/dashboard"
+          }
+          aria-label="Sahaba Quest Home"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            textDecoration: "none",
+            color: "#123b38",
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              width: "44px",
+              height: "44px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "13px",
+              background:
+                "linear-gradient(145deg, #063f3b 0%, #075b55 55%, #08766d 100%)",
+              border: "1px solid rgba(8, 118, 109, 0.25)",
+              color: "#ffffff",
+              fontSize: "15px",
+              fontWeight: 900,
+              letterSpacing: "-0.5px",
+              boxShadow: "0 5px 14px rgba(6, 63, 59, 0.18)",
+            }}
+          >
+            SQ
+          </span>
+
+          <span
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              lineHeight: 1.05,
+            }}
+          >
+            <span
+              style={{
+                color: "#123b38",
+                fontSize: "15px",
+                fontWeight: 900,
+                letterSpacing: "-0.3px",
+              }}
+            >
+              Sahaba Quest
+            </span>
+            <span
+              style={{
+                marginTop: "4px",
+                color: "#08766d",
+                fontSize: "7px",
+                fontWeight: 800,
+                letterSpacing: "1.1px",
+              }}
+            >
+              LEARN • REMEMBER • COMPETE
+            </span>
+          </span>
+        </Link>
+
         <div className="sq-nav-links">
           {navigation.map((item) => {
             const isActive =
@@ -350,8 +434,73 @@ export function AppNavbar() {
           MOBILE NAVIGATION
       ====================================================== */}
 
-      <nav className="sq-mobile-nav">
-        <div className="sq-mobile-header">
+      <nav
+        className="sq-mobile-nav"
+        style={{
+          position: "relative",
+          zIndex: 50,
+          background: "#ffffff",
+          borderBottom: "1px solid #dfe9e7",
+          boxShadow: "0 4px 18px rgba(6, 63, 59, 0.06)",
+        }}
+      >
+        <div
+          className="sq-mobile-header"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "14px",
+            padding: "10px 16px",
+          }}
+        >
+          <Link
+            href={
+              isFamilyMemberPath
+                ? "/family-member-dashboard"
+                : accountType === "family"
+                  ? "/family-dashboard"
+                  : "/dashboard"
+            }
+            aria-label="Sahaba Quest Home"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "9px",
+              textDecoration: "none",
+              color: "#123b38",
+            }}
+          >
+            <span
+              style={{
+                width: "40px",
+                height: "40px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "12px",
+                background:
+                  "linear-gradient(145deg, #063f3b 0%, #075b55 55%, #08766d 100%)",
+                color: "#ffffff",
+                fontSize: "14px",
+                fontWeight: 900,
+                boxShadow: "0 4px 12px rgba(6, 63, 59, 0.16)",
+              }}
+            >
+              SQ
+            </span>
+            <span
+              style={{
+                color: "#123b38",
+                fontSize: "14px",
+                fontWeight: 900,
+                letterSpacing: "-0.25px",
+              }}
+            >
+              Sahaba Quest
+            </span>
+          </Link>
+
           <button
             type="button"
             className="sq-mobile-menu-button"
