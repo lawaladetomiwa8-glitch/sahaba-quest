@@ -299,9 +299,8 @@ export default function FamilyMemberDashboardPage() {
           aria-label="Family Member navigation"
           className="family-member-nav"
           style={{
-            position: "sticky",
-            top: "12px",
-            zIndex: 50,
+            position: "relative",
+            zIndex: 1,
             marginBottom: "20px",
             border: "1px solid var(--border)",
             borderRadius: "18px",
