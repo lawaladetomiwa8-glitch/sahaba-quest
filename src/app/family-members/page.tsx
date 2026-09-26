@@ -33,6 +33,14 @@ export default function FamilyMembersPage() {
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
 
+  /*
+   * Member management state.
+   * PINs are never loaded from the database.
+   */
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [managingMemberId, setManagingMemberId] = useState<string | null>(null);
+
   useEffect(() => {
     void loadMembers();
   }, []);
@@ -149,6 +157,148 @@ export default function FamilyMembersPage() {
     }
   }
 
+
+  async function handleEditMember(
+    member: FamilyMember
+  ) {
+    setMessage("");
+    setError("");
+    setEditingMemberId(member.member_id);
+    setEditingName(member.display_name);
+  }
+
+  function cancelEditMember() {
+    setEditingMemberId(null);
+    setEditingName("");
+  }
+
+  async function saveMemberName(memberId: string) {
+    setMessage("");
+    setError("");
+
+    const cleanName = editingName.trim();
+
+    if (!cleanName) {
+      setError("Please enter a Family Member name.");
+      return;
+    }
+
+    if (cleanName.length > 80) {
+      setError("Family Member name cannot exceed 80 characters.");
+      return;
+    }
+
+    try {
+      setManagingMemberId(memberId);
+
+      const {
+        data,
+        error: updateError,
+      } = await supabase.rpc(
+        "update_family_member_name",
+        {
+          p_member_id: memberId,
+          p_display_name: cleanName,
+        }
+      );
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error(
+          "The Family Member name was not updated."
+        );
+      }
+
+      setMessage(
+        "Family Member name updated successfully."
+      );
+
+      setEditingMemberId(null);
+      setEditingName("");
+
+      await loadMembers();
+    } catch (err) {
+      console.error(
+        "Family member name update error:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We could not update this Family Member."
+      );
+    } finally {
+      setManagingMemberId(null);
+    }
+  }
+
+  async function handleDeleteMember(
+    member: FamilyMember
+  ) {
+    setMessage("");
+    setError("");
+
+    const confirmed = window.confirm(
+      `Delete ${member.display_name}? This will permanently remove this Family Member, their personal progress, their ${member.total_xp.toLocaleString()} XP, quiz/challenge history, and active sessions. Their XP will also be removed from the Family Total XP. This cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setManagingMemberId(member.member_id);
+
+      const {
+        data,
+        error: deleteError,
+      } = await supabase.rpc(
+        "delete_family_member",
+        {
+          p_member_id: member.member_id,
+        }
+      );
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      const result = Array.isArray(data)
+        ? data[0]
+        : data;
+
+      const removedXp =
+        Number(result?.xp_removed ?? member.total_xp);
+
+      setMessage(
+        `${member.display_name} was deleted. ${removedXp.toLocaleString()} XP was removed from the Family Total XP.`
+      );
+
+      if (editingMemberId === member.member_id) {
+        cancelEditMember();
+      }
+
+      await loadMembers();
+    } catch (err) {
+      console.error(
+        "Family member deletion error:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We could not delete this Family Member."
+      );
+    } finally {
+      setManagingMemberId(null);
+    }
+  }
+
   if (loading) {
     return (
       <main className="sq-page">
@@ -203,7 +353,7 @@ export default function FamilyMembersPage() {
               fontWeight: 900,
             }}
           >
-            Add Family Members
+            Manage Family Members
           </h1>
           <p
             style={{
@@ -213,9 +363,9 @@ export default function FamilyMembersPage() {
               lineHeight: 1.7,
             }}
           >
-            Create up to 5 internal Family Member profiles. They do not need
-            separate email accounts or subscriptions. Each member uses their
-            name and 4-digit PIN to access their own dashboard and progress.
+            Create up to 5 internal Family Member profiles, edit their names,
+            or permanently remove a member and their personal progress. Each
+            member uses their name and 4-digit PIN to access their own dashboard.
           </p>
         </section>
 
@@ -230,7 +380,7 @@ export default function FamilyMembersPage() {
           <section className="sq-card" style={{ padding: "28px" }}>
             <div className="sq-badge">{members.length} / 5 Members</div>
             <h2 style={{ margin: "12px 0 6px", fontSize: "24px", fontWeight: 900 }}>
-              Create a member
+              Add a member
             </h2>
             <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
               Choose the member's display name and create their private PIN.
@@ -335,47 +485,234 @@ export default function FamilyMembersPage() {
                       background: "var(--card)",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        alignItems: "center",
-                      }}
-                    >
+                    {editingMemberId === member.member_id ? (
                       <div>
-                        <strong style={{ fontSize: "17px" }}>
-                          {member.display_name}
-                        </strong>
-                        <div style={{ marginTop: "4px", color: "var(--muted)", fontSize: "12px" }}>
-                          Level {member.current_level} · {member.total_xp.toLocaleString()} XP
+                        <div
+                          style={{
+                            fontWeight: 900,
+                            marginBottom: "8px",
+                          }}
+                        >
+                          Edit Member Name
+                        </div>
+
+                        <input
+                          value={editingName}
+                          onChange={(event) =>
+                            setEditingName(
+                              event.target.value
+                            )
+                          }
+                          maxLength={80}
+                          autoFocus
+                          style={inputStyle}
+                        />
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            marginTop: "10px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void saveMemberName(
+                                member.member_id
+                              )
+                            }
+                            disabled={
+                              managingMemberId ===
+                              member.member_id
+                            }
+                            className="sq-button-primary"
+                            style={{
+                              border: "none",
+                              cursor:
+                                managingMemberId ===
+                                member.member_id
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity:
+                                managingMemberId ===
+                                member.member_id
+                                  ? 0.6
+                                  : 1,
+                            }}
+                          >
+                            {managingMemberId ===
+                            member.member_id
+                              ? "Saving..."
+                              : "Save Name"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={
+                              cancelEditMember
+                            }
+                            disabled={
+                              managingMemberId ===
+                              member.member_id
+                            }
+                            className="sq-button-secondary"
+                            style={{
+                              border: "none",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Cancel
+                          </button>
                         </div>
                       </div>
+                    ) : (
+                      <>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div>
+                            <strong
+                              style={{
+                                fontSize: "17px",
+                              }}
+                            >
+                              {member.display_name}
+                            </strong>
 
-                      <span
-                        className="sq-badge"
-                        style={{
-                          background: member.is_active ? "#dcfce7" : "#f1f5f9",
-                          color: member.is_active ? "#166534" : "#64748b",
-                          fontSize: "11px",
-                        }}
-                      >
-                        {member.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </div>
+                            <div
+                              style={{
+                                marginTop: "4px",
+                                color: "var(--muted)",
+                                fontSize: "12px",
+                              }}
+                            >
+                              Level{" "}
+                              {member.current_level} ·{" "}
+                              {member.total_xp.toLocaleString()} XP
+                            </div>
+                          </div>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
-                        gap: "8px",
-                        marginTop: "14px",
-                      }}
-                    >
-                      <MiniStat label="Questions" value={member.questions_answered} />
-                      <MiniStat label="Correct" value={member.correct_answers} />
-                      <MiniStat label="Accuracy" value={`${member.accuracy}%`} />
-                    </div>
+                          <span
+                            className="sq-badge"
+                            style={{
+                              background:
+                                member.is_active
+                                  ? "#dcfce7"
+                                  : "#f1f5f9",
+                              color:
+                                member.is_active
+                                  ? "#166534"
+                                  : "#64748b",
+                              fontSize: "11px",
+                            }}
+                          >
+                            {member.is_active
+                              ? "Active"
+                              : "Inactive"}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns:
+                              "repeat(3, 1fr)",
+                            gap: "8px",
+                            marginTop: "14px",
+                          }}
+                        >
+                          <MiniStat
+                            label="Questions"
+                            value={
+                              member.questions_answered
+                            }
+                          />
+                          <MiniStat
+                            label="Correct"
+                            value={
+                              member.correct_answers
+                            }
+                          />
+                          <MiniStat
+                            label="Accuracy"
+                            value={`${member.accuracy}%`}
+                          />
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            marginTop: "14px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleEditMember(
+                                member
+                              )
+                            }
+                            disabled={
+                              managingMemberId ===
+                              member.member_id
+                            }
+                            className="sq-button-secondary"
+                            style={{
+                              border: "none",
+                              cursor: "pointer",
+                              padding:
+                                "9px 12px",
+                            }}
+                          >
+                            ✏️ Edit Name
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleDeleteMember(
+                                member
+                              )
+                            }
+                            disabled={
+                              managingMemberId ===
+                              member.member_id
+                            }
+                            style={{
+                              border:
+                                "1px solid #fecaca",
+                              background: "#fef2f2",
+                              color: "#b91c1c",
+                              borderRadius:
+                                "10px",
+                              padding:
+                                "9px 12px",
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              opacity:
+                                managingMemberId ===
+                                member.member_id
+                                  ? 0.6
+                                  : 1,
+                            }}
+                          >
+                            {managingMemberId ===
+                            member.member_id
+                              ? "Working..."
+                              : "🗑️ Delete"}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))
               )}

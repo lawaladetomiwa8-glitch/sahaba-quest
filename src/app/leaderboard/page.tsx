@@ -331,8 +331,42 @@ export default function LeaderboardPage() {
       const allTimeData =
         (data ?? []) as unknown as AllTimeLeaderboardResult[];
 
+      // Family accounts belong on the Family Leaderboard, not here.
+      // We keep the existing query intact and filter them safely in memory.
+      const allTimeUserIds = allTimeData
+        .map((player) => player.user_id)
+        .filter(Boolean);
+
+      const familyUserIds = new Set<string>();
+
+      if (allTimeUserIds.length > 0) {
+        const {
+          data: familyProfiles,
+          error: familyProfilesError,
+        } = await supabase
+          .from("profiles")
+          .select("id")
+          .in("id", allTimeUserIds)
+          .eq("account_type", "family");
+
+        if (familyProfilesError) {
+          setMessage(familyProfilesError.message);
+          setLoading(false);
+          return;
+        }
+
+        for (const familyProfile of familyProfiles ?? []) {
+          familyUserIds.add(familyProfile.id);
+        }
+      }
+
+      const individualAllTimeData =
+        allTimeData.filter(
+          (player) => !familyUserIds.has(player.user_id)
+        );
+
       const formattedPlayers: LeaderboardRow[] =
-        allTimeData.map(
+        individualAllTimeData.map(
           (
             player: AllTimeLeaderboardResult
           ) => {
@@ -420,8 +454,40 @@ export default function LeaderboardPage() {
     const monthlyData =
       (data ?? []) as MonthlyLeaderboardResult[];
 
+    const monthlyUserIds = monthlyData
+      .map((player) => player.user_id)
+      .filter(Boolean);
+
+    const monthlyFamilyUserIds = new Set<string>();
+
+    if (monthlyUserIds.length > 0) {
+      const {
+        data: monthlyFamilyProfiles,
+        error: monthlyFamilyProfilesError,
+      } = await supabase
+        .from("profiles")
+        .select("id")
+        .in("id", monthlyUserIds)
+        .eq("account_type", "family");
+
+      if (monthlyFamilyProfilesError) {
+        setMessage(monthlyFamilyProfilesError.message);
+        setLoading(false);
+        return;
+      }
+
+      for (const familyProfile of monthlyFamilyProfiles ?? []) {
+        monthlyFamilyUserIds.add(familyProfile.id);
+      }
+    }
+
+    const individualMonthlyData =
+      monthlyData.filter(
+        (player) => !monthlyFamilyUserIds.has(player.user_id)
+      );
+
     const formattedPlayers: LeaderboardRow[] =
-      monthlyData
+      individualMonthlyData
         .filter(
           (
             player: MonthlyLeaderboardResult
@@ -498,9 +564,34 @@ export default function LeaderboardPage() {
           (previousData ??
             []) as MonthlyLeaderboardResult[];
 
+        const previousUserIds = previousMonthlyData
+          .map((player) => player.user_id)
+          .filter(Boolean);
+
+        const previousFamilyUserIds = new Set<string>();
+
+        if (previousUserIds.length > 0) {
+          const {
+            data: previousFamilyProfiles,
+          } = await supabase
+            .from("profiles")
+            .select("id")
+            .in("id", previousUserIds)
+            .eq("account_type", "family");
+
+          for (const familyProfile of previousFamilyProfiles ?? []) {
+            previousFamilyUserIds.add(familyProfile.id);
+          }
+        }
+
+        const previousIndividualData =
+          previousMonthlyData.filter(
+            (player) => !previousFamilyUserIds.has(player.user_id)
+          );
+
         const previousPlayers:
           LeaderboardRow[] =
-          previousMonthlyData
+          previousIndividualData
             .filter(
               (
                 player: MonthlyLeaderboardResult

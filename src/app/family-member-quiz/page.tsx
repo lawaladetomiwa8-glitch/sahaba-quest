@@ -137,6 +137,16 @@ export default function FamilyMemberQuizPage() {
   const timeoutSubmittedRef = useRef(false);
   const questionLoadIdRef = useRef(0);
 
+  // Prevent React development-mode remounts from starting
+  // the same Family Member quiz session twice.
+  const initializedRef = useRef(false);
+
+  // Prevent two question requests from running at the same time.
+  const loadingQuestionRef = useRef(false);
+
+  // Prevent duplicate answer submissions from rapid clicks/timer expiry.
+  const submittingRef = useRef(false);
+
   const getToken = useCallback(async () => {
     if (typeof window === "undefined") return null;
     return sessionStorage.getItem(SESSION_KEY);
@@ -150,8 +160,17 @@ export default function FamilyMemberQuizPage() {
   }, []);
 
   useEffect(() => {
-    initialise();
-    return () => clearTimer();
+    if (initializedRef.current) {
+      return;
+    }
+
+    initializedRef.current = true;
+
+    void initialise();
+
+    return () => {
+      clearTimer();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -316,6 +335,15 @@ export default function FamilyMemberQuizPage() {
   }, [question, gameSession, answerResult]);
 
   async function loadQuestion(token: string, sessionId: string) {
+    // Never allow two question-loading RPCs to run simultaneously.
+    // Otherwise the second request can replace the database's active
+    // question while the first question is still visible on screen.
+    if (loadingQuestionRef.current) {
+      return;
+    }
+
+    loadingQuestionRef.current = true;
+
     const loadId = ++questionLoadIdRef.current;
 
     setLoadingQuestion(true);
@@ -350,12 +378,26 @@ export default function FamilyMemberQuizPage() {
       console.error("Family Member question error:", err);
       setError(getErrorMessage(err, "We could not load the next question."));
     } finally {
+      loadingQuestionRef.current = false;
       setLoadingQuestion(false);
     }
   }
 
   async function submitAnswer(answer: string, fromTimeout = false) {
-    if (!question || !gameSession || submitting || answerResult) return;
+    if (
+      !question ||
+      !gameSession ||
+      submitting ||
+      answerResult ||
+      submittingRef.current
+    ) {
+      return;
+    }
+
+    // Capture the exact question being submitted before any state changes.
+    const submittedQuestionId = question.id;
+
+    submittingRef.current = true;
 
     const token = await getToken();
     if (!token) {
@@ -375,7 +417,7 @@ export default function FamilyMemberQuizPage() {
         {
           p_session_token: token,
           p_session_id: gameSession.session_id,
-          p_question_id: question.id,
+          p_question_id: submittedQuestionId,
           p_selected_answer: fromTimeout ? "" : answer,
           p_response_time_ms: fromTimeout ? QUESTION_TIME_MS : null,
         }
@@ -423,6 +465,7 @@ export default function FamilyMemberQuizPage() {
       setError(getErrorMessage(err, "We could not submit your answer."));
       setSelectedAnswer("");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
