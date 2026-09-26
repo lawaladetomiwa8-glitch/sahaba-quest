@@ -21,13 +21,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   /* =====================================================
-     CLEAR ANY OLD FAMILY MEMBER SESSION
+     PASSWORD RESET REDIRECT
+     
+     IMPORTANT:
+     This must point directly to the password reset page.
+  ====================================================== */
 
-     Family Member authentication is separate from the
-     normal Supabase Auth account session. If a user previously
-     played as a Family Member and later opens the normal login
-     page, that old browser-only member session must not affect
-     the account they are about to sign into.
+  const PASSWORD_RESET_REDIRECT =
+    "https://sahabaquest.com.ng/update-password";
+
+  /* =====================================================
+     CLEAR ANY OLD FAMILY MEMBER SESSION
   ====================================================== */
 
   useEffect(() => {
@@ -39,16 +43,77 @@ export default function LoginPage() {
   }, []);
 
   /* =====================================================
+     CHECK WHETHER CURRENT URL IS A PASSWORD RECOVERY URL
+     
+     We must NOT treat a recovery session as a normal
+     logged-in session.
+  ====================================================== */
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const checkRecoveryUrl = () => {
+      const url = new URL(window.location.href);
+
+      const type =
+        url.searchParams.get("type");
+
+      const hashParams = new URLSearchParams(
+        window.location.hash.replace(/^#/, "")
+      );
+
+      const hashType =
+        hashParams.get("type");
+
+      const hasAccessToken =
+        hashParams.has("access_token");
+
+      const isRecovery =
+        type === "recovery" ||
+        hashType === "recovery" ||
+        hasAccessToken;
+
+      if (isRecovery) {
+        router.replace("/update-password");
+      }
+    };
+
+    checkRecoveryUrl();
+  }, [router]);
+
+  /* =====================================================
+     SUPABASE AUTH STATE LISTENER
+
+     PASSWORD_RECOVERY must ALWAYS go to the
+     update-password page.
+  ====================================================== */
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (
+          event === "PASSWORD_RECOVERY" &&
+          session
+        ) {
+          router.replace("/update-password");
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
+
+  /* =====================================================
      CHECK EXISTING NORMAL AUTH SESSION
 
      IMPORTANT:
-     Password recovery sessions must NOT be redirected
-     to the dashboard.
-
-     When a user clicks the password reset link, Supabase
-     creates a temporary recovery session. That session must
-     be sent to /update-password so the user can choose a
-     new password.
+     Do not redirect recovery sessions to dashboard.
   ====================================================== */
 
   useEffect(() => {
@@ -57,84 +122,44 @@ export default function LoginPage() {
     const checkUser = async () => {
       try {
         /*
-         * ---------------------------------------------------
-         * FIRST: CHECK WHETHER THIS IS A PASSWORD RECOVERY
-         * ---------------------------------------------------
-         *
-         * Supabase may return the recovery information in
-         * the URL hash or query string.
-         *
-         * Examples:
-         *
-         * #access_token=...&type=recovery
-         *
-         * ?code=...
-         *
-         * If this is a recovery flow, NEVER redirect the
-         * user to the dashboard.
+         * First check whether the browser is currently
+         * handling a password recovery.
          */
 
-        const currentUrl =
-          typeof window !== "undefined"
-            ? window.location.href
-            : "";
+        if (typeof window !== "undefined") {
+          const url = new URL(
+            window.location.href
+          );
 
-        const isRecoveryUrl =
-          currentUrl.includes("type=recovery") ||
-          currentUrl.includes("access_token=");
+          const type =
+            url.searchParams.get("type");
 
-        if (isRecoveryUrl) {
-          router.replace("/update-password");
-          return;
-        }
+          const hashParams =
+            new URLSearchParams(
+              window.location.hash.replace(
+                /^#/,
+                ""
+              )
+            );
 
-        /*
-         * ---------------------------------------------------
-         * CHECK CURRENT SUPABASE SESSION
-         * ---------------------------------------------------
-         */
+          const hashType =
+            hashParams.get("type");
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+          const hasAccessToken =
+            hashParams.has("access_token");
 
-        if (!mounted) {
-          return;
-        }
+          const isRecovery =
+            type === "recovery" ||
+            hashType === "recovery" ||
+            hasAccessToken;
 
-        /*
-         * If a session exists, make sure it is not a
-         * password recovery session.
-         */
-
-        if (session) {
-          /*
-           * A recovery session can be identified through
-           * the URL or through Supabase's auth state event.
-           *
-           * Do not automatically send a recovery user
-           * to the dashboard.
-           */
-
-          const recoveryUrl =
-            typeof window !== "undefined"
-              ? window.location.href
-              : "";
-
-          if (
-            recoveryUrl.includes("type=recovery") ||
-            recoveryUrl.includes("access_token=")
-          ) {
-            router.replace("/update-password");
+          if (isRecovery) {
+            router.replace(
+              "/update-password"
+            );
             return;
           }
         }
-
-        /*
-         * ---------------------------------------------------
-         * NORMAL EXISTING SESSION
-         * ---------------------------------------------------
-         */
 
         const {
           data: { user },
@@ -143,6 +168,12 @@ export default function LoginPage() {
         if (!mounted || !user) {
           return;
         }
+
+        /*
+         * Get the user's account type so normal
+         * authenticated users are sent to the
+         * correct dashboard.
+         */
 
         const {
           data: profile,
@@ -170,14 +201,10 @@ export default function LoginPage() {
         const accountType =
           profile?.account_type || "free";
 
-        /*
-         * ---------------------------------------------------
-         * SEND NORMAL USER TO CORRECT DASHBOARD
-         * ---------------------------------------------------
-         */
-
         if (accountType === "family") {
-          router.replace("/family-dashboard");
+          router.replace(
+            "/family-dashboard"
+          );
         } else {
           router.replace("/dashboard");
         }
@@ -191,50 +218,13 @@ export default function LoginPage() {
 
     checkUser();
 
-    /*
-     * -----------------------------------------------------
-     * LISTEN FOR SUPABASE AUTH EVENTS
-     * -----------------------------------------------------
-     */
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!mounted) {
-          return;
-        }
-
-        /*
-         * CRITICAL:
-         *
-         * When Supabase fires PASSWORD_RECOVERY, the user
-         * has clicked a password reset link.
-         *
-         * Do NOT send them to the dashboard.
-         *
-         * Send them to the page where they can create
-         * their new password.
-         */
-
-        if (
-          event === "PASSWORD_RECOVERY" &&
-          session
-        ) {
-          router.replace("/update-password");
-          return;
-        }
-      }
-    );
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, [router]);
 
   /* =====================================================
-     HANDLE LOGIN
+     HANDLE NORMAL LOGIN
   ====================================================== */
 
   const handleLogin = async (
@@ -244,13 +234,16 @@ export default function LoginPage() {
 
     setMessage("");
 
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail =
+      email.trim().toLowerCase();
 
     if (!cleanEmail || !password) {
       setMessageType("error");
+
       setMessage(
         "Please enter your email and password."
       );
+
       return;
     }
 
@@ -258,8 +251,7 @@ export default function LoginPage() {
       setLoading(true);
 
       /*
-       * A normal account login must never inherit an old
-       * Family Member session from this browser.
+       * Clear any old Family Member browser session.
        */
 
       if (typeof window !== "undefined") {
@@ -271,16 +263,21 @@ export default function LoginPage() {
       const {
         data,
         error,
-      } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
+      } =
+        await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
 
       if (error) {
-        console.error("Login error:", error);
+        console.error(
+          "Login error:",
+          error
+        );
 
         setMessageType("error");
         setMessage(error.message);
+
         return;
       }
 
@@ -305,6 +302,7 @@ export default function LoginPage() {
           );
 
           setMessageType("error");
+
           setMessage(
             "We couldn't verify your account profile. Please try again."
           );
@@ -312,17 +310,12 @@ export default function LoginPage() {
           return;
         }
 
-        /*
-         * Existing accounts should normally have
-         * account_type = free, individual, or family.
-         *
-         * If the profile exists but account_type is
-         * missing for any reason, we safely treat the
-         * account as free.
-         */
-
         const accountType =
           profile?.account_type || "free";
+
+        /*
+         * Validate known account types.
+         */
 
         if (
           accountType !== "free" &&
@@ -335,6 +328,7 @@ export default function LoginPage() {
           );
 
           setMessageType("error");
+
           setMessage(
             "Your account type could not be verified. Please contact support."
           );
@@ -348,8 +342,7 @@ export default function LoginPage() {
         );
 
         /*
-         * Make absolutely sure the newly authenticated normal
-         * account starts without any Family Member session.
+         * Make sure no Family Member session remains.
          */
 
         if (typeof window !== "undefined") {
@@ -359,11 +352,13 @@ export default function LoginPage() {
         }
 
         /* =================================================
-           SEND USER TO THE CORRECT DASHBOARD
+           SEND USER TO CORRECT DASHBOARD
         ================================================== */
 
         if (accountType === "family") {
-          router.replace("/family-dashboard");
+          router.replace(
+            "/family-dashboard"
+          );
         } else {
           router.replace("/dashboard");
         }
@@ -375,6 +370,7 @@ export default function LoginPage() {
       );
 
       setMessageType("error");
+
       setMessage(
         "Something went wrong while signing in. Please try again."
       );
@@ -388,13 +384,16 @@ export default function LoginPage() {
   ====================================================== */
 
   const handleForgotPassword = async () => {
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail =
+      email.trim().toLowerCase();
 
     if (!cleanEmail) {
       setMessageType("error");
+
       setMessage(
         "Please enter your email address first."
       );
+
       return;
     }
 
@@ -404,25 +403,26 @@ export default function LoginPage() {
 
       /*
        * IMPORTANT:
-       *
-       * Always send password-reset users to the
-       * production password update page.
-       *
-       * This prevents the reset flow from going to
-       * localhost or a Vercel deployment URL.
+       * Always use the production password reset page.
        */
 
       const redirectTo =
-        "https://sahabaquest.com.ng/update-password";
+        PASSWORD_RESET_REDIRECT;
+
+      console.log(
+        "Password reset redirect:",
+        redirectTo
+      );
 
       const {
         error,
-      } = await supabase.auth.resetPasswordForEmail(
-        cleanEmail,
-        {
-          redirectTo,
-        }
-      );
+      } =
+        await supabase.auth.resetPasswordForEmail(
+          cleanEmail,
+          {
+            redirectTo,
+          }
+        );
 
       if (error) {
         console.error(
@@ -432,6 +432,7 @@ export default function LoginPage() {
 
         setMessageType("error");
         setMessage(error.message);
+
         return;
       }
 
@@ -505,7 +506,6 @@ export default function LoginPage() {
               </span>
 
               <div>
-
                 <strong>
                   Interactive Learning
                 </strong>
@@ -514,7 +514,6 @@ export default function LoginPage() {
                   Learn through engaging questions,
                   challenges and quests.
                 </p>
-
               </div>
 
             </div>
@@ -526,7 +525,6 @@ export default function LoginPage() {
               </span>
 
               <div>
-
                 <strong>
                   Friendly Competition
                 </strong>
@@ -535,7 +533,6 @@ export default function LoginPage() {
                   Build XP and compete with other
                   learners.
                 </p>
-
               </div>
 
             </div>
@@ -547,7 +544,6 @@ export default function LoginPage() {
               </span>
 
               <div>
-
                 <strong>
                   Meaningful Knowledge
                 </strong>
@@ -556,7 +552,6 @@ export default function LoginPage() {
                   Discover lessons from the lives
                   of the Sahabah.
                 </p>
-
               </div>
 
             </div>
@@ -618,7 +613,9 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(event) =>
-                  setEmail(event.target.value)
+                  setEmail(
+                    event.target.value
+                  )
                 }
                 autoComplete="email"
                 autoFocus
@@ -662,7 +659,8 @@ export default function LoginPage() {
                   className="password-toggle"
                   onClick={() =>
                     setShowPassword(
-                      (previous) => !previous
+                      (previous) =>
+                        !previous
                     )
                   }
                 >
@@ -682,7 +680,9 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="forgot-button"
-                onClick={handleForgotPassword}
+                onClick={
+                  handleForgotPassword
+                }
                 disabled={resetLoading}
               >
                 {resetLoading
@@ -756,10 +756,6 @@ export default function LoginPage() {
           grid-template-columns: 0.9fr 1.1fr;
           background: #f7faf9;
         }
-
-        /* ================================================
-           BRAND PANEL
-        ================================================= */
 
         .brand-panel {
           position: relative;
@@ -916,10 +912,6 @@ export default function LoginPage() {
           color: white;
         }
 
-        /* ================================================
-           LOGIN PANEL
-        ================================================= */
-
         .login-panel {
           display: flex;
           align-items: center;
@@ -965,10 +957,6 @@ export default function LoginPage() {
           line-height: 1.6;
         }
 
-        /* ================================================
-           FORM
-        ================================================= */
-
         .form-group {
           margin-bottom: 19px;
         }
@@ -996,6 +984,7 @@ export default function LoginPage() {
           transition:
             border-color 0.2s ease,
             box-shadow 0.2s ease;
+          box-sizing: border-box;
         }
 
         .form-input:focus {
@@ -1064,10 +1053,6 @@ export default function LoginPage() {
           opacity: 0.65;
         }
 
-        /* ================================================
-           MESSAGE
-        ================================================= */
-
         .form-message {
           margin-bottom: 18px;
           padding: 13px 15px;
@@ -1089,10 +1074,6 @@ export default function LoginPage() {
           border:
             1px solid #f0d3d3;
         }
-
-        /* ================================================
-           LOGIN BUTTON
-        ================================================= */
 
         .login-button {
           width: 100%;
@@ -1122,10 +1103,6 @@ export default function LoginPage() {
           opacity: 0.65;
         }
 
-        /* ================================================
-           SIGNUP
-        ================================================= */
-
         .signup-link {
           display: flex;
           justify-content: center;
@@ -1153,10 +1130,6 @@ export default function LoginPage() {
           line-height: 1.6;
           text-align: center;
         }
-
-        /* ================================================
-           RESPONSIVE
-        ================================================= */
 
         @media (max-width: 1050px) {
 
@@ -1235,6 +1208,7 @@ export default function LoginPage() {
         }
 
       `}</style>
+
     </main>
   );
 }
