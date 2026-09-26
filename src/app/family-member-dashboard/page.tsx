@@ -297,6 +297,7 @@ export default function FamilyMemberDashboardPage() {
         {/* FAMILY MEMBER NAVIGATION */}
         <nav
           aria-label="Family Member navigation"
+          className="family-member-nav"
           style={{
             position: "sticky",
             top: "12px",
@@ -311,6 +312,7 @@ export default function FamilyMemberDashboardPage() {
           }}
         >
           <div
+            className="family-member-nav-inner"
             style={{
               display: "flex",
               alignItems: "center",
@@ -320,6 +322,7 @@ export default function FamilyMemberDashboardPage() {
             }}
           >
             <div
+              className="family-member-nav-brand"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -355,6 +358,7 @@ export default function FamilyMemberDashboardPage() {
             </div>
 
             <div
+              className="family-member-nav-links"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -364,6 +368,7 @@ export default function FamilyMemberDashboardPage() {
             >
               <button
                 type="button"
+                className="family-member-nav-button"
                 onClick={() => router.push("/family-member-dashboard")}
                 style={{
                   border: "1px solid var(--border)",
@@ -380,6 +385,7 @@ export default function FamilyMemberDashboardPage() {
 
               <button
                 type="button"
+                className="family-member-nav-button"
                 onClick={() => router.push("/family-member-challenges")}
                 style={{
                   border: "1px solid var(--border)",
@@ -396,6 +402,7 @@ export default function FamilyMemberDashboardPage() {
 
               <button
                 type="button"
+                className="family-member-nav-button family-dashboard-button"
                 onClick={() => router.push("/family-dashboard")}
                 style={{
                   border: "none",
@@ -417,7 +424,7 @@ export default function FamilyMemberDashboardPage() {
 
         {/* WELCOME HERO */}
         <section
-          className="sq-card"
+          className="sq-card family-member-hero"
           style={{
             padding: "36px",
             background:
@@ -535,7 +542,7 @@ export default function FamilyMemberDashboardPage() {
 
         {/* FAMILY ACCOUNT */}
         <section
-          className="sq-card"
+          className="sq-card family-member-account-card"
           style={{
             marginTop: "20px",
             padding: "22px 26px",
@@ -601,6 +608,7 @@ export default function FamilyMemberDashboardPage() {
 
         {/* STATS */}
         <section
+          className="family-member-stats-grid"
           style={{
             display: "grid",
             gridTemplateColumns:
@@ -700,7 +708,7 @@ export default function FamilyMemberDashboardPage() {
 
         {/* FAMILY TOTAL */}
         <section
-          className="sq-card"
+          className="sq-card family-member-total-card"
           style={{
             marginTop: "20px",
             padding: "26px 28px",
@@ -1001,7 +1009,7 @@ export default function FamilyMemberDashboardPage() {
 
           {/* QUICK ACTIONS */}
           <div
-            className="sq-card"
+            className="sq-card family-member-quick-actions"
             style={{
               padding: "28px",
             }}
@@ -1095,7 +1103,7 @@ export default function FamilyMemberDashboardPage() {
 
         {/* FAMILY LEADERBOARD */}
         <section
-          className="sq-card"
+          className="sq-card family-member-leaderboard-card"
           style={{
             marginTop: "20px",
             padding: "28px",
@@ -1305,7 +1313,7 @@ export default function FamilyMemberDashboardPage() {
 
         {/* LEARNING MOTIVATION */}
         <section
-          className="sq-card"
+          className="sq-card family-member-motivation-card"
           style={{
             marginTop: "20px",
             padding: "28px",
@@ -1401,8 +1409,15 @@ export default function FamilyMemberDashboardPage() {
       </div>
 
       <style jsx>{`
+        /*
+         * FAMILY MEMBER DASHBOARD — MOBILE RESPONSIVE
+         * All rules are scoped to this page. The global header,
+         * navbar, and spacing fixes remain untouched.
+         */
+
         .family-member-main-grid {
           width: 100%;
+          min-width: 0;
         }
 
         @media (max-width: 800px) {
@@ -1414,12 +1429,211 @@ export default function FamilyMemberDashboardPage() {
           .family-member-main-grid > * {
             width: 100% !important;
             min-width: 0 !important;
+            box-sizing: border-box !important;
           }
         }
 
         @media (max-width: 600px) {
+          /* Custom Family Member navigation */
+          .family-member-nav {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            margin-bottom: 16px !important;
+            padding: 10px !important;
+          }
+
+          .family-member-nav-inner {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+
+          .family-member-nav-brand {
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          .family-member-nav-links {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+
+          .family-member-nav-button {
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            padding: 9px 8px !important;
+            white-space: nowrap !important;
+            font-size: 13px !important;
+          }
+
+          .family-member-nav-button.family-dashboard-button {
+            grid-column: 1 / -1 !important;
+          }
+
+          /* Welcome card */
+          .family-member-hero {
+            padding: 24px 20px !important;
+          }
+
+          .family-member-hero h1 {
+            font-size: clamp(30px, 9vw, 42px) !important;
+            line-height: 1.08 !important;
+            letter-spacing: -0.8px !important;
+            overflow-wrap: anywhere !important;
+          }
+
+          .family-member-hero p {
+            max-width: 100% !important;
+            font-size: 15px !important;
+            line-height: 1.65 !important;
+          }
+
+          .family-member-hero > div:last-child {
+            max-width: 100% !important;
+          }
+
+          .family-member-hero a,
+          .family-member-hero button {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            justify-content: center !important;
+          }
+
+          /* Family progress / switch member */
+          .family-member-account-card {
+            padding: 20px !important;
+          }
+
+          .family-member-account-card > div {
+            align-items: stretch !important;
+          }
+
+          .family-member-account-card button {
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          /* Four stats: two columns on a phone */
+          .family-member-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+          }
+
+          .family-member-stats-grid .sq-stat {
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            padding: 16px !important;
+          }
+
+          .family-member-stats-grid .sq-stat-value {
+            font-size: 24px !important;
+          }
+
+          /* Family XP card */
+          .family-member-total-card {
+            padding: 20px !important;
+          }
+
+          .family-member-total-card > div {
+            align-items: flex-start !important;
+          }
+
+          .family-member-total-card > div > div:last-child {
+            width: 100% !important;
+            min-width: 0 !important;
+            text-align: left !important;
+          }
+
+          /* Journey and quick actions */
           .family-member-main-grid .sq-card {
-            padding: 22px !important;
+            padding: 20px !important;
+          }
+
+          .family-member-main-grid .sq-card > div:first-child {
+            gap: 12px !important;
+          }
+
+          .family-member-main-grid h2 {
+            font-size: 22px !important;
+          }
+
+          .family-member-main-grid .sq-stat {
+            min-width: 0 !important;
+          }
+
+          /* Keep the journey XP from squeezing the heading. */
+          .family-member-main-grid > div:first-child > div:first-child {
+            flex-wrap: wrap !important;
+          }
+
+          /* Family leaderboard */
+          .family-member-leaderboard-card {
+            padding: 20px !important;
+          }
+
+          .family-member-leaderboard-card > div:first-child {
+            gap: 10px !important;
+          }
+
+          .family-member-leaderboard-card > div:last-child > div {
+            grid-template-columns: 42px minmax(0, 1fr) !important;
+            gap: 10px !important;
+            position: relative !important;
+            padding: 13px !important;
+          }
+
+          .family-member-leaderboard-card > div:last-child > div > div:last-child {
+            grid-column: 2 !important;
+            text-align: left !important;
+          }
+
+          /* Motivation card */
+          .family-member-motivation-card {
+            padding: 22px 20px !important;
+          }
+
+          .family-member-motivation-card > div {
+            align-items: stretch !important;
+          }
+
+          .family-member-motivation-card a {
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          /* Prevent accidental horizontal overflow on this page. */
+          .family-member-nav,
+          .family-member-hero,
+          .family-member-account-card,
+          .family-member-total-card,
+          .family-member-main-grid,
+          .family-member-leaderboard-card,
+          .family-member-motivation-card {
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .family-member-nav-links {
+            grid-template-columns: 1fr !important;
+          }
+
+          .family-member-nav-button.family-dashboard-button {
+            grid-column: auto !important;
+          }
+
+          .family-member-stats-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+
+          .family-member-hero h1 {
+            font-size: 30px !important;
           }
         }
       `}</style>
