@@ -40,44 +40,197 @@ export default function LoginPage() {
 
   /* =====================================================
      CHECK EXISTING NORMAL AUTH SESSION
+
+     IMPORTANT:
+     Password recovery sessions must NOT be redirected
+     to the dashboard.
+
+     When a user clicks the password reset link, Supabase
+     creates a temporary recovery session. That session must
+     be sent to /update-password so the user can choose a
+     new password.
   ====================================================== */
 
   useEffect(() => {
+    let mounted = true;
+
     const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        /*
+         * ---------------------------------------------------
+         * FIRST: CHECK WHETHER THIS IS A PASSWORD RECOVERY
+         * ---------------------------------------------------
+         *
+         * Supabase may return the recovery information in
+         * the URL hash or query string.
+         *
+         * Examples:
+         *
+         * #access_token=...&type=recovery
+         *
+         * ?code=...
+         *
+         * If this is a recovery flow, NEVER redirect the
+         * user to the dashboard.
+         */
 
-      if (!user) return;
+        const currentUrl =
+          typeof window !== "undefined"
+            ? window.location.href
+            : "";
 
-      const { data: profile, error: profileError } =
-        await supabase
+        const isRecoveryUrl =
+          currentUrl.includes("type=recovery") ||
+          currentUrl.includes("access_token=");
+
+        if (isRecoveryUrl) {
+          router.replace("/update-password");
+          return;
+        }
+
+        /*
+         * ---------------------------------------------------
+         * CHECK CURRENT SUPABASE SESSION
+         * ---------------------------------------------------
+         */
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!mounted) {
+          return;
+        }
+
+        /*
+         * If a session exists, make sure it is not a
+         * password recovery session.
+         */
+
+        if (session) {
+          /*
+           * A recovery session can be identified through
+           * the URL or through Supabase's auth state event.
+           *
+           * Do not automatically send a recovery user
+           * to the dashboard.
+           */
+
+          const recoveryUrl =
+            typeof window !== "undefined"
+              ? window.location.href
+              : "";
+
+          if (
+            recoveryUrl.includes("type=recovery") ||
+            recoveryUrl.includes("access_token=")
+          ) {
+            router.replace("/update-password");
+            return;
+          }
+        }
+
+        /*
+         * ---------------------------------------------------
+         * NORMAL EXISTING SESSION
+         * ---------------------------------------------------
+         */
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!mounted || !user) {
+          return;
+        }
+
+        const {
+          data: profile,
+          error: profileError,
+        } = await supabase
           .from("profiles")
           .select("account_type")
           .eq("id", user.id)
           .maybeSingle();
 
-      if (profileError) {
+        if (!mounted) {
+          return;
+        }
+
+        if (profileError) {
+          console.error(
+            "Existing session profile lookup error:",
+            profileError
+          );
+
+          router.replace("/dashboard");
+          return;
+        }
+
+        const accountType =
+          profile?.account_type || "free";
+
+        /*
+         * ---------------------------------------------------
+         * SEND NORMAL USER TO CORRECT DASHBOARD
+         * ---------------------------------------------------
+         */
+
+        if (accountType === "family") {
+          router.replace("/family-dashboard");
+        } else {
+          router.replace("/dashboard");
+        }
+      } catch (error) {
         console.error(
-          "Existing session profile lookup error:",
-          profileError
+          "Existing session check error:",
+          error
         );
-
-        router.replace("/dashboard");
-        return;
-      }
-
-      const accountType =
-        profile?.account_type || "free";
-
-      if (accountType === "family") {
-        router.replace("/family-dashboard");
-      } else {
-        router.replace("/dashboard");
       }
     };
 
     checkUser();
+
+    /*
+     * -----------------------------------------------------
+     * LISTEN FOR SUPABASE AUTH EVENTS
+     * -----------------------------------------------------
+     */
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) {
+          return;
+        }
+
+        /*
+         * CRITICAL:
+         *
+         * When Supabase fires PASSWORD_RECOVERY, the user
+         * has clicked a password reset link.
+         *
+         * Do NOT send them to the dashboard.
+         *
+         * Send them to the page where they can create
+         * their new password.
+         */
+
+        if (
+          event === "PASSWORD_RECOVERY" &&
+          session
+        ) {
+          router.replace("/update-password");
+          return;
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   /* =====================================================
@@ -108,17 +261,20 @@ export default function LoginPage() {
        * A normal account login must never inherit an old
        * Family Member session from this browser.
        */
+
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(
           "sahabaquest_family_member_session"
         );
       }
 
-      const { data, error } =
-        await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
+      const {
+        data,
+        error,
+      } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
 
       if (error) {
         console.error("Login error:", error);
@@ -195,6 +351,7 @@ export default function LoginPage() {
          * Make absolutely sure the newly authenticated normal
          * account starts without any Family Member session.
          */
+
         if (typeof window !== "undefined") {
           sessionStorage.removeItem(
             "sahabaquest_family_member_session"
@@ -245,16 +402,27 @@ export default function LoginPage() {
       setResetLoading(true);
       setMessage("");
 
-      const redirectTo =
-        `${window.location.origin}/update-password`;
+      /*
+       * IMPORTANT:
+       *
+       * Always send password-reset users to the
+       * production password update page.
+       *
+       * This prevents the reset flow from going to
+       * localhost or a Vercel deployment URL.
+       */
 
-      const { error } =
-        await supabase.auth.resetPasswordForEmail(
-          cleanEmail,
-          {
-            redirectTo,
-          }
-        );
+      const redirectTo =
+        "https://sahabaquest.com.ng/update-password";
+
+      const {
+        error,
+      } = await supabase.auth.resetPasswordForEmail(
+        cleanEmail,
+        {
+          redirectTo,
+        }
+      );
 
       if (error) {
         console.error(
@@ -337,6 +505,7 @@ export default function LoginPage() {
               </span>
 
               <div>
+
                 <strong>
                   Interactive Learning
                 </strong>
@@ -345,6 +514,7 @@ export default function LoginPage() {
                   Learn through engaging questions,
                   challenges and quests.
                 </p>
+
               </div>
 
             </div>
@@ -356,6 +526,7 @@ export default function LoginPage() {
               </span>
 
               <div>
+
                 <strong>
                   Friendly Competition
                 </strong>
@@ -364,6 +535,7 @@ export default function LoginPage() {
                   Build XP and compete with other
                   learners.
                 </p>
+
               </div>
 
             </div>
@@ -375,6 +547,7 @@ export default function LoginPage() {
               </span>
 
               <div>
+
                 <strong>
                   Meaningful Knowledge
                 </strong>
@@ -383,6 +556,7 @@ export default function LoginPage() {
                   Discover lessons from the lives
                   of the Sahabah.
                 </p>
+
               </div>
 
             </div>
@@ -1061,7 +1235,6 @@ export default function LoginPage() {
         }
 
       `}</style>
-
     </main>
   );
 }
