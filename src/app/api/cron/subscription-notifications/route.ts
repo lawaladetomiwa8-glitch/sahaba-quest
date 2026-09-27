@@ -21,6 +21,12 @@ type SubscriptionRow = {
   } | null;
 };
 
+/*
+ * =========================================================
+ * HTML ESCAPE
+ * =========================================================
+ */
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -30,6 +36,14 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#039;");
 }
 
+/*
+ * =========================================================
+ * FORMAT DATE
+ *
+ * Subscription expiry is displayed in Nigeria time.
+ * =========================================================
+ */
+
 function formatDate(dateString: string): string {
   return new Intl.DateTimeFormat("en-NG", {
     dateStyle: "long",
@@ -37,6 +51,12 @@ function formatDate(dateString: string): string {
     timeZone: "Africa/Lagos",
   }).format(new Date(dateString));
 }
+
+/*
+ * =========================================================
+ * GET PLAN NAME
+ * =========================================================
+ */
 
 function getPlanName(
   plan: SubscriptionRow["plan"]
@@ -59,6 +79,12 @@ function getPlanName(
   );
 }
 
+/*
+ * =========================================================
+ * BUILD EMAIL HTML
+ * =========================================================
+ */
+
 function buildEmailHtml({
   title,
   message,
@@ -73,12 +99,15 @@ function buildEmailHtml({
   return `
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   />
+
   <title>${escapeHtml(title)}</title>
 </head>
 
@@ -91,6 +120,7 @@ function buildEmailHtml({
     color:#1f2937;
   "
 >
+
   <div
     style="
       max-width:620px;
@@ -102,6 +132,8 @@ function buildEmailHtml({
     "
   >
 
+    <!-- HEADER -->
+
     <div
       style="
         padding:30px 32px;
@@ -110,6 +142,7 @@ function buildEmailHtml({
         color:#ffffff;
       "
     >
+
       <h1
         style="
           margin:0;
@@ -128,7 +161,10 @@ function buildEmailHtml({
       >
         Learn. Play. Remember.
       </p>
+
     </div>
+
+    <!-- CONTENT -->
 
     <div style="padding:32px;">
 
@@ -149,6 +185,8 @@ function buildEmailHtml({
         ${escapeHtml(message)}
       </p>
 
+      <!-- EXPIRY DATE -->
+
       <div
         style="
           margin:24px 0;
@@ -157,6 +195,7 @@ function buildEmailHtml({
           border-radius:12px;
         "
       >
+
         <strong>
           Subscription expiry
         </strong>
@@ -169,7 +208,10 @@ function buildEmailHtml({
         >
           ${escapeHtml(expiryDate)}
         </div>
+
       </div>
+
+      <!-- ACTION BUTTON -->
 
       <div
         style="
@@ -177,6 +219,7 @@ function buildEmailHtml({
           margin:30px 0;
         "
       >
+
         <a
           href="https://www.sahabaquest.com.ng/dashboard"
           style="
@@ -191,7 +234,10 @@ function buildEmailHtml({
         >
           ${escapeHtml(buttonText)}
         </a>
+
       </div>
+
+      <!-- FOOTER MESSAGE -->
 
       <p
         style="
@@ -207,6 +253,8 @@ function buildEmailHtml({
 
     </div>
 
+    <!-- EMAIL FOOTER -->
+
     <div
       style="
         padding:20px 32px;
@@ -221,10 +269,17 @@ function buildEmailHtml({
     </div>
 
   </div>
+
 </body>
 </html>
 `;
 }
+
+/*
+ * =========================================================
+ * SEND SUBSCRIPTION EMAIL
+ * =========================================================
+ */
 
 async function sendSubscriptionEmail(
   subscription: SubscriptionRow,
@@ -249,7 +304,15 @@ async function sendSubscriptionEmail(
   let subject: string;
   let title: string;
   let message: string;
-  let buttonText = "Open Sahaba Quest";
+
+  let buttonText =
+    "Open Sahaba Quest";
+
+  /*
+   * ---------------------------------------------------------
+   * 7 DAYS BEFORE EXPIRY
+   * ---------------------------------------------------------
+   */
 
   if (notificationType === "7_days") {
     subject =
@@ -261,6 +324,12 @@ async function sendSubscriptionEmail(
     message =
       `Your ${planName} subscription is scheduled to expire in approximately 7 days. Renew before it expires to continue enjoying your premium Sahaba Quest features and content.`;
 
+  /*
+   * ---------------------------------------------------------
+   * 1 DAY BEFORE EXPIRY
+   * ---------------------------------------------------------
+   */
+
   } else if (notificationType === "1_day") {
     subject =
       "Your Sahaba Quest subscription expires tomorrow";
@@ -270,6 +339,12 @@ async function sendSubscriptionEmail(
 
     message =
       `Your ${planName} subscription is scheduled to expire tomorrow. If you would like to continue using your premium Sahaba Quest features and content, please renew before it expires.`;
+
+  /*
+   * ---------------------------------------------------------
+   * SUBSCRIPTION EXPIRED
+   * ---------------------------------------------------------
+   */
 
   } else {
     subject =
@@ -281,15 +356,17 @@ async function sendSubscriptionEmail(
     message =
       `Your ${planName} subscription has expired. Your account has returned to the Free plan. You can renew your subscription at any time to regain access to premium features and content.`;
 
-    buttonText = "Renew Subscription";
+    buttonText =
+      "Renew Subscription";
   }
 
-  const html = buildEmailHtml({
-    title,
-    message,
-    expiryDate,
-    buttonText,
-  });
+  const html =
+    buildEmailHtml({
+      title,
+      message,
+      expiryDate,
+      buttonText,
+    });
 
   return sendEmail({
     to: email,
@@ -297,6 +374,15 @@ async function sendSubscriptionEmail(
     html,
   });
 }
+
+/*
+ * =========================================================
+ * GET USER EMAIL
+ *
+ * Uses Supabase Admin API through the server-side
+ * service-role client.
+ * =========================================================
+ */
 
 async function getUserEmail(
   userId: string
@@ -321,6 +407,14 @@ async function getUserEmail(
   return data.user?.email || null;
 }
 
+/*
+ * =========================================================
+ * CHECK WHETHER NOTIFICATION WAS ALREADY SENT
+ *
+ * This prevents duplicate emails.
+ * =========================================================
+ */
+
 async function alreadySent(
   subscriptionId: string,
   notificationType: NotificationType
@@ -328,18 +422,21 @@ async function alreadySent(
   const {
     data,
     error,
-  } = await supabaseServer
-    .from("subscription_email_notifications")
-    .select("id")
-    .eq(
-      "subscription_id",
-      subscriptionId
-    )
-    .eq(
-      "notification_type",
-      notificationType
-    )
-    .maybeSingle();
+  } =
+    await supabaseServer
+      .from(
+        "subscription_email_notifications"
+      )
+      .select("id")
+      .eq(
+        "subscription_id",
+        subscriptionId
+      )
+      .eq(
+        "notification_type",
+        notificationType
+      )
+      .maybeSingle();
 
   if (error) {
     throw error;
@@ -348,6 +445,16 @@ async function alreadySent(
   return Boolean(data);
 }
 
+/*
+ * =========================================================
+ * RECORD SENT NOTIFICATION
+ *
+ * The database unique constraint also protects against
+ * duplicate emails if two cron executions happen at
+ * approximately the same time.
+ * =========================================================
+ */
+
 async function recordSent(
   subscriptionId: string,
   userId: string,
@@ -355,15 +462,21 @@ async function recordSent(
 ): Promise<boolean> {
   const {
     error,
-  } = await supabaseServer
-    .from(
-      "subscription_email_notifications"
-    )
-    .insert({
-      subscription_id: subscriptionId,
-      user_id: userId,
-      notification_type: notificationType,
-    });
+  } =
+    await supabaseServer
+      .from(
+        "subscription_email_notifications"
+      )
+      .insert({
+        subscription_id:
+          subscriptionId,
+
+        user_id:
+          userId,
+
+        notification_type:
+          notificationType,
+      });
 
   if (error) {
     /*
@@ -373,6 +486,7 @@ async function recordSent(
      *
      * The database unique constraint protects us.
      */
+
     if (error.code === "23505") {
       return false;
     }
@@ -383,14 +497,23 @@ async function recordSent(
   return true;
 }
 
+/*
+ * =========================================================
+ * CRON ROUTE
+ * =========================================================
+ */
+
 export async function GET(
   request: NextRequest
 ) {
   try {
     /*
-     * ---------------------------------------------------------
-     * 1. Protect the endpoint.
-     * ---------------------------------------------------------
+     * -------------------------------------------------------
+     * 1. PROTECT THE ENDPOINT
+     *
+     * Vercel sends CRON_SECRET in the Authorization header
+     * when the environment variable is configured.
+     * -------------------------------------------------------
      */
 
     const cronSecret =
@@ -418,50 +541,92 @@ export async function GET(
     }
 
     /*
-     * ---------------------------------------------------------
-     * 2. Current time.
-     * ---------------------------------------------------------
+     * -------------------------------------------------------
+     * 2. CURRENT TIME
+     * -------------------------------------------------------
      */
 
-    const now = new Date();
+    const now =
+      new Date();
+
+    /*
+     * -------------------------------------------------------
+     * 7-DAY WINDOW
+     *
+     * Subscriptions expiring between 7 and 8 days
+     * from the time this job runs are selected.
+     *
+     * This gives us a full 24-hour notification window.
+     * -------------------------------------------------------
+     */
 
     const sevenDaysFromNow =
       new Date(
         now.getTime() +
-          7 * 24 * 60 * 60 * 1000
+          7 *
+            24 *
+            60 *
+            60 *
+            1000
       );
 
     const eightDaysFromNow =
       new Date(
         now.getTime() +
-          8 * 24 * 60 * 60 * 1000
+          8 *
+            24 *
+            60 *
+            60 *
+            1000
       );
+
+    /*
+     * -------------------------------------------------------
+     * 1-DAY WINDOW
+     *
+     * Subscriptions expiring between 1 and 2 days
+     * from the time this job runs are selected.
+     *
+     * This gives us a full 24-hour notification window.
+     * -------------------------------------------------------
+     */
 
     const oneDayFromNow =
       new Date(
         now.getTime() +
-          24 * 60 * 60 * 1000
+          24 *
+            60 *
+            60 *
+            1000
       );
 
     const twoDaysFromNow =
       new Date(
         now.getTime() +
-          2 * 24 * 60 * 60 * 1000
+          2 *
+            24 *
+            60 *
+            60 *
+            1000
       );
 
     /*
-     * ---------------------------------------------------------
-     * 3. Find subscriptions approximately 7 days
-     *    from expiry.
+     * -------------------------------------------------------
+     * 3. FIND SUBSCRIPTIONS APPROXIMATELY 7 DAYS
+     *    FROM EXPIRY
      *
-     *    We use a 24-hour window because Vercel runs
-     *    this job once every hour.
-     * ---------------------------------------------------------
+     * Vercel Hobby runs this job once per day.
+     *
+     * The 24-hour window ensures subscriptions are
+     * picked up during the daily execution.
+     * -------------------------------------------------------
      */
 
     const {
-      data: sevenDaySubscriptions,
-      error: sevenDayError,
+      data:
+        sevenDaySubscriptions,
+      error:
+        sevenDayError,
     } =
       await supabaseServer
         .from("subscriptions")
@@ -478,7 +643,10 @@ export async function GET(
           )
         `
         )
-        .eq("status", "active")
+        .eq(
+          "status",
+          "active"
+        )
         .gte(
           "current_period_end",
           sevenDaysFromNow.toISOString()
@@ -492,13 +660,24 @@ export async function GET(
       throw sevenDayError;
     }
 
-    let sevenDaySent = 0;
+    let sevenDaySent =
+      0;
+
+    /*
+     * -------------------------------------------------------
+     * SEND 7-DAY EMAILS
+     * -------------------------------------------------------
+     */
 
     for (
       const subscription of
         (sevenDaySubscriptions ||
           []) as unknown as SubscriptionRow[]
     ) {
+      /*
+       * Check duplicate protection.
+       */
+
       if (
         await alreadySent(
           subscription.id,
@@ -508,6 +687,10 @@ export async function GET(
         continue;
       }
 
+      /*
+       * Retrieve registered auth email.
+       */
+
       const email =
         await getUserEmail(
           subscription.user_id
@@ -516,6 +699,10 @@ export async function GET(
       if (!email) {
         continue;
       }
+
+      /*
+       * Send email.
+       */
 
       const result =
         await sendSubscriptionEmail(
@@ -533,6 +720,10 @@ export async function GET(
         continue;
       }
 
+      /*
+       * Record successful delivery.
+       */
+
       if (
         await recordSent(
           subscription.id,
@@ -545,15 +736,17 @@ export async function GET(
     }
 
     /*
-     * ---------------------------------------------------------
-     * 4. Find subscriptions approximately 1 day
-     *    from expiry.
-     * ---------------------------------------------------------
+     * -------------------------------------------------------
+     * 4. FIND SUBSCRIPTIONS APPROXIMATELY 1 DAY
+     *    FROM EXPIRY
+     * -------------------------------------------------------
      */
 
     const {
-      data: oneDaySubscriptions,
-      error: oneDayError,
+      data:
+        oneDaySubscriptions,
+      error:
+        oneDayError,
     } =
       await supabaseServer
         .from("subscriptions")
@@ -570,7 +763,10 @@ export async function GET(
           )
         `
         )
-        .eq("status", "active")
+        .eq(
+          "status",
+          "active"
+        )
         .gte(
           "current_period_end",
           oneDayFromNow.toISOString()
@@ -584,13 +780,24 @@ export async function GET(
       throw oneDayError;
     }
 
-    let oneDaySent = 0;
+    let oneDaySent =
+      0;
+
+    /*
+     * -------------------------------------------------------
+     * SEND 1-DAY EMAILS
+     * -------------------------------------------------------
+     */
 
     for (
       const subscription of
         (oneDaySubscriptions ||
           []) as unknown as SubscriptionRow[]
     ) {
+      /*
+       * Check duplicate protection.
+       */
+
       if (
         await alreadySent(
           subscription.id,
@@ -600,6 +807,10 @@ export async function GET(
         continue;
       }
 
+      /*
+       * Retrieve registered auth email.
+       */
+
       const email =
         await getUserEmail(
           subscription.user_id
@@ -608,6 +819,10 @@ export async function GET(
       if (!email) {
         continue;
       }
+
+      /*
+       * Send email.
+       */
 
       const result =
         await sendSubscriptionEmail(
@@ -625,6 +840,10 @@ export async function GET(
         continue;
       }
 
+      /*
+       * Record successful delivery.
+       */
+
       if (
         await recordSent(
           subscription.id,
@@ -637,23 +856,41 @@ export async function GET(
     }
 
     /*
-     * ---------------------------------------------------------
-     * 5. Find subscriptions that expired recently.
+     * -------------------------------------------------------
+     * 5. FIND RECENTLY EXPIRED SUBSCRIPTIONS
      *
-     *    The separate Supabase cron is responsible for
-     *    changing the subscription status to "expired".
-     * ---------------------------------------------------------
+     * IMPORTANT:
+     *
+     * The separate Supabase cron is responsible for
+     * changing expired subscriptions to:
+     *
+     *     status = "expired"
+     *
+     * That Supabase cron already runs every 5 minutes.
+     *
+     * We therefore do NOT run expiry synchronization
+     * here.
+     *
+     * We check the previous 48 hours because the
+     * Vercel Hobby cron runs once per day.
+     * -------------------------------------------------------
      */
 
-    const yesterday =
+    const twoDaysAgo =
       new Date(
         now.getTime() -
-          24 * 60 * 60 * 1000
+          2 *
+            24 *
+            60 *
+            60 *
+            1000
       );
 
     const {
-      data: expiredSubscriptions,
-      error: expiredError,
+      data:
+        expiredSubscriptions,
+      error:
+        expiredError,
     } =
       await supabaseServer
         .from("subscriptions")
@@ -670,10 +907,13 @@ export async function GET(
           )
         `
         )
-        .eq("status", "expired")
+        .eq(
+          "status",
+          "expired"
+        )
         .gte(
           "current_period_end",
-          yesterday.toISOString()
+          twoDaysAgo.toISOString()
         )
         .lte(
           "current_period_end",
@@ -684,13 +924,24 @@ export async function GET(
       throw expiredError;
     }
 
-    let expiredSent = 0;
+    let expiredSent =
+      0;
+
+    /*
+     * -------------------------------------------------------
+     * SEND EXPIRY EMAILS
+     * -------------------------------------------------------
+     */
 
     for (
       const subscription of
         (expiredSubscriptions ||
           []) as unknown as SubscriptionRow[]
     ) {
+      /*
+       * Check duplicate protection.
+       */
+
       if (
         await alreadySent(
           subscription.id,
@@ -700,6 +951,10 @@ export async function GET(
         continue;
       }
 
+      /*
+       * Retrieve registered auth email.
+       */
+
       const email =
         await getUserEmail(
           subscription.user_id
@@ -708,6 +963,10 @@ export async function GET(
       if (!email) {
         continue;
       }
+
+      /*
+       * Send expiry email.
+       */
 
       const result =
         await sendSubscriptionEmail(
@@ -725,6 +984,10 @@ export async function GET(
         continue;
       }
 
+      /*
+       * Record successful delivery.
+       */
+
       if (
         await recordSent(
           subscription.id,
@@ -737,23 +1000,36 @@ export async function GET(
     }
 
     /*
-     * ---------------------------------------------------------
-     * 6. Return job result.
-     * ---------------------------------------------------------
+     * -------------------------------------------------------
+     * 6. RETURN JOB RESULT
+     * -------------------------------------------------------
      */
 
     return NextResponse.json({
       success: true,
+
       notifications: {
-        seven_days: sevenDaySent,
-        one_day: oneDaySent,
-        expired: expiredSent,
+        seven_days:
+          sevenDaySent,
+
+        one_day:
+          oneDaySent,
+
+        expired:
+          expiredSent,
       },
+
       checked_at:
         now.toISOString(),
     });
 
   } catch (error) {
+    /*
+     * -------------------------------------------------------
+     * ERROR HANDLING
+     * -------------------------------------------------------
+     */
+
     console.error(
       "Subscription notification cron error:",
       error
@@ -762,6 +1038,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
+
         error:
           error instanceof Error
             ? error.message
