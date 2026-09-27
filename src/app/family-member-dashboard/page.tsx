@@ -20,6 +20,22 @@ type MemberProgress = {
   family_member_count: number;
 };
 
+type DailyQuestStatus = {
+  quest_id: string;
+  quest_date: string;
+  title: string;
+  description: string;
+  question_count: number;
+  time_per_question: number;
+  status: "not_started" | "in_progress" | "completed";
+  attempt_id: string | null;
+  questions_answered: number;
+  correct_answers: number;
+  score: number;
+  daily_streak: number;
+  best_daily_streak: number;
+};
+
 type LeaderboardMember = {
   rank: number;
   member_id: string;
@@ -41,6 +57,8 @@ export default function FamilyMemberDashboardPage() {
 
   const [progress, setProgress] = useState<MemberProgress | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardMember[]>([]);
+  const [dailyQuest, setDailyQuest] = useState<DailyQuestStatus | null>(null);
+  const [dailyQuestLoading, setDailyQuestLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("Loading your Family dashboard...");
 
@@ -141,6 +159,34 @@ export default function FamilyMemberDashboardPage() {
       }
 
       /*
+       * Load today's Family Member Daily Quest status.
+       *
+       * The Family Member session token identifies the member,
+       * so the existing Daily Quest RPC resolves the correct
+       * member-specific attempt and streak.
+       */
+      const {
+        data: dailyQuestData,
+        error: dailyQuestError,
+      } = await supabase.rpc("get_daily_quest_status", {
+        p_session_token: token,
+      });
+
+      if (dailyQuestError) {
+        console.error(
+          "Family Member Daily Quest status error:",
+          dailyQuestError
+        );
+        setDailyQuest(null);
+      } else {
+        setDailyQuest(
+          dailyQuestData as DailyQuestStatus
+        );
+      }
+
+      setDailyQuestLoading(false);
+
+      /*
        * Load private Family Member leaderboard.
        */
       const {
@@ -178,6 +224,8 @@ export default function FamilyMemberDashboardPage() {
         "Family Member dashboard loading error:",
         error
       );
+
+      setDailyQuestLoading(false);
 
       setMessage(
         "Something went wrong while loading your Family dashboard."
@@ -413,6 +461,155 @@ export default function FamilyMemberDashboardPage() {
             </div>
           </div>
         </section>
+
+        {/* DAILY QUEST */}
+        {!dailyQuestLoading &&
+          dailyQuest &&
+          dailyQuest.status !== "completed" && (
+            <section
+              className="sq-card family-member-daily-quest-card"
+              style={{
+                marginTop: "20px",
+                padding: "28px",
+                background:
+                  "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
+                border: "1px solid rgba(15, 118, 110, 0.12)",
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  right: "-50px",
+                  top: "-60px",
+                  width: "180px",
+                  height: "180px",
+                  borderRadius: "50%",
+                  background: "var(--primary-light)",
+                  opacity: 0.55,
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 1,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "24px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "16px",
+                    flex: 1,
+                    minWidth: "260px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "52px",
+                      height: "52px",
+                      flexShrink: 0,
+                      borderRadius: "16px",
+                      background: "var(--primary)",
+                      color: "white",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "24px",
+                    }}
+                  >
+                    📖
+                  </div>
+
+                  <div>
+                    <div
+                      className="sq-badge"
+                      style={{
+                        display: "inline-flex",
+                      }}
+                    >
+                      Daily Quest
+                    </div>
+
+                    <h2
+                      style={{
+                        margin: "10px 0 6px",
+                        fontSize: "24px",
+                        fontWeight: 900,
+                      }}
+                    >
+                      {dailyQuest.status === "in_progress"
+                        ? "Continue Your Daily Quest"
+                        : "Your Daily Quest Awaits"}
+                    </h2>
+
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "var(--muted)",
+                        fontSize: "14px",
+                        lineHeight: 1.6,
+                        maxWidth: "650px",
+                      }}
+                    >
+                      {dailyQuest.status === "in_progress"
+                        ? `You've answered ${dailyQuest.questions_answered} of ${dailyQuest.question_count} questions. Continue where you stopped.`
+                        : dailyQuest.description}
+                    </p>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "10px",
+                        flexWrap: "wrap",
+                        marginTop: "12px",
+                      }}
+                    >
+                      <span className="sq-badge">
+                        {dailyQuest.question_count} Questions
+                      </span>
+
+                      <span className="sq-badge">
+                        ⏱ {dailyQuest.time_per_question}s each
+                      </span>
+
+                      {dailyQuest.daily_streak > 0 && (
+                        <span className="sq-badge">
+                          🔥 {dailyQuest.daily_streak} day streak
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <a
+                  href="/family-member-daily-quest"
+                  className="sq-button-primary"
+                  style={{
+                    minHeight: "48px",
+                    padding: "0 22px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {dailyQuest.status === "in_progress"
+                    ? "Continue Quest →"
+                    : "Start Today's Quest →"}
+                </a>
+              </div>
+            </section>
+          )}
 
         {/* FAMILY ACCOUNT */}
         <section
@@ -1374,6 +1571,20 @@ export default function FamilyMemberDashboardPage() {
             width: 100% !important;
             box-sizing: border-box !important;
             justify-content: center !important;
+          }
+
+          /* Daily Quest */
+          .family-member-daily-quest-card {
+            padding: 20px !important;
+          }
+
+          .family-member-daily-quest-card > div {
+            align-items: stretch !important;
+          }
+
+          .family-member-daily-quest-card a {
+            width: 100% !important;
+            box-sizing: border-box !important;
           }
 
           /* Family progress / switch member */

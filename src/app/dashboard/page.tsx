@@ -22,6 +22,22 @@ type Progress = {
   best_streak: number;
 };
 
+type DailyQuestStatus = {
+  quest_id: string;
+  quest_date: string;
+  title: string;
+  description: string;
+  question_count: number;
+  time_per_question: number;
+  status: "not_started" | "in_progress" | "completed";
+  attempt_id: string | null;
+  questions_answered: number;
+  correct_answers: number;
+  score: number;
+  daily_streak: number;
+  best_daily_streak: number;
+};
+
 type SubscriptionPlan = {
   plan_type: "plus" | "family" | "school";
   display_name: string;
@@ -142,6 +158,49 @@ export default function DashboardPage() {
 
   const [subscription, setSubscription] =
     useState<Subscription | null>(null);
+
+  const [dailyQuest, setDailyQuest] =
+    useState<DailyQuestStatus | null>(null);
+
+  // The quest prompt stays hidden if its status cannot be verified.
+  async function refreshDailyQuest() {
+    const { data, error } = await supabase.rpc("get_daily_quest_status");
+    if (error) {
+      console.error("Daily Quest status error:", error);
+      setDailyQuest(null);
+      return;
+    }
+    setDailyQuest(data as DailyQuestStatus);
+  }
+
+  // Refresh when the player returns and when the Lagos calendar day changes.
+  useEffect(() => {
+    let lastLagosDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Lagos", year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(new Date());
+
+    const checkDate = () => {
+      const currentLagosDate = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Africa/Lagos", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
+      if (currentLagosDate !== lastLagosDate) {
+        lastLagosDate = currentLagosDate;
+        if (profile) void refreshDailyQuest();
+      }
+    };
+    const onFocus = () => { if (profile) void refreshDailyQuest(); };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") onFocus();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    const interval = window.setInterval(checkDate, 60_000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(interval);
+    };
+  }, [profile]);
 
   const [message, setMessage] = useState(
     "Loading your dashboard..."
@@ -356,6 +415,7 @@ export default function DashboardPage() {
       });
 
       setProgress(progressData);
+      await refreshDailyQuest();
       setMessage("");
     } catch (error) {
       console.error(
@@ -665,6 +725,81 @@ export default function DashboardPage() {
             </div>
           </div>
         </section>
+
+        {/* DAILY QUEST: show only when today's quest is unfinished */}
+        {dailyQuest && dailyQuest.status !== "completed" && (
+          <section
+            className="sq-card"
+            style={{
+              marginTop: "20px",
+              padding: "28px",
+              background: "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
+              border: "1px solid rgba(15, 118, 110, 0.12)",
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute", right: "-50px", top: "-60px",
+                width: "180px", height: "180px", borderRadius: "50%",
+                background: "var(--primary-light)", opacity: 0.55,
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                position: "relative", zIndex: 1, display: "flex",
+                justifyContent: "space-between", alignItems: "center",
+                gap: "24px", flexWrap: "wrap",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", flex: 1, minWidth: "260px" }}>
+                <div
+                  style={{
+                    width: "52px", height: "52px", flexShrink: 0,
+                    borderRadius: "16px", background: "var(--primary)",
+                    color: "white", display: "flex", alignItems: "center",
+                    justifyContent: "center", fontSize: "24px",
+                  }}
+                >
+                  📖
+                </div>
+                <div>
+                  <div className="sq-badge">Daily Quest</div>
+                  <h2 style={{ margin: "10px 0 6px", fontSize: "24px", fontWeight: 900 }}>
+                    {dailyQuest.status === "in_progress"
+                      ? "Continue Your Daily Quest"
+                      : "Your Daily Quest Awaits"}
+                  </h2>
+                  <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6, maxWidth: "650px" }}>
+                    {dailyQuest.status === "in_progress"
+                      ? `You've answered ${dailyQuest.questions_answered} of ${dailyQuest.question_count} questions. Continue where you stopped.`
+                      : dailyQuest.description}
+                  </p>
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "12px" }}>
+                    <span className="sq-badge">{dailyQuest.question_count} Questions</span>
+                    <span className="sq-badge">⏱ {dailyQuest.time_per_question}s each</span>
+                    {dailyQuest.daily_streak > 0 && (
+                      <span className="sq-badge">🔥 {dailyQuest.daily_streak} day streak</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <a
+                href="/daily-quest"
+                className="sq-button-primary"
+                style={{
+                  minHeight: "48px", padding: "0 22px", display: "inline-flex",
+                  alignItems: "center", justifyContent: "center",
+                  textDecoration: "none", whiteSpace: "nowrap",
+                }}
+              >
+                {dailyQuest.status === "in_progress" ? "Continue Quest →" : "Start Today's Quest →"}
+              </a>
+            </div>
+          </section>
+        )}
 
         {/* ACCOUNT TYPE */}
         <section
