@@ -40,6 +40,11 @@ const individualNavigation: NavigationItem[] = [
     icon: "◆",
   },
   {
+    label: "Daily Quest",
+    href: "/daily-quest",
+    icon: "☀",
+  },
+  {
     label: "Pricing",
     href: "/pricing",
     icon: "₦",
@@ -55,7 +60,9 @@ const familyMemberNavigation: NavigationItem[] = [
   { label: "Home", href: "/family-member-dashboard", icon: "⌂" },
   { label: "Play", href: "/family-member-quiz", icon: "▶" },
   { label: "My Progress", href: "/family-member-dashboard#progress", icon: "↗" },
-  { label: "Family Ranking", href: "/family-member-dashboard#leaderboard", icon: "★" },
+  { label: "Family Ranking", href: "/family-member-leaderboard", icon: "★" },
+  { label: "Challenges", href: "/family-member-challenges", icon: "◆" },
+  { label: "Daily Quest", href: "/family-member-daily-quest", icon: "☀" },
   { label: "Switch Member", href: "/family-member-login", icon: "⇄" },
 ];
 
@@ -89,6 +96,11 @@ const familyNavigation: NavigationItem[] = [
     label: "Challenges",
     href: "/family-challenges",
     icon: "◆",
+  },
+  {
+    label: "Daily Quest",
+    href: "/daily-quest",
+    icon: "☀",
   },
   {
     label: "Pricing",
@@ -200,7 +212,11 @@ export function AppNavbar() {
 
   const isFamilyMemberPath =
     pathname === "/family-member-dashboard" ||
-    pathname === "/family-member-quiz";
+    pathname === "/family-member-quiz" ||
+    pathname === "/family-member-challenges" ||
+    pathname.startsWith("/family-member-challenges/") ||
+    pathname === "/family-member-daily-quest" ||
+    pathname === "/family-member-leaderboard";
 
   const navigation = useMemo(() => {
     // A stored member token must NEVER override the Owner navigation.
@@ -298,6 +314,25 @@ export function AppNavbar() {
 
     if (href === "/family-member-quiz") {
       return pathname === "/family-member-quiz";
+    }
+
+    if (href === "/family-member-challenges") {
+      return (
+        pathname === "/family-member-challenges" ||
+        pathname.startsWith("/family-member-challenges/")
+      );
+    }
+
+    if (href === "/family-member-daily-quest") {
+      return pathname === "/family-member-daily-quest";
+    }
+
+    if (href === "/family-member-leaderboard") {
+      return pathname === "/family-member-leaderboard";
+    }
+
+    if (href === "/daily-quest") {
+      return pathname === "/daily-quest";
     }
 
     if (href === "/family-member-login") {

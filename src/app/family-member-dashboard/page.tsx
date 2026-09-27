@@ -189,7 +189,7 @@ export default function FamilyMemberDashboardPage() {
 
   function handleLogout() {
     sessionStorage.removeItem(SESSION_KEY);
-    router.push("/family-member-test");
+    router.push("/family-member-login");
   }
 
   if (loading || !progress) {
@@ -294,132 +294,7 @@ export default function FamilyMemberDashboardPage() {
     >
       <div className="sq-container">
 
-        {/* FAMILY MEMBER NAVIGATION */}
-        <nav
-          aria-label="Family Member navigation"
-          className="family-member-nav"
-          style={{
-            position: "relative",
-            zIndex: 1,
-            marginBottom: "20px",
-            border: "1px solid var(--border)",
-            borderRadius: "18px",
-            background: "rgba(255,255,255,0.97)",
-            backdropFilter: "blur(12px)",
-            boxShadow: "0 8px 30px rgba(15,23,42,0.08)",
-            padding: "10px 12px",
-          }}
-        >
-          <div
-            className="family-member-nav-inner"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div
-              className="family-member-nav-brand"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "12px",
-                  background: "var(--primary-light)",
-                  color: "var(--primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 900,
-                  flexShrink: 0,
-                }}
-              >
-                SQ
-              </div>
-
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 900, color: "var(--foreground)" }}>
-                  Family Member Mode
-                </div>
-                <div style={{ color: "var(--muted)", fontSize: "12px", marginTop: "3px" }}>
-                  {progress.display_name}
-                </div>
-              </div>
-            </div>
-
-            <div
-              className="family-member-nav-links"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                flexWrap: "wrap",
-              }}
-            >
-              <button
-                type="button"
-                className="family-member-nav-button"
-                onClick={() => router.push("/family-member-dashboard")}
-                style={{
-                  border: "1px solid var(--border)",
-                  background: "#ffffff",
-                  color: "var(--foreground)",
-                  borderRadius: "12px",
-                  padding: "9px 13px",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                Dashboard
-              </button>
-
-              <button
-                type="button"
-                className="family-member-nav-button"
-                onClick={() => router.push("/family-member-challenges")}
-                style={{
-                  border: "1px solid var(--border)",
-                  background: "#ffffff",
-                  color: "var(--foreground)",
-                  borderRadius: "12px",
-                  padding: "9px 13px",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                Challenges
-              </button>
-
-              <button
-                type="button"
-                className="family-member-nav-button family-dashboard-button"
-                onClick={() => router.push("/family-dashboard")}
-                style={{
-                  border: "none",
-                  background: "var(--primary)",
-                  color: "#ffffff",
-                  borderRadius: "12px",
-                  padding: "9px 14px",
-                  fontWeight: 900,
-                  cursor: "pointer",
-                  boxShadow: "0 5px 16px rgba(16,185,129,0.20)",
-                }}
-              >
-                ← Family Dashboard
-              </button>
-            </div>
-          </div>
-        </nav>
-
+        <AppNavbar />
 
         {/* WELCOME HERO */}
         <section
