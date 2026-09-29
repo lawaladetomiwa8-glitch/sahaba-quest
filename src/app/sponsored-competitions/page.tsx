@@ -551,10 +551,11 @@ export default function SponsoredCompetitionsPage() {
 
         .sq-sponsored-hero {
           position: relative;
-          width: min(100%, 1320px);
-          max-width: none;
+          width: calc(100vw - 48px);
+          max-width: 1440px;
           min-height: 400px;
-          margin: 0 auto;
+          margin-left: 50%;
+          transform: translateX(-50%);
           overflow: hidden;
           border-radius: 24px;
           padding: clamp(30px, 4vw, 48px);
@@ -1472,6 +1473,10 @@ export default function SponsoredCompetitionsPage() {
 
         @media (max-width: 820px) {
           .sq-sponsored-hero {
+            width: 100%;
+            max-width: none;
+            margin-left: 0;
+            transform: none;
             grid-template-columns: 1fr;
             padding: 34px 26px;
           }
