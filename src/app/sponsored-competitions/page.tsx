@@ -551,8 +551,8 @@ export default function SponsoredCompetitionsPage() {
 
         .sq-sponsored-hero {
           position: relative;
-          width: 100%;
-          max-width: 1180px;
+          width: min(100%, 1320px);
+          max-width: none;
           min-height: 400px;
           margin: 0 auto;
           overflow: hidden;
@@ -954,8 +954,8 @@ export default function SponsoredCompetitionsPage() {
           position: relative;
           overflow: hidden;
           display: grid;
-          grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
-          min-height: 330px;
+          grid-template-columns: minmax(0, 0.88fr) minmax(340px, 1.12fr);
+          min-height: 285px;
           border-radius: 24px;
           border: 1px solid var(--border);
           background: var(--card, white);
@@ -964,7 +964,7 @@ export default function SponsoredCompetitionsPage() {
 
         .sq-featured-media {
           position: relative;
-          min-height: 330px;
+          min-height: 285px;
           background:
             linear-gradient(135deg, rgba(10, 45, 51, 0.95), rgba(20, 125, 115, 0.74)),
             var(--primary-light);
@@ -1710,7 +1710,7 @@ function FeaturedCompetition({
         <div className="sq-featured-actions">
           <button
             type="button"
-            className="sq-sponsored-primary"
+            className="sq-featured-primary"
             disabled={status !== "live"}
             onClick={() => onJoin(competition)}
             style={{
@@ -1727,7 +1727,7 @@ function FeaturedCompetition({
           </button>
 
           {status === "live" && !premium && (
-            <Link href="/pricing" className="sq-sponsored-secondary">
+            <Link href="/pricing" className="sq-featured-secondary">
               Get Premium
             </Link>
           )}
@@ -1739,8 +1739,8 @@ function FeaturedCompetition({
           position: relative;
           overflow: hidden;
           display: grid;
-          grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
-          min-height: 330px;
+          grid-template-columns: minmax(0, 0.88fr) minmax(340px, 1.12fr);
+          min-height: 285px;
           border-radius: 24px;
           border: 1px solid var(--border);
           background: var(--card, white);
@@ -1749,7 +1749,7 @@ function FeaturedCompetition({
 
         .sq-featured-media {
           position: relative;
-          min-height: 330px;
+          min-height: 285px;
           background:
             linear-gradient(135deg, rgba(10, 45, 51, 0.95), rgba(20, 125, 115, 0.74)),
             var(--primary-light);
@@ -1894,13 +1894,75 @@ function FeaturedCompetition({
           flex: 1;
         }
 
+        .sq-featured-primary,
+        .sq-featured-secondary {
+          min-height: 44px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 0 15px;
+          border-radius: 11px;
+          font-size: 11px;
+          font-weight: 900;
+          text-decoration: none;
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            background 160ms ease;
+        }
+
+        .sq-featured-primary {
+          border: 1px solid rgba(20, 184, 166, 0.2);
+          color: #063033;
+          background: linear-gradient(135deg, #7bead9, #4fd1c5);
+          box-shadow: 0 9px 22px rgba(20, 184, 166, 0.18);
+          cursor: pointer;
+        }
+
+        .sq-featured-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 13px 28px rgba(20, 184, 166, 0.24);
+        }
+
+        .sq-featured-primary:disabled {
+          cursor: not-allowed;
+        }
+
+        .sq-featured-secondary {
+          color: var(--primary);
+          border: 1px solid rgba(20, 184, 166, 0.22);
+          background: var(--primary-light);
+        }
+
+        .sq-featured-secondary:hover {
+          transform: translateY(-2px);
+          background: rgba(20, 184, 166, 0.14);
+        }
+
+        .sq-sponsor-line {
+          padding: 10px 12px;
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          background: linear-gradient(
+            135deg,
+            var(--card, #fff),
+            var(--primary-light)
+          );
+        }
+
+        .sq-meta-box {
+          border: 1px solid rgba(20, 184, 166, 0.1);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+        }
+
         @media (max-width: 820px) {
           .sq-featured-card {
             grid-template-columns: 1fr;
           }
 
           .sq-featured-media {
-            min-height: 260px;
+            min-height: 220px;
           }
         }
 
@@ -1936,8 +1998,166 @@ function Feature({
         <div className="sq-feature-icon">{icon}</div>
         <span className="sq-feature-number">{number}</span>
       </div>
-      <h3>{title}</h3>
-      <p>{text}</p>
+
+      <div className="sq-feature-copy">
+        <h3>{title}</h3>
+        <p>{text}</p>
+      </div>
+
+      <span className="sq-feature-accent" aria-hidden="true" />
+
+      <style jsx>{`
+        .sq-feature-item {
+          position: relative;
+          min-width: 0;
+          min-height: 188px;
+          padding: 18px;
+          overflow: hidden;
+          border: 1px solid rgba(20, 184, 166, 0.14);
+          border-radius: 18px;
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(20, 184, 166, 0.12),
+              transparent 36%
+            ),
+            linear-gradient(
+              145deg,
+              var(--card, #ffffff),
+              rgba(20, 184, 166, 0.035)
+            );
+          box-shadow:
+            0 10px 28px rgba(0, 0, 0, 0.045),
+            inset 0 1px 0 rgba(255, 255, 255, 0.7);
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            border-color 160ms ease;
+        }
+
+        .sq-feature-item:hover {
+          transform: translateY(-4px);
+          border-color: rgba(20, 184, 166, 0.3);
+          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.08);
+        }
+
+        .sq-feature-item::before {
+          content: "";
+          position: absolute;
+          left: 18px;
+          right: 18px;
+          top: 0;
+          height: 3px;
+          border-radius: 0 0 999px 999px;
+          background: linear-gradient(
+            90deg,
+            var(--primary),
+            rgba(20, 184, 166, 0.08)
+          );
+        }
+
+        .sq-feature-item::after {
+          content: "";
+          position: absolute;
+          width: 105px;
+          height: 105px;
+          right: -58px;
+          bottom: -58px;
+          border-radius: 50%;
+          background: rgba(20, 184, 166, 0.07);
+          pointer-events: none;
+        }
+
+        .sq-feature-top {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .sq-feature-icon {
+          width: 46px;
+          height: 46px;
+          display: grid;
+          place-items: center;
+          border-radius: 13px;
+          border: 1px solid rgba(20, 184, 166, 0.14);
+          background: linear-gradient(
+            135deg,
+            var(--primary-light),
+            rgba(20, 184, 166, 0.05)
+          );
+          font-size: 20px;
+          box-shadow: 0 7px 18px rgba(20, 184, 166, 0.08);
+        }
+
+        .sq-feature-number {
+          width: 30px;
+          height: 30px;
+          display: grid;
+          place-items: center;
+          border-radius: 9px;
+          border: 1px solid rgba(20, 184, 166, 0.16);
+          background: rgba(20, 184, 166, 0.07);
+          color: var(--primary);
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .sq-feature-copy {
+          position: relative;
+          z-index: 1;
+          margin-top: 17px;
+          padding: 13px 13px 14px;
+          border-radius: 13px;
+          border: 1px solid rgba(20, 184, 166, 0.1);
+          background: rgba(255, 255, 255, 0.58);
+        }
+
+        .sq-feature-copy h3 {
+          margin: 0 0 7px;
+          font-size: 14px;
+          line-height: 1.25;
+          letter-spacing: -0.01em;
+        }
+
+        .sq-feature-copy p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 10.5px;
+          line-height: 1.62;
+        }
+
+        .sq-feature-accent {
+          position: absolute;
+          left: 18px;
+          bottom: 14px;
+          width: 34px;
+          height: 3px;
+          border-radius: 999px;
+          background: var(--primary);
+          opacity: 0.35;
+        }
+
+        @media (max-width: 620px) {
+          .sq-feature-item {
+            min-height: 0;
+            padding: 17px;
+          }
+
+          .sq-feature-copy {
+            padding: 12px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .sq-feature-item {
+            transition: none;
+          }
+        }
+      `}</style>
     </article>
   );
 }
