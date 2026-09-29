@@ -45,6 +45,11 @@ const individualNavigation: NavigationItem[] = [
     icon: "☀",
   },
   {
+    label: "Sponsored",
+    href: "/sponsored-competitions",
+    icon: "🏆",
+  },
+  {
     label: "Pricing",
     href: "/pricing",
     icon: "₦",
@@ -240,6 +245,37 @@ export function AppNavbar() {
     return individualNavigation;
   }, [accountType, isFamilyPath, isFamilyMemberPath, pathname]);
 
+  /*
+   * ---------------------------------------------------------
+   * MOBILE MENU BEHAVIOUR
+   * ---------------------------------------------------------
+   *
+   * The menu closes automatically whenever the route changes
+   * and when the user presses Escape. This prevents an open
+   * overlay from remaining on top of another page.
+   */
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
   };
@@ -333,6 +369,13 @@ export function AppNavbar() {
 
     if (href === "/daily-quest") {
       return pathname === "/daily-quest";
+    }
+
+    if (href === "/sponsored-competitions") {
+      return (
+        pathname === "/sponsored-competitions" ||
+        pathname.startsWith("/sponsored-competitions/")
+      );
     }
 
     if (href === "/family-member-login") {
@@ -447,6 +490,7 @@ export function AppNavbar() {
                 key={item.href}
                 href={item.href}
                 className="sq-nav-link"
+                aria-current={isActive ? "page" : undefined}
                 style={
                   isActive
                     ? {
@@ -580,7 +624,11 @@ export function AppNavbar() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="sq-mobile-menu">
+          <div
+            className="sq-mobile-menu"
+            role="menu"
+            aria-label="Sahaba Quest navigation"
+          >
             {navigation.map((item) => {
               const isActive =
                 isNavigationActive(
@@ -621,51 +669,203 @@ export function AppNavbar() {
           with the hamburger menu.
       ====================================================== */}
       <style jsx>{`
-        /* Desktop */
+        /*
+         * =====================================================
+         * RESPONSIVE NAVIGATION SYSTEM
+         * =====================================================
+         *
+         * Desktop:
+         * - Full navigation from 901px upward.
+         * - Navigation links can scroll horizontally at narrower
+         *   desktop/tablet widths instead of breaking the page.
+         *
+         * Mobile/tablet:
+         * - Compact branded header.
+         * - Hamburger menu.
+         * - Menu overlays the page instead of pushing content down.
+         */
+
         .sq-nav {
           display: flex;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+
+        .sq-nav-links {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          flex: 1 1 auto;
+          min-width: 0;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          padding: 2px 0;
+        }
+
+        .sq-nav-links::-webkit-scrollbar {
+          display: none;
+        }
+
+        .sq-nav-link {
+          flex: 0 0 auto;
+          white-space: nowrap;
+          min-height: 40px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .sq-mobile-nav {
           display: none;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
         }
 
-        /* Mobile */
-        @media (max-width: 768px) {
+        .sq-mobile-menu-button {
+          flex-shrink: 0;
+          width: 44px;
+          height: 44px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #dfe9e7;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #123b38;
+          font-size: 22px;
+          line-height: 1;
+          font-weight: 800;
+          cursor: pointer;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .sq-mobile-menu-button:hover {
+          background: #f2f8f7;
+        }
+
+        .sq-mobile-menu-button:focus-visible {
+          outline: 3px solid rgba(8, 118, 109, 0.2);
+          outline-offset: 2px;
+        }
+
+        .sq-mobile-menu-item {
+          min-height: 48px;
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 18px;
+          color: #123b38;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 800;
+          border-bottom: 1px solid #edf3f2;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .sq-mobile-menu-item:last-child {
+          border-bottom: 0;
+        }
+
+        .sq-mobile-menu-item:hover {
+          background: #f6faf9;
+        }
+
+        .sq-mobile-menu-item-active {
+          background: var(--primary-light);
+          color: var(--primary-dark);
+        }
+
+        .sq-mobile-menu-icon {
+          width: 30px;
+          min-width: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 17px;
+        }
+
+        /*
+         * Medium desktop/tablet widths.
+         * Keep the full web navigation available without allowing
+         * it to force horizontal overflow across the application.
+         */
+        @media (max-width: 1180px) and (min-width: 901px) {
+          .sq-nav {
+            gap: 12px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+
+          .sq-nav-links {
+            gap: 2px;
+          }
+
+          .sq-nav-link {
+            padding-left: 9px !important;
+            padding-right: 9px !important;
+            font-size: 12px !important;
+          }
+        }
+
+        /*
+         * Mobile and small tablets.
+         * 900px is intentional so tablets in portrait mode do not
+         * receive a cramped desktop navigation.
+         */
+        @media (max-width: 900px) {
           .sq-nav {
             display: none !important;
           }
 
           .sq-mobile-nav {
             display: block !important;
-            width: 100%;
-            margin: 0;
-            border-radius: 0;
+            position: relative;
+            z-index: 1000;
+            background: #ffffff;
+            border-bottom: 1px solid #dfe9e7;
+            box-shadow: 0 4px 18px rgba(6, 63, 59, 0.06);
           }
 
           .sq-mobile-header {
             width: 100%;
             min-height: 68px;
             box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
           }
 
           .sq-mobile-header > a {
             min-width: 0;
-            flex: 1;
+            flex: 1 1 auto;
+            overflow: hidden;
           }
 
-          .sq-mobile-menu-button {
-            flex-shrink: 0;
+          .sq-mobile-header > a > span:last-child {
+            min-width: 0;
+            overflow: hidden;
+          }
+
+          .sq-mobile-header > a > span:last-child > span:first-child,
+          .sq-mobile-header > a > span:last-child > span:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
 
           /*
-           * IMPORTANT:
-           * The mobile navigation menu overlays the page instead
-           * of taking up space in the document flow.
-           *
-           * This means opening ☰ will NOT push the dashboard
-           * content downward. The menu simply appears underneath
-           * the header and disappears again when closed.
+           * The menu is an overlay. It does NOT push dashboard,
+           * quiz, leaderboard, profile or any other page content.
            */
           .sq-mobile-menu {
             position: absolute !important;
@@ -674,11 +874,61 @@ export function AppNavbar() {
             right: 0 !important;
             z-index: 9999 !important;
             width: 100% !important;
+            max-width: 100vw !important;
+            max-height: calc(100dvh - 68px) !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
             box-sizing: border-box !important;
             background: #ffffff !important;
             border-top: 1px solid #dfe9e7 !important;
             border-bottom: 1px solid #dfe9e7 !important;
             box-shadow: 0 12px 28px rgba(6, 63, 59, 0.14) !important;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .sq-mobile-menu-item {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .sq-mobile-header {
+            padding-left: 10px;
+            padding-right: 10px;
+          }
+
+          .sq-mobile-header a > span:first-child {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            font-size: 13px !important;
+          }
+
+          .sq-mobile-header a > span:last-child > span:first-child {
+            font-size: 14px !important;
+          }
+
+          .sq-mobile-header a > span:last-child > span:last-child {
+            font-size: 6px !important;
+            letter-spacing: 0.8px !important;
+          }
+
+          .sq-mobile-menu-button {
+            width: 42px;
+            height: 42px;
+          }
+        }
+
+        /*
+         * Reduced-motion support for users/devices that request it.
+         */
+        @media (prefers-reduced-motion: reduce) {
+          .sq-mobile-menu,
+          .sq-mobile-menu-item,
+          .sq-nav-link {
+            scroll-behavior: auto !important;
+            transition: none !important;
           }
         }
       `}</style>
