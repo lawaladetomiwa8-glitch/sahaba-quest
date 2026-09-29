@@ -30,12 +30,6 @@ type LeaderboardRow = {
   is_current_user: boolean;
 };
 
-type AttemptStatus =
-  | "in_progress"
-  | "completed"
-  | "expired"
-  | null;
-
 function formatDate(value: string) {
   return new Date(value).toLocaleString(undefined, {
     dateStyle: "medium",
@@ -74,9 +68,6 @@ export default function SponsoredCompetitionLeaderboardPage() {
   const [leaderboard, setLeaderboard] =
     useState<LeaderboardRow[]>([]);
 
-  const [attemptStatus, setAttemptStatus] =
-    useState<AttemptStatus>(null);
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
@@ -103,34 +94,6 @@ export default function SponsoredCompetitionLeaderboardPage() {
           router.replace("/login");
           return;
         }
-
-        /*
-         * ---------------------------------------------------------
-         * LOAD CURRENT PLAYER ATTEMPT STATUS
-         * ---------------------------------------------------------
-         *
-         * Each player is allowed one attempt per sponsored
-         * competition. This lets the leaderboard header show the
-         * correct action instead of always showing "Join Competition"
-         * while the competition is live.
-         */
-        const {
-          data: attemptData,
-          error: attemptError,
-        } = await supabase
-          .from("sponsored_attempts")
-          .select("status")
-          .eq("competition_id", competitionId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (attemptError) {
-          throw new Error(attemptError.message);
-        }
-
-        setAttemptStatus(
-          (attemptData?.status as AttemptStatus) ?? null
-        );
 
         /*
          * ---------------------------------------------------------
@@ -546,45 +509,13 @@ export default function SponsoredCompetitionLeaderboardPage() {
               ← Competition
             </Link>
 
-            {isLive && attemptStatus === null && (
+            {isLive && (
               <Link
                 href={`/sponsored-competitions/${competition.id}`}
                 className="sq-button-primary"
               >
                 Join Competition
               </Link>
-            )}
-
-            {isLive && attemptStatus === "in_progress" && (
-              <Link
-                href={`/sponsored-competitions/${competition.id}`}
-                className="sq-button-primary"
-              >
-                Resume Competition
-              </Link>
-            )}
-
-            {isLive && attemptStatus === "completed" && (
-              <a
-                href="#your-result"
-                className="sq-button-primary"
-              >
-                🏆 View My Result
-              </a>
-            )}
-
-            {isLive && attemptStatus === "expired" && (
-              <span
-                className="sq-button-secondary"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  opacity: 0.75,
-                  cursor: "default",
-                }}
-              >
-                Attempt Expired
-              </span>
             )}
           </div>
         </section>
@@ -706,7 +637,6 @@ export default function SponsoredCompetitionLeaderboardPage() {
 
         {currentPlayer && (
           <section
-            id="your-result"
             className="sq-card"
             style={{
               padding: 20,
@@ -1402,7 +1332,7 @@ export default function SponsoredCompetitionLeaderboardPage() {
           )}
         </section>
 
-        {/* RANKING RULES */}
+        {/* SPONSORED XP EXPLANATION */}
 
         <section
           className="sq-card"
@@ -1417,10 +1347,22 @@ export default function SponsoredCompetitionLeaderboardPage() {
               marginBottom: 10,
             }}
           >
-            How Sponsored Ranking Works
+            How Sponsored XP Is Calculated
           </h3>
 
-          <ol
+          <p
+            className="sq-subtitle"
+            style={{
+              marginTop: 0,
+              marginBottom: 12,
+              lineHeight: 1.7,
+            }}
+          >
+            Your Sponsored XP is based on two things:{" "}
+            <strong>correct answers</strong> and <strong>speed</strong>.
+          </p>
+
+          <ul
             style={{
               margin: 0,
               paddingLeft: 22,
@@ -1430,27 +1372,15 @@ export default function SponsoredCompetitionLeaderboardPage() {
             }}
           >
             <li>
-              Higher Sponsored XP ranks
-              higher.
+              <strong>Correct answers:</strong> You earn XP when you answer a
+              question correctly.
             </li>
 
             <li>
-              If XP is tied, more correct
-              answers rank higher.
+              <strong>Speed:</strong> The faster you answer a question
+              correctly, the more bonus XP you can earn.
             </li>
-
-            <li>
-              If those are also tied, the
-              lower total answer time ranks
-              higher.
-            </li>
-
-            <li>
-              If everything is still tied,
-              the earlier completion time
-              ranks higher.
-            </li>
-          </ol>
+          </ul>
 
           <p
             style={{
@@ -1458,13 +1388,12 @@ export default function SponsoredCompetitionLeaderboardPage() {
               marginTop: 14,
               color: "var(--muted)",
               fontSize: 13,
+              lineHeight: 1.7,
             }}
           >
-            Sponsored XP is completely
-            separate from your normal
-            Sahaba Quest XP and does not
-            affect the normal global
-            leaderboard.
+            So, answering correctly and quickly can increase your Sponsored
+            XP and improve your position on the leaderboard. Sponsored XP is
+            separate from your normal Sahaba Quest XP.
           </p>
         </section>
       </div>
