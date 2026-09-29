@@ -7,6 +7,52 @@ import { supabase } from "../../../lib/supabase";
 
 type CompetitionType = "weekly" | "monthly";
 
+const inputStyle = {
+  width: "100%",
+  padding: "12px 13px",
+  border: "1px solid var(--border)",
+  borderRadius: 10,
+  background: "var(--background)",
+  color: "inherit",
+  outline: "none",
+  boxSizing: "border-box" as const,
+};
+
+const labelStyle = {
+  display: "block",
+  marginBottom: 7,
+  fontSize: 12,
+  fontWeight: 800,
+};
+
+async function uploadSponsorAsset(
+  file: File,
+  kind: "logo" | "banner",
+  userId: string
+) {
+  const extension =
+    file.name.split(".").pop()?.toLowerCase() || "jpg";
+
+  const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${userId}/${kind}-${Date.now()}-${crypto.randomUUID()}.${safeExtension}`;
+
+  const { error } = await supabase.storage
+    .from("sponsored-assets")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || undefined,
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage
+    .from("sponsored-assets")
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
 export default function NewCompetitionPage() {
   const router = useRouter();
 
@@ -14,6 +60,7 @@ export default function NewCompetitionPage() {
     sponsorName: "",
     sponsorDescription: "",
     sponsorBannerUrl: "",
+    sponsorLogoUrl: "",
     title: "",
     description: "",
     rules: "",
@@ -24,6 +71,11 @@ export default function NewCompetitionPage() {
     isPublished: false,
     displayOrder: "0",
   });
+
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState("");
+  const [logoPreview, setLogoPreview] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -36,6 +88,16 @@ export default function NewCompetitionPage() {
       ...current,
       [field]: value,
     }));
+  }
+
+  function selectBanner(file: File | null) {
+    setBannerFile(file);
+    setBannerPreview(file ? URL.createObjectURL(file) : "");
+  }
+
+  function selectLogo(file: File | null) {
+    setLogoFile(file);
+    setLogoPreview(file ? URL.createObjectURL(file) : "");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -53,7 +115,9 @@ export default function NewCompetitionPage() {
     }
 
     if (!form.startsAt || !form.endsAt) {
-      setErrorMessage("Start date/time and end date/time are required.");
+      setErrorMessage(
+        "Start date/time and end date/time are required."
+      );
       return;
     }
 
@@ -69,7 +133,9 @@ export default function NewCompetitionPage() {
     }
 
     if (end <= start) {
-      setErrorMessage("The end date/time must be after the start date/time.");
+      setErrorMessage(
+        "The end date/time must be after the start date/time."
+      );
       return;
     }
 
@@ -93,8 +159,29 @@ export default function NewCompetitionPage() {
         .maybeSingle();
 
       if (adminError || !admin) {
-        setErrorMessage("Your admin access could not be verified.");
+        setErrorMessage(
+          "Your admin access could not be verified."
+        );
         return;
+      }
+
+      let sponsorBannerUrl = form.sponsorBannerUrl.trim() || null;
+      let sponsorLogoUrl = form.sponsorLogoUrl.trim() || null;
+
+      if (bannerFile) {
+        sponsorBannerUrl = await uploadSponsorAsset(
+          bannerFile,
+          "banner",
+          user.id
+        );
+      }
+
+      if (logoFile) {
+        sponsorLogoUrl = await uploadSponsorAsset(
+          logoFile,
+          "logo",
+          user.id
+        );
       }
 
       const { data, error } = await supabase
@@ -103,8 +190,8 @@ export default function NewCompetitionPage() {
           sponsor_name: form.sponsorName.trim(),
           sponsor_description:
             form.sponsorDescription.trim() || null,
-          sponsor_banner_url:
-            form.sponsorBannerUrl.trim() || null,
+          sponsor_banner_url: sponsorBannerUrl,
+          sponsor_logo_url: sponsorLogoUrl,
           title: form.title.trim(),
           description: form.description.trim() || null,
           rules: form.rules.trim() || null,
@@ -130,30 +217,13 @@ export default function NewCompetitionPage() {
     } catch (error: any) {
       console.error("Unexpected create competition error:", error);
       setErrorMessage(
-        error?.message || "Unable to create the competition."
+        error?.message ||
+          "Unable to create the competition. Please try again."
       );
     } finally {
       setSaving(false);
     }
   }
-
-  const inputStyle = {
-    width: "100%",
-    padding: "12px 13px",
-    border: "1px solid var(--border)",
-    borderRadius: 10,
-    background: "var(--background)",
-    color: "inherit",
-    outline: "none",
-    boxSizing: "border-box" as const,
-  };
-
-  const labelStyle = {
-    display: "block",
-    marginBottom: 7,
-    fontSize: 12,
-    fontWeight: 800,
-  };
 
   return (
     <main>
@@ -178,18 +248,15 @@ export default function NewCompetitionPage() {
         </h1>
 
         <p className="sq-subtitle" style={{ margin: 0 }}>
-          Set up the sponsor, competition details, rules, prizes and schedule.
+          Set up the sponsor, branding, competition details, rules,
+          prizes and schedule.
         </p>
       </div>
 
       {errorMessage && (
         <div
           className="sq-card"
-          style={{
-            padding: 16,
-            marginBottom: 20,
-            border: "1px solid var(--border)",
-          }}
+          style={{ padding: 16, marginBottom: 20 }}
         >
           <strong>Could not create competition</strong>
           <p className="sq-subtitle" style={{ marginBottom: 0 }}>
@@ -201,10 +268,7 @@ export default function NewCompetitionPage() {
       <form onSubmit={handleSubmit}>
         <section
           className="sq-card"
-          style={{
-            padding: 24,
-            marginBottom: 20,
-          }}
+          style={{ padding: 24, marginBottom: 20 }}
         >
           <h2 style={{ marginTop: 0 }}>Sponsor Information</h2>
           <p className="sq-subtitle">
@@ -212,12 +276,13 @@ export default function NewCompetitionPage() {
           </p>
 
           <div
+            className="form-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+              gridTemplateColumns:
+                "repeat(2,minmax(0,1fr))",
               gap: 18,
             }}
-            className="form-grid"
           >
             <div>
               <label style={labelStyle}>Sponsor Name *</label>
@@ -233,25 +298,172 @@ export default function NewCompetitionPage() {
             </div>
 
             <div>
-              <label style={labelStyle}>Sponsor Banner URL</label>
+              <label style={labelStyle}>
+                Sponsor / Company Logo
+              </label>
+
               <input
                 style={inputStyle}
-                value={form.sponsorBannerUrl}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 onChange={(e) =>
-                  updateField("sponsorBannerUrl", e.target.value)
+                  selectLogo(e.target.files?.[0] || null)
                 }
-                placeholder="https://..."
-                type="url"
               />
+
+              {logoPreview && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: 10,
+                    border: "1px solid var(--border)",
+                    borderRadius: 10,
+                    display: "inline-flex",
+                    background: "var(--background)",
+                  }}
+                >
+                  <img
+                    src={logoPreview}
+                    alt="Sponsor logo preview"
+                    style={{
+                      width: 90,
+                      height: 90,
+                      objectFit: "contain",
+                      borderRadius: 8,
+                    }}
+                  />
+                </div>
+              )}
+
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 11,
+                  color: "var(--muted)",
+                }}
+              >
+                PNG, JPG, WebP or SVG.
+              </div>
             </div>
 
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Sponsor Description</label>
+              <label style={labelStyle}>
+                Sponsor Banner
+              </label>
+
+              <input
+                style={inputStyle}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) =>
+                  selectBanner(e.target.files?.[0] || null)
+                }
+              />
+
+              {bannerPreview && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    border: "1px solid var(--border)",
+                    borderRadius: 10,
+                    overflow: "hidden",
+                    background: "var(--background)",
+                  }}
+                >
+                  <img
+                    src={bannerPreview}
+                    alt="Sponsor banner preview"
+                    style={{
+                      width: "100%",
+                      maxHeight: 240,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              )}
+
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 11,
+                  color: "var(--muted)",
+                }}
+              >
+                Recommended: wide landscape banner. PNG, JPG or WebP.
+              </div>
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <details>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "var(--muted)",
+                  }}
+                >
+                  Or use hosted image URLs instead
+                </summary>
+
+                <div style={{ marginTop: 12 }}>
+                  <label style={labelStyle}>
+                    Banner URL
+                  </label>
+                  <input
+                    style={inputStyle}
+                    value={form.sponsorBannerUrl}
+                    onChange={(e) =>
+                      updateField(
+                        "sponsorBannerUrl",
+                        e.target.value
+                      )
+                    }
+                    placeholder="https://..."
+                    type="url"
+                  />
+
+                  <label
+                    style={{
+                      ...labelStyle,
+                      marginTop: 14,
+                    }}
+                  >
+                    Logo URL
+                  </label>
+                  <input
+                    style={inputStyle}
+                    value={form.sponsorLogoUrl}
+                    onChange={(e) =>
+                      updateField(
+                        "sponsorLogoUrl",
+                        e.target.value
+                      )
+                    }
+                    placeholder="https://..."
+                    type="url"
+                  />
+                </div>
+              </details>
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={labelStyle}>
+                Sponsor Description
+              </label>
               <textarea
-                style={{ ...inputStyle, minHeight: 100, resize: "vertical" }}
+                style={{
+                  ...inputStyle,
+                  minHeight: 100,
+                  resize: "vertical",
+                }}
                 value={form.sponsorDescription}
                 onChange={(e) =>
-                  updateField("sponsorDescription", e.target.value)
+                  updateField(
+                    "sponsorDescription",
+                    e.target.value
+                  )
                 }
                 placeholder="Tell players about the sponsoring organization."
               />
@@ -261,23 +473,25 @@ export default function NewCompetitionPage() {
 
         <section
           className="sq-card"
-          style={{
-            padding: 24,
-            marginBottom: 20,
-          }}
+          style={{ padding: 24, marginBottom: 20 }}
         >
-          <h2 style={{ marginTop: 0 }}>Competition Details</h2>
+          <h2 style={{ marginTop: 0 }}>
+            Competition Details
+          </h2>
 
           <div
+            className="form-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+              gridTemplateColumns:
+                "repeat(2,minmax(0,1fr))",
               gap: 18,
             }}
-            className="form-grid"
           >
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Competition Title *</label>
+              <label style={labelStyle}>
+                Competition Title *
+              </label>
               <input
                 style={inputStyle}
                 value={form.title}
@@ -290,7 +504,9 @@ export default function NewCompetitionPage() {
             </div>
 
             <div>
-              <label style={labelStyle}>Competition Type *</label>
+              <label style={labelStyle}>
+                Competition Type *
+              </label>
               <select
                 style={inputStyle}
                 value={form.competitionType}
@@ -307,25 +523,39 @@ export default function NewCompetitionPage() {
             </div>
 
             <div>
-              <label style={labelStyle}>Display Order</label>
+              <label style={labelStyle}>
+                Display Order
+              </label>
               <input
                 style={inputStyle}
                 type="number"
                 min="0"
                 value={form.displayOrder}
                 onChange={(e) =>
-                  updateField("displayOrder", e.target.value)
+                  updateField(
+                    "displayOrder",
+                    e.target.value
+                  )
                 }
               />
             </div>
 
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Description</label>
+              <label style={labelStyle}>
+                Description
+              </label>
               <textarea
-                style={{ ...inputStyle, minHeight: 120, resize: "vertical" }}
+                style={{
+                  ...inputStyle,
+                  minHeight: 120,
+                  resize: "vertical",
+                }}
                 value={form.description}
                 onChange={(e) =>
-                  updateField("description", e.target.value)
+                  updateField(
+                    "description",
+                    e.target.value
+                  )
                 }
                 placeholder="Describe the competition for players."
               />
@@ -334,7 +564,11 @@ export default function NewCompetitionPage() {
             <div>
               <label style={labelStyle}>Rules</label>
               <textarea
-                style={{ ...inputStyle, minHeight: 160, resize: "vertical" }}
+                style={{
+                  ...inputStyle,
+                  minHeight: 160,
+                  resize: "vertical",
+                }}
                 value={form.rules}
                 onChange={(e) =>
                   updateField("rules", e.target.value)
@@ -346,7 +580,11 @@ export default function NewCompetitionPage() {
             <div>
               <label style={labelStyle}>Prizes</label>
               <textarea
-                style={{ ...inputStyle, minHeight: 160, resize: "vertical" }}
+                style={{
+                  ...inputStyle,
+                  minHeight: 160,
+                  resize: "vertical",
+                }}
                 value={form.prizes}
                 onChange={(e) =>
                   updateField("prizes", e.target.value)
@@ -359,20 +597,20 @@ export default function NewCompetitionPage() {
 
         <section
           className="sq-card"
-          style={{
-            padding: 24,
-            marginBottom: 20,
-          }}
+          style={{ padding: 24, marginBottom: 20 }}
         >
-          <h2 style={{ marginTop: 0 }}>Competition Schedule</h2>
+          <h2 style={{ marginTop: 0 }}>
+            Competition Schedule
+          </h2>
 
           <div
+            className="form-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+              gridTemplateColumns:
+                "repeat(2,minmax(0,1fr))",
               gap: 18,
             }}
-            className="form-grid"
           >
             <div>
               <label style={labelStyle}>Starts *</label>
@@ -400,30 +638,11 @@ export default function NewCompetitionPage() {
               />
             </div>
           </div>
-
-          <div
-            style={{
-              marginTop: 18,
-              padding: 14,
-              borderRadius: 10,
-              background: "var(--background)",
-              border: "1px solid var(--border)",
-              fontSize: 12,
-              color: "var(--muted)",
-            }}
-          >
-            The competition status will be determined automatically from
-            these dates. It becomes <strong>Upcoming</strong>, then{" "}
-            <strong>Live</strong>, then <strong>Ended</strong>.
-          </div>
         </section>
 
         <section
           className="sq-card"
-          style={{
-            padding: 24,
-            marginBottom: 24,
-          }}
+          style={{ padding: 24, marginBottom: 24 }}
         >
           <h2 style={{ marginTop: 0 }}>Publishing</h2>
 
@@ -439,7 +658,10 @@ export default function NewCompetitionPage() {
               type="checkbox"
               checked={form.isPublished}
               onChange={(e) =>
-                updateField("isPublished", e.target.checked)
+                updateField(
+                  "isPublished",
+                  e.target.checked
+                )
               }
               style={{
                 marginTop: 3,
@@ -458,27 +680,11 @@ export default function NewCompetitionPage() {
                   fontSize: 12,
                 }}
               >
-                Published competitions can become visible to eligible
-                players according to the competition dates.
+                We recommend leaving this unchecked until
+                questions and announcements are ready.
               </span>
             </span>
           </label>
-
-          <div
-            style={{
-              marginTop: 16,
-              padding: 14,
-              borderRadius: 10,
-              background: "var(--background)",
-              border: "1px solid var(--border)",
-              color: "var(--muted)",
-              fontSize: 12,
-            }}
-          >
-            Recommended workflow: create the competition as a draft, add
-            all questions and announcements, review the setup, then publish
-            it.
-          </div>
         </section>
 
         <div
@@ -506,7 +712,9 @@ export default function NewCompetitionPage() {
               opacity: saving ? 0.7 : 1,
             }}
           >
-            {saving ? "Creating..." : "Create Competition"}
+            {saving
+              ? "Creating..."
+              : "Create Competition"}
           </button>
         </div>
       </form>
