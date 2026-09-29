@@ -24,33 +24,14 @@ type CurrentQuestion = {
 
 type SubmitResult = {
   success?: boolean;
-
-  status?: "in_progress" | "completed" | "expired";
-
   completed?: boolean;
   expired?: boolean;
-
   total_xp?: number;
-  earned_xp?: number;
-
-  is_correct?: boolean;
-
+  xp_awarded?: number;
+  correct?: boolean;
   correct_answers?: number;
   total_questions?: number;
-
-  attempt_id?: string;
-  competition_id?: string;
-
-  question_id?: string;
-  question_number?: number;
   next_question_number?: number;
-
-  response_time_ms?: number;
-  remaining_ms?: number;
-
-  base_xp?: number;
-  speed_bonus_xp?: number;
-
   message?: string;
 };
 
@@ -73,96 +54,68 @@ export default function SponsoredCompetitionPlayPage() {
     "a" | "b" | "c" | "d" | null
   >(null);
 
-  const [timeLeftMs, setTimeLeftMs] =
-    useState(0);
-
-  const [totalXp, setTotalXp] =
-    useState(0);
-
-  const [completed, setCompleted] =
-    useState(false);
+  const [timeLeftMs, setTimeLeftMs] = useState(0);
+  const [totalXp, setTotalXp] = useState(0);
+  const [completed, setCompleted] = useState(false);
 
   const [lastResult, setLastResult] =
     useState<SubmitResult | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const [submitting, setSubmitting] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState("");
+  const submittedRef = useRef(false);
 
   /*
-   * Prevent duplicate submissions caused by
-   * multiple React effects firing at the
-   * same time.
-   */
-  const submittedRef =
-    useRef(false);
-
-  /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * LOAD CURRENT QUESTION
-   * -------------------------------------------------------
-   *
-   * The database is the source of truth.
-   *
-   * If the attempt is already completed/expired,
-   * the previous question is cleared so an old
-   * question cannot remain visible.
+   * ---------------------------------------------------------
    */
   const loadQuestion = useCallback(
     async (id: string) => {
       setMessage("");
       setSelected(null);
 
-      /*
-       * Clear any stale question immediately.
-       */
-      setQuestion(null);
-      setTimeLeftMs(0);
-
-      submittedRef.current = false;
-
-      const { data, error } =
-        await supabase.rpc(
-          "get_sponsored_current_question",
-          {
-            p_attempt_id: id,
-          }
-        );
+      const { data, error } = await supabase.rpc(
+        "get_sponsored_current_question",
+        {
+          p_attempt_id: id,
+        }
+      );
 
       if (error) {
+        /*
+         * Important:
+         * Clear the old question so an expired/inactive attempt
+         * cannot leave a stale question visible on screen.
+         */
         setQuestion(null);
         setTimeLeftMs(0);
+        submittedRef.current = false;
+
         setMessage(error.message);
         return;
       }
 
       if (
         !data ||
-        (Array.isArray(data) &&
-          data.length === 0)
+        (Array.isArray(data) && data.length === 0)
       ) {
         setQuestion(null);
         setTimeLeftMs(0);
+        submittedRef.current = false;
 
         setMessage(
-          "This Sponsored competition attempt is no longer active."
+          "No active question was returned. Your attempt may already be complete or expired."
         );
 
         return;
       }
 
-      const row = Array.isArray(data)
-        ? data[0]
-        : data;
+      const row = Array.isArray(data) ? data[0] : data;
 
-      setQuestion(
-        row as CurrentQuestion
-      );
+      setQuestion(row as CurrentQuestion);
 
       setTimeLeftMs(
         Number(
@@ -177,9 +130,9 @@ export default function SponsoredCompetitionPlayPage() {
   );
 
   /*
-   * -------------------------------------------------------
-   * START / RESUME ATTEMPT
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
+   * START / RESUME COMPETITION
+   * ---------------------------------------------------------
    */
   useEffect(() => {
     let mounted = true;
@@ -193,26 +146,22 @@ export default function SponsoredCompetitionPlayPage() {
         return;
       }
 
+      /*
+       * If an attempt ID already exists in the URL,
+       * resume that attempt.
+       *
+       * Otherwise create/resume one through the secure RPC.
+       */
       let id = attemptFromUrl;
 
-      /*
-       * If an attempt ID already exists in
-       * the URL, resume that exact attempt.
-       *
-       * Otherwise create/resume one through
-       * the secure database function.
-       */
       if (!id) {
-        const {
-          data,
-          error,
-        } = await supabase.rpc(
-          "start_sponsored_competition",
-          {
-            p_competition_id:
-              competitionId,
-          }
-        );
+        const { data, error } =
+          await supabase.rpc(
+            "start_sponsored_competition",
+            {
+              p_competition_id: competitionId,
+            }
+          );
 
         if (error) {
           if (mounted) {
@@ -262,9 +211,9 @@ export default function SponsoredCompetitionPlayPage() {
   ]);
 
   /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * COUNTDOWN TIMER
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    */
   useEffect(() => {
     if (
@@ -275,17 +224,16 @@ export default function SponsoredCompetitionPlayPage() {
       return;
     }
 
-    const timer =
-      window.setInterval(() => {
-        setTimeLeftMs((current) => {
-          if (current <= 100) {
-            window.clearInterval(timer);
-            return 0;
-          }
+    const timer = window.setInterval(() => {
+      setTimeLeftMs((current) => {
+        if (current <= 100) {
+          window.clearInterval(timer);
+          return 0;
+        }
 
-          return current - 100;
-        });
-      }, 100);
+        return current - 100;
+      });
+    }, 100);
 
     return () =>
       window.clearInterval(timer);
@@ -296,15 +244,9 @@ export default function SponsoredCompetitionPlayPage() {
   ]);
 
   /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * AUTOMATIC TIMEOUT SUBMISSION
-   * -------------------------------------------------------
-   *
-   * When the timer reaches zero,
-   * submit null.
-   *
-   * The database then records the unanswered
-   * question and awards 0 XP.
+   * ---------------------------------------------------------
    */
   useEffect(() => {
     if (
@@ -325,17 +267,12 @@ export default function SponsoredCompetitionPlayPage() {
   ]);
 
   /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * SUBMIT ANSWER
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    */
   async function submitAnswer(
-    option:
-      | "a"
-      | "b"
-      | "c"
-      | "d"
-      | null
+    option: "a" | "b" | "c" | "d" | null
   ) {
     if (
       !attemptId ||
@@ -347,23 +284,19 @@ export default function SponsoredCompetitionPlayPage() {
     }
 
     submittedRef.current = true;
-
     setSubmitting(true);
     setMessage("");
 
     try {
-      const {
-        data,
-        error,
-      } = await supabase.rpc(
-        "submit_sponsored_answer",
-        {
-          p_attempt_id: attemptId,
-          p_question_id: question.id,
-          p_selected_option:
-            option,
-        }
-      );
+      const { data, error } =
+        await supabase.rpc(
+          "submit_sponsored_answer",
+          {
+            p_attempt_id: attemptId,
+            p_question_id: question.id,
+            p_selected_option: option,
+          }
+        );
 
       if (error) {
         submittedRef.current = false;
@@ -376,78 +309,41 @@ export default function SponsoredCompetitionPlayPage() {
 
       setLastResult(result);
 
-      /*
-       * The new backend returns cumulative
-       * Sponsored XP as total_xp.
-       */
       if (
-        typeof result.total_xp ===
-        "number"
+        typeof result.total_xp === "number"
       ) {
-        setTotalXp(
-          result.total_xp
-        );
-      } else if (
-        typeof result.earned_xp ===
-        "number"
-      ) {
-        setTotalXp(
-          (current) =>
-            current +
-            result.earned_xp!
-        );
+        setTotalXp(result.total_xp);
       }
 
       /*
-       * IMPORTANT:
-       *
-       * The updated RPC returns:
-       *
-       * status: "completed"
-       * completed: true
-       *
-       * We recognize both so the frontend
-       * remains robust.
+       * Competition finished or attempt expired.
        */
       if (
         result.completed ||
-        result.status ===
-          "completed" ||
-        result.expired ||
-        result.status ===
-          "expired"
+        result.expired
       ) {
         setCompleted(true);
         setQuestion(null);
         setTimeLeftMs(0);
-
         return;
       }
 
       /*
-       * More questions remain.
-       *
-       * Load the next question.
+       * Move to the next question.
        */
-      await loadQuestion(
-        attemptId
-      );
+      await loadQuestion(attemptId);
     } finally {
       setSubmitting(false);
     }
   }
 
   /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * SELECT ANSWER
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    */
   function choose(
-    option:
-      | "a"
-      | "b"
-      | "c"
-      | "d"
+    option: "a" | "b" | "c" | "d"
   ) {
     if (
       submitting ||
@@ -461,18 +357,18 @@ export default function SponsoredCompetitionPlayPage() {
   }
 
   /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * SUBMIT SELECTED ANSWER
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    */
   function submitSelected() {
     void submitAnswer(selected);
   }
 
   /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * LOADING
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    */
   if (loading) {
     return (
@@ -482,7 +378,9 @@ export default function SponsoredCompetitionPlayPage() {
           textAlign: "center",
         }}
       >
-        ⏳
+        <div style={{ fontSize: 35 }}>
+          ⏳
+        </div>
 
         <h3>
           Preparing your competition...
@@ -492,9 +390,9 @@ export default function SponsoredCompetitionPlayPage() {
   }
 
   /*
-   * -------------------------------------------------------
-   * COMPLETED
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
+   * COMPLETED / EXPIRED SCREEN
+   * ---------------------------------------------------------
    */
   if (completed) {
     return (
@@ -521,10 +419,9 @@ export default function SponsoredCompetitionPlayPage() {
           </h1>
 
           <p className="sq-subtitle">
-            Your attempt has been
-            recorded. Your Sponsored XP
-            is separate from your normal
-            Sahaba Quest XP.
+            Your attempt has been recorded.
+            Your Sponsored XP is separate from
+            your normal Sahaba Quest XP.
           </p>
 
           <div
@@ -600,12 +497,18 @@ export default function SponsoredCompetitionPlayPage() {
           <div
             style={{
               display: "flex",
-              justifyContent:
-                "center",
+              justifyContent: "center",
               gap: 10,
               flexWrap: "wrap",
             }}
           >
+            <Link
+              href={`/sponsored-competitions/${competitionId}/leaderboard`}
+              className="sq-button-primary"
+            >
+              🏆 View Sponsored Leaderboard
+            </Link>
+
             <Link
               href={`/sponsored-competitions/${competitionId}`}
               className="sq-button-secondary"
@@ -615,7 +518,7 @@ export default function SponsoredCompetitionPlayPage() {
 
             <Link
               href="/sponsored-competitions"
-              className="sq-button-primary"
+              className="sq-button-secondary"
             >
               Sponsored Competitions
             </Link>
@@ -626,9 +529,9 @@ export default function SponsoredCompetitionPlayPage() {
   }
 
   /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * NO ACTIVE QUESTION
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    */
   if (!question) {
     return (
@@ -642,40 +545,77 @@ export default function SponsoredCompetitionPlayPage() {
           className="sq-card"
           style={{
             padding: 30,
+            maxWidth: 650,
+            margin: "0 auto",
           }}
         >
+          <div
+            style={{
+              fontSize: 45,
+            }}
+          >
+            ⏱️
+          </div>
+
           <h2>
-            Unable to load the question
+            This attempt is no longer active
           </h2>
 
           <p className="sq-subtitle">
-            {message}
+            {message ||
+              "There is no active question for this attempt."}
           </p>
 
-          <Link
-            href={`/sponsored-competitions/${competitionId}`}
-            className="sq-button-secondary"
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 18,
+            }}
           >
-            Back to Competition
-          </Link>
+            <Link
+              href={`/sponsored-competitions/${competitionId}`}
+              className="sq-button-secondary"
+            >
+              Back to Competition
+            </Link>
+
+            <Link
+              href={`/sponsored-competitions/${competitionId}/leaderboard`}
+              className="sq-button-primary"
+            >
+              🏆 View Leaderboard
+            </Link>
+          </div>
         </div>
       </main>
     );
   }
 
-  /*
-   * -------------------------------------------------------
-   * TIMER DISPLAY
-   * -------------------------------------------------------
-   */
   const seconds = Math.ceil(
     timeLeftMs / 1000
   );
 
+  const timerPercentage =
+    question.time_limit_seconds > 0
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            (timeLeftMs /
+              (question.time_limit_seconds *
+                1000)) *
+              100
+          )
+        )
+      : 0;
+
   /*
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    * QUESTION SCREEN
-   * -------------------------------------------------------
+   * ---------------------------------------------------------
    */
   return (
     <main>
@@ -738,23 +678,13 @@ export default function SponsoredCompetitionPlayPage() {
             marginTop: 16,
             height: 7,
             borderRadius: 999,
-            background:
-              "var(--border)",
+            background: "var(--border)",
             overflow: "hidden",
           }}
         >
           <div
             style={{
-              width: `${Math.max(
-                0,
-                Math.min(
-                  100,
-                  (timeLeftMs /
-                    (question.time_limit_seconds *
-                      1000)) *
-                    100
-                )
-              )}%`,
+              width: `${timerPercentage}%`,
               height: "100%",
               background:
                 "var(--primary)",
@@ -773,9 +703,7 @@ export default function SponsoredCompetitionPlayPage() {
             marginBottom: 18,
           }}
         >
-          <strong>
-            Notice
-          </strong>
+          <strong>Notice</strong>
 
           <p
             className="sq-subtitle"
@@ -815,115 +743,91 @@ export default function SponsoredCompetitionPlayPage() {
         >
           {(
             [
-              [
-                "a",
-                question.option_a,
-              ],
-              [
-                "b",
-                question.option_b,
-              ],
-              [
-                "c",
-                question.option_c,
-              ],
-              [
-                "d",
-                question.option_d,
-              ],
+              ["a", question.option_a],
+              ["b", question.option_b],
+              ["c", question.option_c],
+              ["d", question.option_d],
             ] as const
-          ).map(
-            ([letter, text]) => {
-              const active =
-                selected === letter;
+          ).map(([letter, text]) => {
+            const active =
+              selected === letter;
 
-              return (
-                <button
-                  key={letter}
-                  type="button"
-                  onClick={() =>
-                    choose(letter)
-                  }
-                  disabled={submitting}
+            return (
+              <button
+                key={letter}
+                type="button"
+                onClick={() =>
+                  choose(letter)
+                }
+                disabled={submitting}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "16px 17px",
+                  border: active
+                    ? "2px solid var(--primary)"
+                    : "1px solid var(--border)",
+                  borderRadius: 12,
+                  background: active
+                    ? "var(--primary-light)"
+                    : "var(--background)",
+                  color: "inherit",
+                  cursor: submitting
+                    ? "not-allowed"
+                    : "pointer",
+                  fontSize: 14,
+                  fontWeight: active
+                    ? 800
+                    : 600,
+                }}
+              >
+                <span
                   style={{
-                    width: "100%",
-                    textAlign:
-                      "left",
-                    padding:
-                      "16px 17px",
-                    border: active
-                      ? "2px solid var(--primary)"
-                      : "1px solid var(--border)",
-                    borderRadius: 12,
+                    display:
+                      "inline-flex",
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    alignItems:
+                      "center",
+                    justifyContent:
+                      "center",
+                    marginRight: 10,
                     background: active
-                      ? "var(--primary-light)"
-                      : "var(--background)",
-                    color: "inherit",
-                    cursor:
-                      submitting
-                        ? "not-allowed"
-                        : "pointer",
-                    fontSize: 14,
-                    fontWeight:
-                      active
-                        ? 800
-                        : 600,
+                      ? "var(--primary)"
+                      : "var(--border)",
+                    color: active
+                      ? "#fff"
+                      : "inherit",
+                    fontWeight: 900,
                   }}
                 >
-                  <span
-                    style={{
-                      display:
-                        "inline-flex",
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
-                      alignItems:
-                        "center",
-                      justifyContent:
-                        "center",
-                      marginRight: 10,
-                      background:
-                        active
-                          ? "var(--primary)"
-                          : "var(--border)",
-                      color: active
-                        ? "#fff"
-                        : "inherit",
-                      fontWeight: 900,
-                    }}
-                  >
-                    {letter.toUpperCase()}
-                  </span>
+                  {letter.toUpperCase()}
+                </span>
 
-                  {text}
-                </button>
-              );
-            }
-          )}
+                {text}
+              </button>
+            );
+          })}
         </div>
 
         <button
           type="button"
           className="sq-button-primary"
-          onClick={
-            submitSelected
-          }
+          onClick={submitSelected}
           disabled={
-            !selected ||
-            submitting
+            !selected || submitting
           }
           style={{
             width: "100%",
             border: 0,
             cursor:
-              !selected ||
-              submitting
+              !selected || submitting
                 ? "not-allowed"
                 : "pointer",
             marginTop: 22,
             opacity:
-              !selected ||
-              submitting
+              !selected || submitting
                 ? 0.6
                 : 1,
           }}
@@ -942,11 +846,20 @@ export default function SponsoredCompetitionPlayPage() {
           }}
         >
           Correct answers earn base XP
-          plus a speed bonus based on
-          your remaining time. Wrong
-          answers earn 0 XP.
+          plus a speed bonus based on your
+          remaining time. Wrong answers earn
+          0 XP.
         </p>
       </section>
+
+      <style jsx>{`
+        @media (max-width: 600px) {
+          .sq-card {
+            width: 100%;
+            box-sizing: border-box;
+          }
+        }
+      `}</style>
     </main>
   );
 }
