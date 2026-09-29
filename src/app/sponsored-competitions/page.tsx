@@ -413,24 +413,28 @@ export default function SponsoredCompetitionsPage() {
 
         <div className="sq-feature-grid">
           <Feature
+            number="01"
             icon="🧠"
             title="Learn while competing"
-            text="Every competition is built around Islamic knowledge and meaningful learning."
+            text="Build Islamic knowledge while testing yourself in a real competition setting."
           />
           <Feature
+            number="02"
             icon="⚡"
             title="Speed matters"
-            text="Answer correctly and quickly to earn more Sponsored XP through the speed bonus."
+            text="Answer correctly and quickly to earn extra Sponsored XP through the speed bonus."
           />
           <Feature
+            number="03"
             icon="🏆"
             title="Your own leaderboard"
-            text="Sponsored XP stays separate from your normal Sahaba Quest XP and leaderboard."
+            text="Track your competition performance separately from your normal Sahaba Quest XP."
           />
           <Feature
+            number="04"
             icon="🎁"
             title="Compete for prizes"
-            text="Sponsors can bring special prizes, recognition and opportunities to the Ummah."
+            text="Take part in special competitions where sponsors can offer prizes and recognition."
           />
         </div>
       </section>
@@ -547,13 +551,16 @@ export default function SponsoredCompetitionsPage() {
 
         .sq-sponsored-hero {
           position: relative;
-          min-height: 500px;
+          width: 100%;
+          max-width: 1180px;
+          min-height: 400px;
+          margin: 0 auto;
           overflow: hidden;
-          border-radius: 28px;
-          padding: clamp(32px, 5vw, 68px);
+          border-radius: 24px;
+          padding: clamp(30px, 4vw, 48px);
           display: grid;
-          grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-          gap: 28px;
+          grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.88fr);
+          gap: 22px;
           align-items: center;
           background:
             radial-gradient(circle at 78% 35%, rgba(45, 212, 191, 0.25), transparent 32%),
@@ -566,7 +573,9 @@ export default function SponsoredCompetitionsPage() {
         .sq-sponsored-hero-copy {
           position: relative;
           z-index: 2;
-          max-width: 720px;
+          width: 100%;
+          max-width: 650px;
+          min-width: 0;
         }
 
         .sq-sponsored-kicker,
@@ -593,10 +602,12 @@ export default function SponsoredCompetitionsPage() {
         }
 
         .sq-sponsored-hero h1 {
-          margin: 18px 0 18px;
-          font-size: clamp(38px, 5.2vw, 68px);
-          line-height: 0.98;
-          letter-spacing: -0.045em;
+          max-width: 650px;
+          margin: 16px 0 16px;
+          font-size: clamp(36px, 4.4vw, 56px);
+          line-height: 1.02;
+          letter-spacing: -0.042em;
+          text-wrap: balance;
         }
 
         .sq-sponsored-hero h1 span {
@@ -604,33 +615,36 @@ export default function SponsoredCompetitionsPage() {
         }
 
         .sq-sponsored-hero p {
-          max-width: 650px;
+          max-width: 590px;
           margin: 0;
           color: rgba(255, 255, 255, 0.76);
-          font-size: clamp(14px, 1.6vw, 17px);
-          line-height: 1.75;
+          font-size: clamp(13px, 1.35vw, 15px);
+          line-height: 1.65;
+          text-wrap: pretty;
         }
 
         .sq-sponsored-hero-actions {
           display: flex;
           flex-wrap: wrap;
-          gap: 12px;
+          gap: 10px;
           align-items: center;
-          margin-top: 28px;
+          margin-top: 22px;
         }
 
         .sq-sponsored-primary,
         .sq-sponsored-secondary,
         .sq-access-button {
-          min-height: 46px;
+          min-height: 44px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 9px;
-          border-radius: 12px;
-          padding: 0 18px;
+          border-radius: 11px;
+          padding: 0 16px;
           font-weight: 900;
+          font-size: 12px;
           text-decoration: none;
+          white-space: nowrap;
           transition:
             transform 160ms ease,
             box-shadow 160ms ease,
@@ -663,16 +677,27 @@ export default function SponsoredCompetitionsPage() {
         .sq-sponsored-trust-row {
           display: flex;
           flex-wrap: wrap;
-          gap: 14px 22px;
-          margin-top: 24px;
-          color: rgba(255, 255, 255, 0.62);
-          font-size: 11px;
-          font-weight: 700;
+          gap: 7px;
+          margin-top: 18px;
+        }
+
+        .sq-sponsored-trust-row span {
+          display: inline-flex;
+          align-items: center;
+          min-height: 30px;
+          padding: 0 10px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.055);
+          color: rgba(255, 255, 255, 0.68);
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.01em;
         }
 
         .sq-sponsored-hero-art {
           position: relative;
-          min-height: 360px;
+          min-height: 310px;
           display: grid;
           place-items: center;
         }
@@ -680,8 +705,8 @@ export default function SponsoredCompetitionsPage() {
         .sq-trophy-card {
           position: relative;
           z-index: 2;
-          width: min(330px, 82%);
-          padding: 24px;
+          width: min(300px, 82%);
+          padding: 21px;
           border: 1px solid rgba(255, 255, 255, 0.16);
           border-radius: 24px;
           background: rgba(255, 255, 255, 0.09);
@@ -714,8 +739,8 @@ export default function SponsoredCompetitionsPage() {
         }
 
         .sq-trophy {
-          width: 100px;
-          height: 100px;
+          width: 86px;
+          height: 86px;
           display: grid;
           place-items: center;
           margin: 22px auto 12px;
@@ -727,7 +752,7 @@ export default function SponsoredCompetitionsPage() {
 
         .sq-trophy-title {
           text-align: center;
-          font-size: 22px;
+          font-size: 19px;
           line-height: 1.08;
           font-weight: 900;
           letter-spacing: -0.03em;
@@ -770,18 +795,18 @@ export default function SponsoredCompetitionsPage() {
         }
 
         .sq-pill-one {
-          top: 12%;
-          right: 5%;
+          top: 9%;
+          right: 2%;
         }
 
         .sq-pill-two {
-          left: 4%;
+          left: 1%;
           bottom: 17%;
         }
 
         .sq-pill-three {
-          right: 9%;
-          bottom: 7%;
+          right: 4%;
+          bottom: 5%;
         }
 
         .sq-trophy-orbit {
@@ -791,13 +816,13 @@ export default function SponsoredCompetitionsPage() {
         }
 
         .sq-orbit-one {
-          width: 390px;
-          height: 390px;
+          width: 330px;
+          height: 330px;
         }
 
         .sq-orbit-two {
-          width: 500px;
-          height: 500px;
+          width: 420px;
+          height: 420px;
           border-color: rgba(255, 255, 255, 0.06);
         }
 
@@ -1086,42 +1111,92 @@ export default function SponsoredCompetitionsPage() {
         .sq-feature-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 12px;
+          gap: 14px;
         }
 
         .sq-feature-item {
+          position: relative;
           min-width: 0;
-          padding: 20px;
+          min-height: 190px;
+          padding: 20px 18px 18px;
           border: 1px solid var(--border);
           border-radius: 18px;
           background: var(--card, white);
+          overflow: hidden;
           transition:
             transform 160ms ease,
-            box-shadow 160ms ease;
+            box-shadow 160ms ease,
+            border-color 160ms ease;
+        }
+
+        .sq-feature-item::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 18px;
+          right: 18px;
+          height: 3px;
+          border-radius: 0 0 999px 999px;
+          background: linear-gradient(90deg, var(--primary), rgba(20, 184, 166, 0.12));
+        }
+
+        .sq-feature-item::after {
+          content: "";
+          position: absolute;
+          width: 90px;
+          height: 90px;
+          right: -42px;
+          bottom: -48px;
+          border-radius: 50%;
+          background: var(--primary-light);
+          pointer-events: none;
         }
 
         .sq-feature-item:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 16px 35px rgba(0, 0, 0, 0.07);
+          transform: translateY(-4px);
+          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.08);
+          border-color: rgba(20, 184, 166, 0.32);
+        }
+
+        .sq-feature-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .sq-feature-number {
+          color: var(--muted);
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 0.12em;
         }
 
         .sq-feature-icon {
-          width: 44px;
-          height: 44px;
+          width: 46px;
+          height: 46px;
           display: grid;
           place-items: center;
-          margin-bottom: 15px;
           border-radius: 13px;
-          background: var(--primary-light);
+          background: linear-gradient(
+            135deg,
+            var(--primary-light),
+            rgba(20, 184, 166, 0.04)
+          );
+          border: 1px solid rgba(20, 184, 166, 0.12);
           font-size: 20px;
         }
 
         .sq-feature-item h3 {
-          margin: 0 0 7px;
+          margin: 0 0 8px;
           font-size: 15px;
+          line-height: 1.25;
+          letter-spacing: -0.01em;
         }
 
         .sq-feature-item p {
+          max-width: 270px;
           margin: 0;
           color: var(--muted);
           font-size: 11px;
@@ -1381,8 +1456,9 @@ export default function SponsoredCompetitionsPage() {
 
         @media (max-width: 1050px) {
           .sq-sponsored-hero {
-            grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
-            padding: 40px;
+            grid-template-columns: minmax(0, 1fr) minmax(250px, 0.72fr);
+            min-height: 380px;
+            padding: 34px;
           }
 
           .sq-feature-grid {
@@ -1420,17 +1496,20 @@ export default function SponsoredCompetitionsPage() {
         @media (max-width: 620px) {
           .sq-sponsored-hero {
             min-height: auto;
-            padding: 30px 20px;
+            padding: 28px 20px;
             border-radius: 21px;
           }
 
           .sq-sponsored-hero h1 {
-            font-size: clamp(35px, 12vw, 52px);
+            max-width: 100%;
+            font-size: clamp(34px, 10.5vw, 48px);
+            line-height: 1.03;
           }
 
           .sq-sponsored-hero p {
+            max-width: 100%;
             font-size: 13px;
-            line-height: 1.65;
+            line-height: 1.62;
           }
 
           .sq-sponsored-hero-actions {
@@ -1508,7 +1587,8 @@ export default function SponsoredCompetitionsPage() {
           }
 
           .sq-feature-item {
-            padding: 17px;
+            min-height: 0;
+            padding: 18px;
           }
 
           .sq-featured-content {
@@ -1843,14 +1923,19 @@ function Feature({
   icon,
   title,
   text,
+  number,
 }: {
   icon: string;
   title: string;
   text: string;
+  number: string;
 }) {
   return (
     <article className="sq-feature-item">
-      <div className="sq-feature-icon">{icon}</div>
+      <div className="sq-feature-top">
+        <div className="sq-feature-icon">{icon}</div>
+        <span className="sq-feature-number">{number}</span>
+      </div>
       <h3>{title}</h3>
       <p>{text}</p>
     </article>
