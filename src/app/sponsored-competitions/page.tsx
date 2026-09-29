@@ -1697,8 +1697,11 @@ function FeaturedCompetition({
           </div>
 
           <div className="sq-meta-box">
-            <span>STARTS</span>
-            <strong>{formatDate(competition.starts_at)}</strong>
+            <span>STARTS — ENDS</span>
+            <strong>
+              {formatDate(competition.starts_at)} —{" "}
+              {formatDate(competition.ends_at)}
+            </strong>
           </div>
 
           <div className="sq-meta-box">
@@ -2258,8 +2261,11 @@ function CompetitionCard({
           </div>
 
           <div>
-            <span>START</span>
-            <strong>{formatDate(competition.starts_at)}</strong>
+            <span>START — END</span>
+            <strong>
+              {formatDate(competition.starts_at)} —{" "}
+              {formatDate(competition.ends_at)}
+            </strong>
           </div>
         </div>
 
