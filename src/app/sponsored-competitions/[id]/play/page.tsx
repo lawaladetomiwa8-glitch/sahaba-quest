@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import {
+  useParams,
+  useSearchParams,
+  useRouter,
+} from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 
 type CurrentQuestion = {
@@ -20,14 +24,33 @@ type CurrentQuestion = {
 
 type SubmitResult = {
   success?: boolean;
+
+  status?: "in_progress" | "completed" | "expired";
+
   completed?: boolean;
   expired?: boolean;
+
   total_xp?: number;
-  xp_awarded?: number;
-  correct?: boolean;
+  earned_xp?: number;
+
+  is_correct?: boolean;
+
   correct_answers?: number;
   total_questions?: number;
+
+  attempt_id?: string;
+  competition_id?: string;
+
+  question_id?: string;
+  question_number?: number;
   next_question_number?: number;
+
+  response_time_ms?: number;
+  remaining_ms?: number;
+
+  base_xp?: number;
+  speed_bonus_xp?: number;
+
   message?: string;
 };
 
@@ -39,82 +62,119 @@ export default function SponsoredCompetitionPlayPage() {
   const competitionId = params.id;
   const attemptFromUrl = searchParams.get("attempt");
 
-  const [attemptId, setAttemptId] = useState(attemptFromUrl || "");
-  const [question, setQuestion] = useState<CurrentQuestion | null>(null);
+  const [attemptId, setAttemptId] = useState(
+    attemptFromUrl || ""
+  );
+
+  const [question, setQuestion] =
+    useState<CurrentQuestion | null>(null);
+
   const [selected, setSelected] = useState<
     "a" | "b" | "c" | "d" | null
   >(null);
-  const [timeLeftMs, setTimeLeftMs] = useState(0);
-  const [totalXp, setTotalXp] = useState(0);
-  const [completed, setCompleted] = useState(false);
+
+  const [timeLeftMs, setTimeLeftMs] =
+    useState(0);
+
+  const [totalXp, setTotalXp] =
+    useState(0);
+
+  const [completed, setCompleted] =
+    useState(false);
+
   const [lastResult, setLastResult] =
     useState<SubmitResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
 
-  const submittedRef = useRef(false);
+  const [loading, setLoading] =
+    useState(true);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [message, setMessage] =
+    useState("");
+
+  /*
+   * Prevent duplicate submissions caused by
+   * multiple React effects firing at the
+   * same time.
+   */
+  const submittedRef =
+    useRef(false);
 
   /*
    * -------------------------------------------------------
    * LOAD CURRENT QUESTION
    * -------------------------------------------------------
    *
-   * The database is the source of truth for:
-   * - current question
-   * - remaining time
-   * - whether the attempt is still active
+   * The database is the source of truth.
    *
-   * Important:
-   * If the attempt is already completed/expired, we clear
-   * the question state so an old question cannot remain visible.
+   * If the attempt is already completed/expired,
+   * the previous question is cleared so an old
+   * question cannot remain visible.
    */
-  const loadQuestion = useCallback(async (id: string) => {
-    setMessage("");
-    setSelected(null);
-    setQuestion(null);
-    setTimeLeftMs(0);
-    submittedRef.current = false;
+  const loadQuestion = useCallback(
+    async (id: string) => {
+      setMessage("");
+      setSelected(null);
 
-    const { data, error } = await supabase.rpc(
-      "get_sponsored_current_question",
-      {
-        p_attempt_id: id,
+      /*
+       * Clear any stale question immediately.
+       */
+      setQuestion(null);
+      setTimeLeftMs(0);
+
+      submittedRef.current = false;
+
+      const { data, error } =
+        await supabase.rpc(
+          "get_sponsored_current_question",
+          {
+            p_attempt_id: id,
+          }
+        );
+
+      if (error) {
+        setQuestion(null);
+        setTimeLeftMs(0);
+        setMessage(error.message);
+        return;
       }
-    );
 
-    if (error) {
-      setQuestion(null);
-      setTimeLeftMs(0);
-      setMessage(error.message);
-      return;
-    }
+      if (
+        !data ||
+        (Array.isArray(data) &&
+          data.length === 0)
+      ) {
+        setQuestion(null);
+        setTimeLeftMs(0);
 
-    if (
-      !data ||
-      (Array.isArray(data) && data.length === 0)
-    ) {
-      setQuestion(null);
-      setTimeLeftMs(0);
-      setMessage(
-        "This Sponsored competition attempt is no longer active."
+        setMessage(
+          "This Sponsored competition attempt is no longer active."
+        );
+
+        return;
+      }
+
+      const row = Array.isArray(data)
+        ? data[0]
+        : data;
+
+      setQuestion(
+        row as CurrentQuestion
       );
-      return;
-    }
 
-    const row = Array.isArray(data) ? data[0] : data;
+      setTimeLeftMs(
+        Number(
+          row.remaining_ms ??
+            row.time_limit_seconds * 1000
+        )
+      );
 
-    setQuestion(row as CurrentQuestion);
-
-    setTimeLeftMs(
-      Number(
-        row.remaining_ms ??
-          row.time_limit_seconds * 1000
-      )
-    );
-
-    submittedRef.current = false;
-  }, []);
+      submittedRef.current = false;
+    },
+    []
+  );
 
   /*
    * -------------------------------------------------------
@@ -136,20 +196,23 @@ export default function SponsoredCompetitionPlayPage() {
       let id = attemptFromUrl;
 
       /*
-       * If an attempt ID is already in the URL,
-       * resume that exact attempt.
+       * If an attempt ID already exists in
+       * the URL, resume that exact attempt.
        *
-       * If there is no attempt ID, create/resume one
-       * through the secure database function.
+       * Otherwise create/resume one through
+       * the secure database function.
        */
       if (!id) {
-        const { data, error } =
-          await supabase.rpc(
-            "start_sponsored_competition",
-            {
-              p_competition_id: competitionId,
-            }
-          );
+        const {
+          data,
+          error,
+        } = await supabase.rpc(
+          "start_sponsored_competition",
+          {
+            p_competition_id:
+              competitionId,
+          }
+        );
 
         if (error) {
           if (mounted) {
@@ -168,6 +231,7 @@ export default function SponsoredCompetitionPlayPage() {
           setMessage(
             "Unable to start the competition."
           );
+
           setLoading(false);
         }
 
@@ -211,16 +275,17 @@ export default function SponsoredCompetitionPlayPage() {
       return;
     }
 
-    const timer = window.setInterval(() => {
-      setTimeLeftMs((current) => {
-        if (current <= 100) {
-          window.clearInterval(timer);
-          return 0;
-        }
+    const timer =
+      window.setInterval(() => {
+        setTimeLeftMs((current) => {
+          if (current <= 100) {
+            window.clearInterval(timer);
+            return 0;
+          }
 
-        return current - 100;
-      });
-    }, 100);
+          return current - 100;
+        });
+      }, 100);
 
     return () =>
       window.clearInterval(timer);
@@ -235,9 +300,11 @@ export default function SponsoredCompetitionPlayPage() {
    * AUTOMATIC TIMEOUT SUBMISSION
    * -------------------------------------------------------
    *
-   * When the countdown reaches zero, submit null.
-   * The database determines that the question was unanswered
-   * and awards 0 XP.
+   * When the timer reaches zero,
+   * submit null.
+   *
+   * The database then records the unanswered
+   * question and awards 0 XP.
    */
   useEffect(() => {
     if (
@@ -263,7 +330,12 @@ export default function SponsoredCompetitionPlayPage() {
    * -------------------------------------------------------
    */
   async function submitAnswer(
-    option: "a" | "b" | "c" | "d" | null
+    option:
+      | "a"
+      | "b"
+      | "c"
+      | "d"
+      | null
   ) {
     if (
       !attemptId ||
@@ -275,19 +347,23 @@ export default function SponsoredCompetitionPlayPage() {
     }
 
     submittedRef.current = true;
+
     setSubmitting(true);
     setMessage("");
 
     try {
-      const { data, error } =
-        await supabase.rpc(
-          "submit_sponsored_answer",
-          {
-            p_attempt_id: attemptId,
-            p_question_id: question.id,
-            p_selected_option: option,
-          }
-        );
+      const {
+        data,
+        error,
+      } = await supabase.rpc(
+        "submit_sponsored_answer",
+        {
+          p_attempt_id: attemptId,
+          p_question_id: question.id,
+          p_selected_option:
+            option,
+        }
+      );
 
       if (error) {
         submittedRef.current = false;
@@ -300,30 +376,62 @@ export default function SponsoredCompetitionPlayPage() {
 
       setLastResult(result);
 
+      /*
+       * The new backend returns cumulative
+       * Sponsored XP as total_xp.
+       */
       if (
-        typeof result.total_xp === "number"
+        typeof result.total_xp ===
+        "number"
       ) {
-        setTotalXp(result.total_xp);
+        setTotalXp(
+          result.total_xp
+        );
+      } else if (
+        typeof result.earned_xp ===
+        "number"
+      ) {
+        setTotalXp(
+          (current) =>
+            current +
+            result.earned_xp!
+        );
       }
 
       /*
-       * The attempt has ended.
+       * IMPORTANT:
+       *
+       * The updated RPC returns:
+       *
+       * status: "completed"
+       * completed: true
+       *
+       * We recognize both so the frontend
+       * remains robust.
        */
       if (
         result.completed ||
-        result.expired
+        result.status ===
+          "completed" ||
+        result.expired ||
+        result.status ===
+          "expired"
       ) {
         setCompleted(true);
         setQuestion(null);
         setTimeLeftMs(0);
+
         return;
       }
 
       /*
        * More questions remain.
+       *
        * Load the next question.
        */
-      await loadQuestion(attemptId);
+      await loadQuestion(
+        attemptId
+      );
     } finally {
       setSubmitting(false);
     }
@@ -335,7 +443,11 @@ export default function SponsoredCompetitionPlayPage() {
    * -------------------------------------------------------
    */
   function choose(
-    option: "a" | "b" | "c" | "d"
+    option:
+      | "a"
+      | "b"
+      | "c"
+      | "d"
   ) {
     if (
       submitting ||
@@ -371,6 +483,7 @@ export default function SponsoredCompetitionPlayPage() {
         }}
       >
         ⏳
+
         <h3>
           Preparing your competition...
         </h3>
@@ -408,9 +521,10 @@ export default function SponsoredCompetitionPlayPage() {
           </h1>
 
           <p className="sq-subtitle">
-            Your attempt has been recorded.
-            Your Sponsored XP is separate from
-            your normal Sahaba Quest XP.
+            Your attempt has been
+            recorded. Your Sponsored XP
+            is separate from your normal
+            Sahaba Quest XP.
           </p>
 
           <div
@@ -551,7 +665,7 @@ export default function SponsoredCompetitionPlayPage() {
 
   /*
    * -------------------------------------------------------
-   * DISPLAY TIMER
+   * TIMER DISPLAY
    * -------------------------------------------------------
    */
   const seconds = Math.ceil(
@@ -624,7 +738,8 @@ export default function SponsoredCompetitionPlayPage() {
             marginTop: 16,
             height: 7,
             borderRadius: 999,
-            background: "var(--border)",
+            background:
+              "var(--border)",
             overflow: "hidden",
           }}
         >
@@ -658,7 +773,9 @@ export default function SponsoredCompetitionPlayPage() {
             marginBottom: 18,
           }}
         >
-          <strong>Notice</strong>
+          <strong>
+            Notice
+          </strong>
 
           <p
             className="sq-subtitle"
@@ -696,12 +813,26 @@ export default function SponsoredCompetitionPlayPage() {
             marginTop: 24,
           }}
         >
-          {([
-            ["a", question.option_a],
-            ["b", question.option_b],
-            ["c", question.option_c],
-            ["d", question.option_d],
-          ] as const).map(
+          {(
+            [
+              [
+                "a",
+                question.option_a,
+              ],
+              [
+                "b",
+                question.option_b,
+              ],
+              [
+                "c",
+                question.option_c,
+              ],
+              [
+                "d",
+                question.option_d,
+              ],
+            ] as const
+          ).map(
             ([letter, text]) => {
               const active =
                 selected === letter;
@@ -716,7 +847,8 @@ export default function SponsoredCompetitionPlayPage() {
                   disabled={submitting}
                   style={{
                     width: "100%",
-                    textAlign: "left",
+                    textAlign:
+                      "left",
                     padding:
                       "16px 17px",
                     border: active
@@ -727,13 +859,15 @@ export default function SponsoredCompetitionPlayPage() {
                       ? "var(--primary-light)"
                       : "var(--background)",
                     color: "inherit",
-                    cursor: submitting
-                      ? "not-allowed"
-                      : "pointer",
+                    cursor:
+                      submitting
+                        ? "not-allowed"
+                        : "pointer",
                     fontSize: 14,
-                    fontWeight: active
-                      ? 800
-                      : 600,
+                    fontWeight:
+                      active
+                        ? 800
+                        : 600,
                   }}
                 >
                   <span
@@ -748,9 +882,10 @@ export default function SponsoredCompetitionPlayPage() {
                       justifyContent:
                         "center",
                       marginRight: 10,
-                      background: active
-                        ? "var(--primary)"
-                        : "var(--border)",
+                      background:
+                        active
+                          ? "var(--primary)"
+                          : "var(--border)",
                       color: active
                         ? "#fff"
                         : "inherit",
@@ -770,20 +905,25 @@ export default function SponsoredCompetitionPlayPage() {
         <button
           type="button"
           className="sq-button-primary"
-          onClick={submitSelected}
+          onClick={
+            submitSelected
+          }
           disabled={
-            !selected || submitting
+            !selected ||
+            submitting
           }
           style={{
             width: "100%",
             border: 0,
             cursor:
-              !selected || submitting
+              !selected ||
+              submitting
                 ? "not-allowed"
                 : "pointer",
             marginTop: 22,
             opacity:
-              !selected || submitting
+              !selected ||
+              submitting
                 ? 0.6
                 : 1,
           }}
