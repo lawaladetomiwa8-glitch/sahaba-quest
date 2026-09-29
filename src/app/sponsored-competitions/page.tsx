@@ -25,9 +25,11 @@ type AccountType = "free" | "individual" | "family";
 
 function statusOf(c: Competition) {
   if (!c.is_published) return "draft";
+
   const now = Date.now();
   const start = new Date(c.starts_at).getTime();
   const end = new Date(c.ends_at).getTime();
+
   if (now < start) return "upcoming";
   if (now < end) return "live";
   return "ended";
@@ -40,8 +42,33 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function getCountdown(value: string) {
+  const difference = new Date(value).getTime() - Date.now();
+
+  if (difference <= 0) return "Starting soon";
+
+  const totalMinutes = Math.floor(difference / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+function splitText(value: string | null) {
+  if (!value) return [];
+  return value
+    .split(/\r?\n|•/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
 export default function SponsoredCompetitionsPage() {
   const router = useRouter();
+
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [hasPremium, setHasPremium] = useState(false);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -72,7 +99,9 @@ export default function SponsoredCompetitionsPage() {
 
           supabase
             .from("subscriptions")
-            .select("id,current_period_end,status,subscription_plans!inner(plan_type)")
+            .select(
+              "id,current_period_end,status,subscription_plans!inner(plan_type)"
+            )
             .eq("user_id", auth.user.id)
             .eq("status", "active")
             .eq("subscription_plans.plan_type", "plus")
@@ -82,7 +111,9 @@ export default function SponsoredCompetitionsPage() {
 
           supabase
             .from("sponsored_competitions")
-            .select("id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published")
+            .select(
+              "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published"
+            )
             .eq("is_published", true)
             .order("starts_at", { ascending: false }),
         ]);
@@ -95,7 +126,9 @@ export default function SponsoredCompetitionsPage() {
         return;
       }
 
-      const type = profileResult.data?.account_type as AccountType | undefined;
+      const type = profileResult.data?.account_type as
+        | AccountType
+        | undefined;
 
       if (type === "family") {
         router.replace("/family-dashboard");
@@ -137,6 +170,9 @@ export default function SponsoredCompetitionsPage() {
     [competitions]
   );
 
+  const featured = active[0] ?? upcoming[0] ?? null;
+  const canParticipate = accountType === "individual" && hasPremium;
+
   function join(c: Competition) {
     if (statusOf(c) !== "live") return;
 
@@ -149,82 +185,1705 @@ export default function SponsoredCompetitionsPage() {
   }
 
   if (loading) {
-    return <main style={{ padding: 60, textAlign: "center" }}>⏳<h3>Loading sponsored competitions...</h3></main>;
+    return (
+      <main className="sq-sponsored-loading">
+        <div className="sq-sponsored-spinner">🏆</div>
+        <h3>Loading sponsored competitions...</h3>
+        <p>Preparing the latest competitions for you.</p>
+
+        <style jsx>{`
+          .sq-sponsored-loading {
+            min-height: 55vh;
+            display: grid;
+            place-items: center;
+            align-content: center;
+            gap: 8px;
+            text-align: center;
+            padding: 40px 20px;
+          }
+
+          .sq-sponsored-loading h3 {
+            margin: 0;
+          }
+
+          .sq-sponsored-loading p {
+            margin: 0;
+            color: var(--muted);
+          }
+
+          .sq-sponsored-spinner {
+            width: 64px;
+            height: 64px;
+            display: grid;
+            place-items: center;
+            border-radius: 20px;
+            background: linear-gradient(
+              135deg,
+              rgba(20, 184, 166, 0.18),
+              rgba(59, 130, 246, 0.14)
+            );
+            font-size: 30px;
+            animation: sqFloat 1.8s ease-in-out infinite;
+          }
+
+          @keyframes sqFloat {
+            0%,
+            100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-7px);
+            }
+          }
+        `}</style>
+      </main>
+    );
   }
 
   return (
-    <main>
-      <section style={{ marginBottom: 26 }}>
-        <span className="sq-badge">Sponsored Competitions</span>
-        <h1 className="sq-title" style={{ marginTop: 12, marginBottom: 8 }}>
-          Compete. Learn. Win.
-        </h1>
-        <p className="sq-subtitle" style={{ margin: 0, maxWidth: 700 }}>
-          Take part in special competitions sponsored by Muslim organizations and brands.
-          Sponsored XP is separate from your normal Sahaba Quest XP and leaderboard.
-        </p>
+    <main className="sq-sponsored-page">
+      <section className="sq-sponsored-hero">
+        <div className="sq-sponsored-hero-glow sq-glow-one" />
+        <div className="sq-sponsored-hero-glow sq-glow-two" />
+
+        <div className="sq-sponsored-hero-copy">
+          <div className="sq-sponsored-kicker">
+            <span className="sq-live-dot" />
+            SAHABA QUEST SPONSORED COMPETITIONS
+          </div>
+
+          <h1>
+            Learn something.
+            <br />
+            <span>Challenge yourself.</span>
+            <br />
+            Make your mark.
+          </h1>
+
+          <p>
+            Take part in special Islamic knowledge competitions brought to you
+            by Muslim organizations and brands. Test what you know, answer
+            under pressure, earn Sponsored XP and climb the competition
+            leaderboard.
+          </p>
+
+          <div className="sq-sponsored-hero-actions">
+            {active.length > 0 ? (
+              <button
+                type="button"
+                className="sq-sponsored-primary"
+                onClick={() => join(active[0])}
+              >
+                <span>🏆</span>
+                {canParticipate ? "Enter Live Competition" : "Explore Live Competition"}
+              </button>
+            ) : upcoming.length > 0 ? (
+              <button
+                type="button"
+                className="sq-sponsored-primary"
+                onClick={() =>
+                  document
+                    .getElementById("sq-upcoming")
+                    ?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                <span>📅</span>
+                See Upcoming Competitions
+              </button>
+            ) : (
+              <Link href="/dashboard" className="sq-sponsored-primary">
+                <span>←</span>
+                Back to Dashboard
+              </Link>
+            )}
+
+            <a href="#how-it-works" className="sq-sponsored-secondary">
+              How it works
+            </a>
+          </div>
+
+          <div className="sq-sponsored-trust-row">
+            <span>✓ Separate Sponsored XP</span>
+            <span>✓ Timed questions</span>
+            <span>✓ Competition leaderboard</span>
+          </div>
+        </div>
+
+        <div className="sq-sponsored-hero-art">
+          <div className="sq-trophy-orbit sq-orbit-one" />
+          <div className="sq-trophy-orbit sq-orbit-two" />
+
+          <div className="sq-trophy-card">
+            <div className="sq-trophy-card-top">
+              <span className="sq-mini-label">SPONSORED</span>
+              <span className="sq-mini-live">
+                {active.length > 0 ? "LIVE" : "QUEST"}
+              </span>
+            </div>
+
+            <div className="sq-trophy">🏆</div>
+
+            <div className="sq-trophy-title">
+              Knowledge.
+              <br />
+              Speed. Accuracy.
+            </div>
+
+            <div className="sq-score-lines">
+              <div>
+                <span>Sponsored XP</span>
+                <strong>+150</strong>
+              </div>
+              <div>
+                <span>Correct answers</span>
+                <strong>✓</strong>
+              </div>
+              <div>
+                <span>Leaderboard</span>
+                <strong>#1</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="sq-floating-pill sq-pill-one">⚡ Speed Bonus</div>
+          <div className="sq-floating-pill sq-pill-two">🎯 Correct Answer</div>
+          <div className="sq-floating-pill sq-pill-three">🏅 Top 3</div>
+        </div>
       </section>
 
       {accountType === "free" && (
-        <section className="sq-card" style={{ padding: 18, marginBottom: 22 }}>
-          <strong>Sponsored competitions are available to view.</strong>
-          <p className="sq-subtitle" style={{ marginBottom: 12 }}>
-            You can see the competitions, sponsors, rules and prizes. Participation requires an active Individual Premium subscription.
-          </p>
-          <Link href="/pricing" className="sq-button-primary">View Pricing</Link>
+        <section className="sq-access-banner">
+          <div className="sq-access-icon">✨</div>
+          <div className="sq-access-copy">
+            <strong>Explore the competition world.</strong>
+            <p>
+              You can view sponsors, competitions, rules and prizes. An active
+              Individual Premium subscription is required to participate.
+            </p>
+          </div>
+          <Link href="/pricing" className="sq-access-button">
+            View Premium
+          </Link>
         </section>
       )}
 
       {message && (
-        <section className="sq-card" style={{ padding: 16, marginBottom: 20 }}>
+        <section className="sq-sponsored-notice">
           <strong>Notice</strong>
-          <p className="sq-subtitle" style={{ marginBottom: 0 }}>{message}</p>
+          <span>{message}</span>
         </section>
       )}
 
-      {competitions.length === 0 ? (
-        <section className="sq-card" style={{ padding: 55, textAlign: "center" }}>
-          <div style={{ fontSize: 46 }}>🏆</div>
-          <h2>No sponsored competitions yet</h2>
-          <p className="sq-subtitle">New competitions will appear here when they are published.</p>
+      {featured && (
+        <section className="sq-featured-section">
+          <div className="sq-section-heading">
+            <div>
+              <span className="sq-section-kicker">
+                {statusOf(featured) === "live" ? "HAPPENING NOW" : "UP NEXT"}
+              </span>
+              <h2>
+                {statusOf(featured) === "live"
+                  ? "The competition is on."
+                  : "Something exciting is coming."}
+              </h2>
+            </div>
+
+            <span className="sq-section-count">
+              {statusOf(featured) === "live"
+                ? `${active.length} live`
+                : `${upcoming.length} upcoming`}
+            </span>
+          </div>
+
+          <FeaturedCompetition
+            competition={featured}
+            premium={canParticipate}
+            onJoin={join}
+          />
         </section>
-      ) : (
-        <>
-          {active.length > 0 && (
-            <section style={{ marginBottom: 28 }}>
-              <h2 style={{ marginBottom: 14 }}>Live Now</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
-                {active.map((c) => (
-                  <CompetitionCard key={c.id} competition={c} onJoin={join} premium={accountType === "individual" && hasPremium} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {upcoming.length > 0 && (
-            <section style={{ marginBottom: 28 }}>
-              <h2 style={{ marginBottom: 14 }}>Coming Soon</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
-                {upcoming.map((c) => (
-                  <CompetitionCard key={c.id} competition={c} onJoin={join} premium={accountType === "individual" && hasPremium} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {ended.length > 0 && (
-            <section>
-              <h2 style={{ marginBottom: 14 }}>Past Competitions</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
-                {ended.map((c) => (
-                  <CompetitionCard key={c.id} competition={c} onJoin={join} premium={accountType === "individual" && hasPremium} />
-                ))}
-              </div>
-            </section>
-          )}
-        </>
       )}
+
+      <section className="sq-feature-strip" id="how-it-works">
+        <div className="sq-section-heading compact">
+          <div>
+            <span className="sq-section-kicker">WHY COMPETE?</span>
+            <h2>More than a quiz.</h2>
+          </div>
+        </div>
+
+        <div className="sq-feature-grid">
+          <Feature
+            icon="🧠"
+            title="Learn while competing"
+            text="Every competition is built around Islamic knowledge and meaningful learning."
+          />
+          <Feature
+            icon="⚡"
+            title="Speed matters"
+            text="Answer correctly and quickly to earn more Sponsored XP through the speed bonus."
+          />
+          <Feature
+            icon="🏆"
+            title="Your own leaderboard"
+            text="Sponsored XP stays separate from your normal Sahaba Quest XP and leaderboard."
+          />
+          <Feature
+            icon="🎁"
+            title="Compete for prizes"
+            text="Sponsors can bring special prizes, recognition and opportunities to the Ummah."
+          />
+        </div>
+      </section>
+
+      {active.length > 1 && (
+        <section className="sq-competition-section">
+          <SectionTitle
+            kicker="LIVE NOW"
+            title="Choose your challenge."
+            subtitle="These competitions are currently open for eligible participants."
+          />
+
+          <div className="sq-competition-grid">
+            {active.slice(1).map((competition) => (
+              <CompetitionCard
+                key={competition.id}
+                competition={competition}
+                onJoin={join}
+                premium={canParticipate}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {upcoming.length > 0 && (
+        <section className="sq-competition-section" id="sq-upcoming">
+          <SectionTitle
+            kicker="COMING SOON"
+            title="Get ready."
+            subtitle="Keep an eye on the next sponsored competitions and their opening times."
+          />
+
+          <div className="sq-competition-grid">
+            {upcoming.map((competition) => (
+              <CompetitionCard
+                key={competition.id}
+                competition={competition}
+                onJoin={join}
+                premium={canParticipate}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {ended.length > 0 && (
+        <section className="sq-competition-section sq-past-section">
+          <SectionTitle
+            kicker="COMPETITION HISTORY"
+            title="Past competitions."
+            subtitle="See the competitions that have already taken place."
+          />
+
+          <div className="sq-competition-grid">
+            {ended.map((competition) => (
+              <CompetitionCard
+                key={competition.id}
+                competition={competition}
+                onJoin={join}
+                premium={canParticipate}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {competitions.length === 0 && (
+        <section className="sq-empty-state">
+          <div className="sq-empty-icon">🏆</div>
+          <span className="sq-section-kicker">THE STAGE IS BEING PREPARED</span>
+          <h2>No sponsored competitions yet.</h2>
+          <p>
+            New competitions will appear here when they are published by
+            Sahaba Quest.
+          </p>
+        </section>
+      )}
+
+      <section className="sq-sponsored-bottom">
+        <div>
+          <span className="sq-section-kicker">YOUR SPONSORED XP</span>
+          <h2>A separate space for competition.</h2>
+          <p>
+            Your Sponsored XP is intentionally separate from your normal Sahaba
+            Quest progress. That means competition performance has its own
+            leaderboard and history.
+          </p>
+        </div>
+
+        <div className="sq-bottom-stats">
+          <div>
+            <strong>⚡</strong>
+            <span>Speed bonus</span>
+          </div>
+          <div>
+            <strong>🎯</strong>
+            <span>Accuracy</span>
+          </div>
+          <div>
+            <strong>🏅</strong>
+            <span>Top 3 winners</span>
+          </div>
+        </div>
+      </section>
+
+      <style jsx>{`
+        .sq-sponsored-page {
+          width: 100%;
+          min-width: 0;
+          overflow-x: hidden;
+          padding-bottom: 48px;
+        }
+
+        .sq-sponsored-hero {
+          position: relative;
+          min-height: 500px;
+          overflow: hidden;
+          border-radius: 28px;
+          padding: clamp(32px, 5vw, 68px);
+          display: grid;
+          grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+          gap: 28px;
+          align-items: center;
+          background:
+            radial-gradient(circle at 78% 35%, rgba(45, 212, 191, 0.25), transparent 32%),
+            radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.25), transparent 36%),
+            linear-gradient(135deg, #071b22 0%, #0a3034 52%, #0b2633 100%);
+          color: white;
+          box-shadow: 0 24px 70px rgba(4, 20, 30, 0.22);
+        }
+
+        .sq-sponsored-hero-copy {
+          position: relative;
+          z-index: 2;
+          max-width: 720px;
+        }
+
+        .sq-sponsored-kicker,
+        .sq-section-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+
+        .sq-sponsored-kicker {
+          color: #8ff7e5;
+        }
+
+        .sq-live-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #35e4b8;
+          box-shadow: 0 0 0 5px rgba(53, 228, 184, 0.12);
+        }
+
+        .sq-sponsored-hero h1 {
+          margin: 18px 0 18px;
+          font-size: clamp(38px, 5.2vw, 68px);
+          line-height: 0.98;
+          letter-spacing: -0.045em;
+        }
+
+        .sq-sponsored-hero h1 span {
+          color: #75ead8;
+        }
+
+        .sq-sponsored-hero p {
+          max-width: 650px;
+          margin: 0;
+          color: rgba(255, 255, 255, 0.76);
+          font-size: clamp(14px, 1.6vw, 17px);
+          line-height: 1.75;
+        }
+
+        .sq-sponsored-hero-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          margin-top: 28px;
+        }
+
+        .sq-sponsored-primary,
+        .sq-sponsored-secondary,
+        .sq-access-button {
+          min-height: 46px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          border-radius: 12px;
+          padding: 0 18px;
+          font-weight: 900;
+          text-decoration: none;
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            background 160ms ease;
+        }
+
+        .sq-sponsored-primary {
+          border: 0;
+          color: #052326;
+          background: #79ead9;
+          cursor: pointer;
+          box-shadow: 0 10px 28px rgba(78, 224, 199, 0.22);
+        }
+
+        .sq-sponsored-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 34px rgba(78, 224, 199, 0.3);
+        }
+
+        .sq-sponsored-secondary {
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .sq-sponsored-secondary:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sq-sponsored-trust-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 14px 22px;
+          margin-top: 24px;
+          color: rgba(255, 255, 255, 0.62);
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .sq-sponsored-hero-art {
+          position: relative;
+          min-height: 360px;
+          display: grid;
+          place-items: center;
+        }
+
+        .sq-trophy-card {
+          position: relative;
+          z-index: 2;
+          width: min(330px, 82%);
+          padding: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.09);
+          backdrop-filter: blur(18px);
+          box-shadow:
+            0 24px 60px rgba(0, 0, 0, 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          transform: rotate(2deg);
+        }
+
+        .sq-trophy-card-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .sq-mini-label,
+        .sq-mini-live {
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 0.12em;
+        }
+
+        .sq-mini-label {
+          color: rgba(255, 255, 255, 0.56);
+        }
+
+        .sq-mini-live {
+          color: #7ff0d9;
+        }
+
+        .sq-trophy {
+          width: 100px;
+          height: 100px;
+          display: grid;
+          place-items: center;
+          margin: 22px auto 12px;
+          border-radius: 50%;
+          font-size: 55px;
+          background: radial-gradient(circle, rgba(255, 230, 139, 0.2), rgba(255, 255, 255, 0.04));
+          box-shadow: 0 0 50px rgba(255, 216, 112, 0.12);
+        }
+
+        .sq-trophy-title {
+          text-align: center;
+          font-size: 22px;
+          line-height: 1.08;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+        }
+
+        .sq-score-lines {
+          display: grid;
+          gap: 7px;
+          margin-top: 20px;
+        }
+
+        .sq-score-lines > div {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          background: rgba(0, 0, 0, 0.13);
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.62);
+        }
+
+        .sq-score-lines strong {
+          color: white;
+        }
+
+        .sq-floating-pill {
+          position: absolute;
+          z-index: 3;
+          padding: 10px 13px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+          color: white;
+          font-size: 10px;
+          font-weight: 900;
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        }
+
+        .sq-pill-one {
+          top: 12%;
+          right: 5%;
+        }
+
+        .sq-pill-two {
+          left: 4%;
+          bottom: 17%;
+        }
+
+        .sq-pill-three {
+          right: 9%;
+          bottom: 7%;
+        }
+
+        .sq-trophy-orbit {
+          position: absolute;
+          border: 1px solid rgba(117, 234, 216, 0.14);
+          border-radius: 50%;
+        }
+
+        .sq-orbit-one {
+          width: 390px;
+          height: 390px;
+        }
+
+        .sq-orbit-two {
+          width: 500px;
+          height: 500px;
+          border-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .sq-sponsored-hero-glow {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(2px);
+          pointer-events: none;
+        }
+
+        .sq-glow-one {
+          width: 260px;
+          height: 260px;
+          left: 45%;
+          top: -140px;
+          background: rgba(53, 228, 184, 0.12);
+        }
+
+        .sq-glow-two {
+          width: 300px;
+          height: 300px;
+          right: -100px;
+          bottom: -120px;
+          background: rgba(59, 130, 246, 0.12);
+        }
+
+        .sq-access-banner {
+          margin-top: 22px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 17px 18px;
+          border: 1px solid rgba(20, 184, 166, 0.22);
+          border-radius: 18px;
+          background: linear-gradient(
+            100deg,
+            rgba(20, 184, 166, 0.1),
+            rgba(59, 130, 246, 0.06)
+          );
+        }
+
+        .sq-access-icon {
+          width: 44px;
+          height: 44px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          border-radius: 13px;
+          background: rgba(20, 184, 166, 0.12);
+          font-size: 20px;
+        }
+
+        .sq-access-copy {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .sq-access-copy strong {
+          display: block;
+          margin-bottom: 3px;
+        }
+
+        .sq-access-copy p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.55;
+        }
+
+        .sq-access-button {
+          flex: 0 0 auto;
+          color: white;
+          background: var(--primary);
+        }
+
+        .sq-sponsored-notice {
+          margin-top: 20px;
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          padding: 14px 16px;
+          border-radius: 14px;
+          background: rgba(245, 158, 11, 0.08);
+          border: 1px solid rgba(245, 158, 11, 0.18);
+          font-size: 12px;
+        }
+
+        .sq-featured-section,
+        .sq-feature-strip,
+        .sq-competition-section,
+        .sq-sponsored-bottom {
+          margin-top: 54px;
+        }
+
+        .sq-section-heading {
+          display: flex;
+          justify-content: space-between;
+          align-items: end;
+          gap: 20px;
+          margin-bottom: 18px;
+        }
+
+        .sq-section-heading.compact {
+          margin-bottom: 18px;
+        }
+
+        .sq-section-kicker {
+          color: var(--primary);
+        }
+
+        .sq-section-heading h2 {
+          margin: 5px 0 0;
+          font-size: clamp(24px, 3vw, 34px);
+          line-height: 1.05;
+          letter-spacing: -0.035em;
+        }
+
+        .sq-section-count {
+          padding: 7px 11px;
+          border-radius: 999px;
+          background: var(--primary-light);
+          color: var(--primary);
+          font-size: 11px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .sq-featured-card {
+          position: relative;
+          overflow: hidden;
+          display: grid;
+          grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+          min-height: 330px;
+          border-radius: 24px;
+          border: 1px solid var(--border);
+          background: var(--card, white);
+          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.07);
+        }
+
+        .sq-featured-media {
+          position: relative;
+          min-height: 330px;
+          background:
+            linear-gradient(135deg, rgba(10, 45, 51, 0.95), rgba(20, 125, 115, 0.74)),
+            var(--primary-light);
+        }
+
+        .sq-featured-media img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          opacity: 0.72;
+        }
+
+        .sq-featured-media-overlay {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 22px;
+          background: linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.08),
+            rgba(0, 0, 0, 0.58)
+          );
+          color: white;
+        }
+
+        .sq-featured-status {
+          align-self: flex-start;
+          padding: 7px 10px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.28);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(8px);
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .sq-featured-media-copy h3 {
+          margin: 0 0 6px;
+          font-size: clamp(28px, 4vw, 48px);
+          line-height: 0.98;
+          letter-spacing: -0.04em;
+        }
+
+        .sq-featured-media-copy p {
+          margin: 0;
+          max-width: 560px;
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 12px;
+          line-height: 1.55;
+        }
+
+        .sq-featured-content {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 30px;
+        }
+
+        .sq-sponsor-line {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .sq-sponsor-logo {
+          width: 42px;
+          height: 42px;
+          flex: 0 0 auto;
+          object-fit: contain;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: white;
+        }
+
+        .sq-sponsor-name {
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .sq-sponsor-caption {
+          display: block;
+          color: var(--muted);
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+        }
+
+        .sq-featured-content h3 {
+          margin: 0 0 9px;
+          font-size: 24px;
+          line-height: 1.05;
+          letter-spacing: -0.025em;
+        }
+
+        .sq-featured-content > p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.65;
+        }
+
+        .sq-meta-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 20px;
+        }
+
+        .sq-meta-box {
+          padding: 10px;
+          border-radius: 11px;
+          background: var(--primary-light);
+        }
+
+        .sq-meta-box span {
+          display: block;
+          color: var(--muted);
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        .sq-meta-box strong {
+          display: block;
+          margin-top: 2px;
+          font-size: 12px;
+        }
+
+        .sq-featured-actions {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin-top: 18px;
+        }
+
+        .sq-featured-actions button,
+        .sq-featured-actions a {
+          flex: 1;
+        }
+
+        .sq-feature-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .sq-feature-item {
+          min-width: 0;
+          padding: 20px;
+          border: 1px solid var(--border);
+          border-radius: 18px;
+          background: var(--card, white);
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease;
+        }
+
+        .sq-feature-item:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 16px 35px rgba(0, 0, 0, 0.07);
+        }
+
+        .sq-feature-icon {
+          width: 44px;
+          height: 44px;
+          display: grid;
+          place-items: center;
+          margin-bottom: 15px;
+          border-radius: 13px;
+          background: var(--primary-light);
+          font-size: 20px;
+        }
+
+        .sq-feature-item h3 {
+          margin: 0 0 7px;
+          font-size: 15px;
+        }
+
+        .sq-feature-item p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 11px;
+          line-height: 1.65;
+        }
+
+        .sq-competition-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 16px;
+        }
+
+        .sq-competition-card {
+          min-width: 0;
+          overflow: hidden;
+          border: 1px solid var(--border);
+          border-radius: 19px;
+          background: var(--card, white);
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.045);
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease;
+        }
+
+        .sq-competition-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.08);
+        }
+
+        .sq-card-banner {
+          position: relative;
+          height: 165px;
+          overflow: hidden;
+          background:
+            radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.3), transparent 24%),
+            linear-gradient(135deg, rgba(15, 118, 110, 0.96), rgba(30, 64, 175, 0.9));
+        }
+
+        .sq-card-banner img {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+        }
+
+        .sq-card-banner-placeholder {
+          height: 100%;
+          display: grid;
+          place-items: center;
+          font-size: 48px;
+        }
+
+        .sq-card-status {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          padding: 6px 9px;
+          border-radius: 999px;
+          color: white;
+          background: rgba(0, 0, 0, 0.34);
+          backdrop-filter: blur(8px);
+          font-size: 9px;
+          font-weight: 900;
+        }
+
+        .sq-card-content {
+          padding: 18px;
+        }
+
+        .sq-card-sponsor {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+        }
+
+        .sq-card-logo {
+          width: 34px;
+          height: 34px;
+          flex: 0 0 auto;
+          object-fit: contain;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          background: white;
+        }
+
+        .sq-card-sponsor small {
+          display: block;
+          color: var(--muted);
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: 0.07em;
+        }
+
+        .sq-card-sponsor strong {
+          display: block;
+          font-size: 11px;
+        }
+
+        .sq-card-content h3 {
+          margin: 15px 0 7px;
+          font-size: 17px;
+          line-height: 1.1;
+        }
+
+        .sq-card-description {
+          margin: 0;
+          min-height: 39px;
+          color: var(--muted);
+          font-size: 11px;
+          line-height: 1.55;
+        }
+
+        .sq-card-meta {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 7px;
+          margin-top: 14px;
+        }
+
+        .sq-card-meta div {
+          padding: 9px;
+          border-radius: 9px;
+          background: var(--primary-light);
+        }
+
+        .sq-card-meta span {
+          display: block;
+          color: var(--muted);
+          font-size: 8px;
+          font-weight: 800;
+        }
+
+        .sq-card-meta strong {
+          display: block;
+          margin-top: 2px;
+          font-size: 10px;
+        }
+
+        .sq-card-button {
+          width: 100%;
+          min-height: 42px;
+          margin-top: 13px;
+          border: 0;
+          border-radius: 10px;
+          color: white;
+          background: var(--primary);
+          font-weight: 900;
+          font-size: 11px;
+          cursor: pointer;
+        }
+
+        .sq-card-button:disabled {
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
+
+        .sq-card-note {
+          margin: 8px 0 0;
+          text-align: center;
+          color: var(--muted);
+          font-size: 9px;
+        }
+
+        .sq-past-section {
+          opacity: 0.92;
+        }
+
+        .sq-empty-state {
+          margin-top: 50px;
+          padding: 70px 25px;
+          text-align: center;
+          border: 1px dashed var(--border);
+          border-radius: 24px;
+          background: var(--card, white);
+        }
+
+        .sq-empty-icon {
+          width: 70px;
+          height: 70px;
+          display: grid;
+          place-items: center;
+          margin: 0 auto 17px;
+          border-radius: 22px;
+          background: var(--primary-light);
+          font-size: 32px;
+        }
+
+        .sq-empty-state h2 {
+          margin: 7px 0 8px;
+        }
+
+        .sq-empty-state p {
+          max-width: 500px;
+          margin: 0 auto;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.6;
+        }
+
+        .sq-sponsored-bottom {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
+          gap: 24px;
+          align-items: center;
+          padding: 32px;
+          border-radius: 24px;
+          color: white;
+          background:
+            radial-gradient(circle at 85% 20%, rgba(53, 228, 184, 0.18), transparent 25%),
+            linear-gradient(135deg, #082a32, #103f45);
+        }
+
+        .sq-sponsored-bottom h2 {
+          margin: 6px 0 8px;
+          font-size: clamp(25px, 3vw, 36px);
+          letter-spacing: -0.035em;
+        }
+
+        .sq-sponsored-bottom p {
+          max-width: 650px;
+          margin: 0;
+          color: rgba(255, 255, 255, 0.67);
+          font-size: 12px;
+          line-height: 1.7;
+        }
+
+        .sq-sponsored-bottom .sq-section-kicker {
+          color: #7ff0d9;
+        }
+
+        .sq-bottom-stats {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+        }
+
+        .sq-bottom-stats div {
+          min-width: 0;
+          padding: 15px 10px;
+          text-align: center;
+          border-radius: 13px;
+          background: rgba(255, 255, 255, 0.07);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .sq-bottom-stats strong {
+          display: block;
+          font-size: 22px;
+          margin-bottom: 7px;
+        }
+
+        .sq-bottom-stats span {
+          color: rgba(255, 255, 255, 0.63);
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        @media (max-width: 1050px) {
+          .sq-sponsored-hero {
+            grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
+            padding: 40px;
+          }
+
+          .sq-feature-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .sq-competition-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 820px) {
+          .sq-sponsored-hero {
+            grid-template-columns: 1fr;
+            padding: 34px 26px;
+          }
+
+          .sq-sponsored-hero-art {
+            min-height: 300px;
+          }
+
+          .sq-featured-card {
+            grid-template-columns: 1fr;
+          }
+
+          .sq-featured-media {
+            min-height: 260px;
+          }
+
+          .sq-sponsored-bottom {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 620px) {
+          .sq-sponsored-hero {
+            min-height: auto;
+            padding: 30px 20px;
+            border-radius: 21px;
+          }
+
+          .sq-sponsored-hero h1 {
+            font-size: clamp(35px, 12vw, 52px);
+          }
+
+          .sq-sponsored-hero p {
+            font-size: 13px;
+            line-height: 1.65;
+          }
+
+          .sq-sponsored-hero-actions {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .sq-sponsored-primary,
+          .sq-sponsored-secondary {
+            width: 100%;
+          }
+
+          .sq-sponsored-trust-row {
+            display: grid;
+            gap: 7px;
+          }
+
+          .sq-sponsored-hero-art {
+            min-height: 270px;
+          }
+
+          .sq-trophy-card {
+            width: min(300px, 86%);
+          }
+
+          .sq-floating-pill {
+            font-size: 8px;
+            padding: 8px 10px;
+          }
+
+          .sq-pill-one {
+            right: 0;
+          }
+
+          .sq-pill-two {
+            left: 0;
+          }
+
+          .sq-pill-three {
+            right: 0;
+          }
+
+          .sq-orbit-one {
+            width: 310px;
+            height: 310px;
+          }
+
+          .sq-orbit-two {
+            width: 390px;
+            height: 390px;
+          }
+
+          .sq-access-banner {
+            align-items: flex-start;
+            flex-wrap: wrap;
+          }
+
+          .sq-access-copy {
+            flex-basis: calc(100% - 62px);
+          }
+
+          .sq-access-button {
+            width: 100%;
+          }
+
+          .sq-section-heading {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .sq-feature-grid,
+          .sq-competition-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .sq-feature-item {
+            padding: 17px;
+          }
+
+          .sq-featured-content {
+            padding: 22px;
+          }
+
+          .sq-featured-actions {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .sq-sponsored-bottom {
+            padding: 24px 20px;
+            border-radius: 20px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .sq-sponsored-primary,
+          .sq-sponsored-secondary,
+          .sq-feature-item,
+          .sq-competition-card {
+            transition: none;
+          }
+
+          .sq-sponsored-spinner {
+            animation: none;
+          }
+        }
+      `}</style>
     </main>
+  );
+}
+
+function FeaturedCompetition({
+  competition,
+  premium,
+  onJoin,
+}: {
+  competition: Competition;
+  premium: boolean;
+  onJoin: (competition: Competition) => void;
+}) {
+  const status = statusOf(competition);
+  const rules = splitText(competition.rules);
+  const prizes = splitText(competition.prizes);
+
+  return (
+    <article className="sq-featured-card">
+      <div className="sq-featured-media">
+        {competition.sponsor_banner_url ? (
+          <img src={competition.sponsor_banner_url} alt="" />
+        ) : null}
+
+        <div className="sq-featured-media-overlay">
+          <span className="sq-featured-status">
+            {status === "live"
+              ? "● LIVE NOW"
+              : `STARTS IN ${getCountdown(competition.starts_at).toUpperCase()}`}
+          </span>
+
+          <div className="sq-featured-media-copy">
+            <h3>{competition.title}</h3>
+            <p>
+              {competition.sponsor_description ||
+                "A special sponsored Sahaba Quest competition."}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="sq-featured-content">
+        <div className="sq-sponsor-line">
+          {competition.sponsor_logo_url ? (
+            <img
+              src={competition.sponsor_logo_url}
+              alt=""
+              className="sq-sponsor-logo"
+            />
+          ) : (
+            <div className="sq-sponsor-logo" />
+          )}
+
+          <div>
+            <span className="sq-sponsor-caption">SPONSORED BY</span>
+            <span className="sq-sponsor-name">{competition.sponsor_name}</span>
+          </div>
+        </div>
+
+        <h3>{status === "live" ? "Ready to compete?" : "Mark your calendar."}</h3>
+
+        <p>
+          {competition.description ||
+            "Challenge yourself with a special Islamic knowledge competition."}
+        </p>
+
+        <div className="sq-meta-grid">
+          <div className="sq-meta-box">
+            <span>FORMAT</span>
+            <strong>{competition.competition_type}</strong>
+          </div>
+
+          <div className="sq-meta-box">
+            <span>STARTS</span>
+            <strong>{formatDate(competition.starts_at)}</strong>
+          </div>
+
+          <div className="sq-meta-box">
+            <span>RULES</span>
+            <strong>{rules.length || "See details"}</strong>
+          </div>
+
+          <div className="sq-meta-box">
+            <span>PRIZES</span>
+            <strong>{prizes.length ? "Available" : "See details"}</strong>
+          </div>
+        </div>
+
+        <div className="sq-featured-actions">
+          <button
+            type="button"
+            className="sq-sponsored-primary"
+            disabled={status !== "live"}
+            onClick={() => onJoin(competition)}
+            style={{
+              opacity: status === "live" ? 1 : 0.55,
+              cursor: status === "live" ? "pointer" : "not-allowed",
+              border: 0,
+            }}
+          >
+            {status === "live"
+              ? premium
+                ? "Join Competition"
+                : "View Access"
+              : "Coming Soon"}
+          </button>
+
+          {status === "live" && !premium && (
+            <Link href="/pricing" className="sq-sponsored-secondary">
+              Get Premium
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .sq-featured-card {
+          position: relative;
+          overflow: hidden;
+          display: grid;
+          grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+          min-height: 330px;
+          border-radius: 24px;
+          border: 1px solid var(--border);
+          background: var(--card, white);
+          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.07);
+        }
+
+        .sq-featured-media {
+          position: relative;
+          min-height: 330px;
+          background:
+            linear-gradient(135deg, rgba(10, 45, 51, 0.95), rgba(20, 125, 115, 0.74)),
+            var(--primary-light);
+        }
+
+        .sq-featured-media img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          opacity: 0.72;
+        }
+
+        .sq-featured-media-overlay {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 22px;
+          background: linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.08),
+            rgba(0, 0, 0, 0.58)
+          );
+          color: white;
+        }
+
+        .sq-featured-status {
+          align-self: flex-start;
+          padding: 7px 10px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.28);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(8px);
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .sq-featured-media-copy h3 {
+          margin: 0 0 6px;
+          font-size: clamp(28px, 4vw, 48px);
+          line-height: 0.98;
+          letter-spacing: -0.04em;
+        }
+
+        .sq-featured-media-copy p {
+          margin: 0;
+          max-width: 560px;
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 12px;
+          line-height: 1.55;
+        }
+
+        .sq-featured-content {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 30px;
+        }
+
+        .sq-sponsor-line {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .sq-sponsor-logo {
+          width: 42px;
+          height: 42px;
+          flex: 0 0 auto;
+          object-fit: contain;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: white;
+        }
+
+        .sq-sponsor-caption {
+          display: block;
+          color: var(--muted);
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+        }
+
+        .sq-sponsor-name {
+          display: block;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .sq-featured-content h3 {
+          margin: 0 0 9px;
+          font-size: 24px;
+          line-height: 1.05;
+          letter-spacing: -0.025em;
+        }
+
+        .sq-featured-content > p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.65;
+        }
+
+        .sq-meta-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 20px;
+        }
+
+        .sq-meta-box {
+          padding: 10px;
+          border-radius: 11px;
+          background: var(--primary-light);
+        }
+
+        .sq-meta-box span {
+          display: block;
+          color: var(--muted);
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        .sq-meta-box strong {
+          display: block;
+          margin-top: 2px;
+          font-size: 12px;
+        }
+
+        .sq-featured-actions {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin-top: 18px;
+        }
+
+        .sq-featured-actions button,
+        .sq-featured-actions a {
+          flex: 1;
+        }
+
+        @media (max-width: 820px) {
+          .sq-featured-card {
+            grid-template-columns: 1fr;
+          }
+
+          .sq-featured-media {
+            min-height: 260px;
+          }
+        }
+
+        @media (max-width: 620px) {
+          .sq-featured-content {
+            padding: 22px;
+          }
+
+          .sq-featured-actions {
+            flex-direction: column;
+            align-items: stretch;
+          }
+        }
+      `}</style>
+    </article>
+  );
+}
+
+function Feature({
+  icon,
+  title,
+  text,
+}: {
+  icon: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <article className="sq-feature-item">
+      <div className="sq-feature-icon">{icon}</div>
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </article>
+  );
+}
+
+function SectionTitle({
+  kicker,
+  title,
+  subtitle,
+}: {
+  kicker: string;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="sq-section-heading">
+      <div>
+        <span className="sq-section-kicker">{kicker}</span>
+        <h2>{title}</h2>
+      </div>
+      <p
+        style={{
+          maxWidth: 470,
+          margin: 0,
+          color: "var(--muted)",
+          fontSize: 12,
+          lineHeight: 1.6,
+        }}
+      >
+        {subtitle}
+      </p>
+    </div>
   );
 }
 
@@ -240,47 +1899,80 @@ function CompetitionCard({
   const status = statusOf(competition);
 
   return (
-    <article className="sq-card" style={{ overflow: "hidden" }}>
-      {competition.sponsor_banner_url ? (
-        <img src={competition.sponsor_banner_url} alt="" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
-      ) : (
-        <div style={{ height: 100, background: "var(--primary-light)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>🏆</div>
-      )}
+    <article className="sq-competition-card">
+      <div className="sq-card-banner">
+        {competition.sponsor_banner_url ? (
+          <img src={competition.sponsor_banner_url} alt="" />
+        ) : (
+          <div className="sq-card-banner-placeholder">🏆</div>
+        )}
 
-      <div style={{ padding: 20 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {competition.sponsor_logo_url && (
-            <img src={competition.sponsor_logo_url} alt="" style={{ width: 38, height: 38, objectFit: "contain", border: "1px solid var(--border)", borderRadius: 8 }} />
+        <span className="sq-card-status">
+          {status === "live"
+            ? "● LIVE"
+            : status === "upcoming"
+              ? `STARTS IN ${getCountdown(competition.starts_at).toUpperCase()}`
+              : "ENDED"}
+        </span>
+      </div>
+
+      <div className="sq-card-content">
+        <div className="sq-card-sponsor">
+          {competition.sponsor_logo_url ? (
+            <img
+              src={competition.sponsor_logo_url}
+              alt=""
+              className="sq-card-logo"
+            />
+          ) : (
+            <div className="sq-card-logo" />
           )}
+
           <div>
-            <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 800 }}>SPONSORED BY</div>
-            <strong style={{ fontSize: 13 }}>{competition.sponsor_name}</strong>
+            <small>SPONSORED BY</small>
+            <strong>{competition.sponsor_name}</strong>
           </div>
         </div>
 
-        <h3 style={{ marginTop: 16, marginBottom: 7 }}>{competition.title}</h3>
+        <h3>{competition.title}</h3>
 
-        <p className="sq-subtitle" style={{ fontSize: 12, minHeight: 40 }}>
-          {competition.description || "A special Sahaba Quest sponsored competition."}
+        <p className="sq-card-description">
+          {competition.description ||
+            "A special Sahaba Quest sponsored competition."}
         </p>
 
-        <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.7 }}>
-          <div>{competition.competition_type} • {status}</div>
-          <div>Starts: {formatDate(competition.starts_at)}</div>
-          <div>Ends: {formatDate(competition.ends_at)}</div>
+        <div className="sq-card-meta">
+          <div>
+            <span>TYPE</span>
+            <strong>{competition.competition_type}</strong>
+          </div>
+
+          <div>
+            <span>START</span>
+            <strong>{formatDate(competition.starts_at)}</strong>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={() => onJoin(competition)}
           disabled={status !== "live"}
-          className="sq-button-primary"
-          style={{ border: 0, cursor: status === "live" ? "pointer" : "not-allowed", marginTop: 16, width: "100%", opacity: status === "live" ? 1 : .6 }}
+          className="sq-card-button"
         >
           {status === "live"
-            ? premium ? "Join Competition" : "Join / View Access"
-            : status === "upcoming" ? "Coming Soon" : "Competition Ended"}
+            ? premium
+              ? "Join Competition"
+              : "View Access"
+            : status === "upcoming"
+              ? "Coming Soon"
+              : "Competition Ended"}
         </button>
+
+        {status === "live" && !premium && (
+          <p className="sq-card-note">
+            Individual Premium is required to participate.
+          </p>
+        )}
       </div>
     </article>
   );
