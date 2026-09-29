@@ -22,7 +22,7 @@ export default function LoginPage() {
 
   /* =====================================================
      PASSWORD RESET REDIRECT
-     
+
      IMPORTANT:
      This must point directly to the password reset page.
   ====================================================== */
@@ -44,7 +44,7 @@ export default function LoginPage() {
 
   /* =====================================================
      CHECK WHETHER CURRENT URL IS A PASSWORD RECOVERY URL
-     
+
      We must NOT treat a recovery session as a normal
      logged-in session.
   ====================================================== */
@@ -110,6 +110,196 @@ export default function LoginPage() {
   }, [router]);
 
   /* =====================================================
+     ROUTE AUTHENTICATED USER
+
+     IMPORTANT ACCOUNT ORDER:
+
+     1. Active Admin
+     2. Organisation
+     3. Family
+     4. Individual / Free
+
+     Admin accounts are deliberately checked BEFORE
+     profiles/account_type so administrators are never
+     treated as normal players.
+  ====================================================== */
+
+  const routeAuthenticatedUser = async (user: {
+    id: string;
+    user_metadata?: Record<string, unknown>;
+  }) => {
+    /*
+     * ===================================================
+     * ADMIN CHECK
+     * ===================================================
+     *
+     * admin_users is the source of truth for admin access.
+     *
+     * We deliberately check this before profiles.
+     */
+    const {
+      data: adminUser,
+      error: adminError,
+    } = await supabase
+      .from("admin_users")
+      .select(
+        "user_id, role, is_active"
+      )
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (adminError) {
+      console.error(
+        "[Sahaba Quest] Admin lookup failed:",
+        adminError
+      );
+
+      throw new Error(
+        "We couldn't verify your account permissions. Please try signing in again."
+      );
+    }
+
+    /*
+     * ACTIVE ADMIN
+     *
+     * Never send an admin to the player dashboard.
+     */
+    if (adminUser) {
+      console.log(
+        "[Sahaba Quest] Active admin detected:",
+        adminUser.role
+      );
+
+      window.location.replace("/admin");
+      return;
+    }
+
+    /* ===================================================
+       ORGANISATION CHECK
+    =================================================== */
+
+    const {
+      data: organizationSpace,
+      error: organizationError,
+    } = await supabase.rpc(
+      "get_my_organization_space"
+    );
+
+    if (organizationError) {
+      console.error(
+        "[Sahaba Quest] Organisation lookup failed:",
+        organizationError
+      );
+
+      throw new Error(
+        "We couldn't determine your account space. Please try signing in again."
+      );
+    }
+
+    /*
+     * Existing Organisation
+     */
+    if (
+      Array.isArray(organizationSpace) &&
+      organizationSpace.length > 0
+    ) {
+      console.log(
+        "[Sahaba Quest] Organisation found:",
+        organizationSpace[0]
+      );
+
+      window.location.replace("/organization");
+      return;
+    }
+
+    /* ===================================================
+       FIRST LOGIN ORGANISATION SETUP
+    =================================================== */
+
+    const accountType =
+      user.user_metadata?.account_type;
+
+    if (
+      accountType === "organisation"
+    ) {
+      console.log(
+        "[Sahaba Quest] Organisation account detected. Creating Organisation space..."
+      );
+
+      const {
+        error: setupError,
+      } = await supabase.rpc(
+        "setup_my_organization"
+      );
+
+      if (setupError) {
+        console.error(
+          "[Sahaba Quest] Organisation setup failed:",
+          setupError
+        );
+
+        throw new Error(
+          "We couldn't finish setting up your organisation. Please try again."
+        );
+      }
+
+      /*
+       * Verify setup before redirecting.
+       */
+      const {
+        data: createdOrganizationSpace,
+        error: verifyError,
+      } = await supabase.rpc(
+        "get_my_organization_space"
+      );
+
+      if (verifyError) {
+        console.error(
+          "[Sahaba Quest] Organisation verification failed:",
+          verifyError
+        );
+
+        throw new Error(
+          "Your organisation was created, but we couldn't verify the organisation space. Please sign in again."
+        );
+      }
+
+      if (
+        !Array.isArray(
+          createdOrganizationSpace
+        ) ||
+        createdOrganizationSpace.length === 0
+      ) {
+        throw new Error(
+          "We couldn't find your organisation after setup. Please sign in again."
+        );
+      }
+
+      console.log(
+        "[Sahaba Quest] Organisation setup verified."
+      );
+
+      window.location.replace(
+        "/organization"
+      );
+      return;
+    }
+
+    /* ===================================================
+       NORMAL PLAYER
+    =================================================== */
+
+    console.log(
+      "[Sahaba Quest] Normal player detected. Opening Individual dashboard."
+    );
+
+    window.location.replace(
+      "/dashboard"
+    );
+  };
+
+  /* =====================================================
      CHECK EXISTING NORMAL AUTH SESSION
 
      IMPORTANT:
@@ -126,7 +316,9 @@ export default function LoginPage() {
          * handling a password recovery.
          */
 
-        if (typeof window !== "undefined") {
+        if (
+          typeof window !== "undefined"
+        ) {
           const url = new URL(
             window.location.href
           );
@@ -146,7 +338,9 @@ export default function LoginPage() {
             hashParams.get("type");
 
           const hasAccessToken =
-            hashParams.has("access_token");
+            hashParams.has(
+              "access_token"
+            );
 
           const isRecovery =
             type === "recovery" ||
@@ -157,6 +351,7 @@ export default function LoginPage() {
             router.replace(
               "/update-password"
             );
+
             return;
           }
         }
@@ -170,44 +365,21 @@ export default function LoginPage() {
         }
 
         /*
-         * Get the user's account type so normal
-         * authenticated users are sent to the
-         * correct dashboard.
+         * =================================================
+         * IMPORTANT:
+         *
+         * Route the existing session through the SAME
+         * account-resolution logic used during login.
+         *
+         * This means an already authenticated admin
+         * will also go to /admin.
+         * =================================================
          */
 
-        const {
-          data: profile,
-          error: profileError,
-        } = await supabase
-          .from("profiles")
-          .select("account_type")
-          .eq("id", user.id)
-          .maybeSingle();
+        await routeAuthenticatedUser(
+          user
+        );
 
-        if (!mounted) {
-          return;
-        }
-
-        if (profileError) {
-          console.error(
-            "Existing session profile lookup error:",
-            profileError
-          );
-
-          router.replace("/dashboard");
-          return;
-        }
-
-        const accountType =
-          profile?.account_type || "free";
-
-        if (accountType === "family") {
-          router.replace(
-            "/family-dashboard"
-          );
-        } else {
-          router.replace("/dashboard");
-        }
       } catch (error) {
         console.error(
           "Existing session check error:",
@@ -221,6 +393,10 @@ export default function LoginPage() {
     return () => {
       mounted = false;
     };
+
+    // This effect intentionally runs when the login page
+    // mounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   /* =====================================================
@@ -237,7 +413,10 @@ export default function LoginPage() {
     const cleanEmail =
       email.trim().toLowerCase();
 
-    if (!cleanEmail || !password) {
+    if (
+      !cleanEmail ||
+      !password
+    ) {
       setMessageType("error");
 
       setMessage(
@@ -254,7 +433,9 @@ export default function LoginPage() {
        * Clear any old Family Member browser session.
        */
 
-      if (typeof window !== "undefined") {
+      if (
+        typeof window !== "undefined"
+      ) {
         sessionStorage.removeItem(
           "sahabaquest_family_member_session"
         );
@@ -264,10 +445,12 @@ export default function LoginPage() {
         data,
         error,
       } =
-        await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
+        await supabase.auth.signInWithPassword(
+          {
+            email: cleanEmail,
+            password,
+          }
+        );
 
       if (error) {
         console.error(
@@ -276,93 +459,41 @@ export default function LoginPage() {
         );
 
         setMessageType("error");
-        setMessage(error.message);
+
+        setMessage(
+          error.message ===
+            "Invalid login credentials"
+            ? "Incorrect email or password."
+            : error.message
+        );
 
         return;
       }
 
-      /* =================================================
-         VERIFY ACCOUNT PROFILE
-      ================================================== */
+      if (!data.user) {
+        setMessageType("error");
 
-      if (data.user) {
-        const {
-          data: profile,
-          error: profileError,
-        } = await supabase
-          .from("profiles")
-          .select("account_type")
-          .eq("id", data.user.id)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error(
-            "Profile lookup error:",
-            profileError
-          );
-
-          setMessageType("error");
-
-          setMessage(
-            "We couldn't verify your account profile. Please try again."
-          );
-
-          return;
-        }
-
-        const accountType =
-          profile?.account_type || "free";
-
-        /*
-         * Validate known account types.
-         */
-
-        if (
-          accountType !== "free" &&
-          accountType !== "individual" &&
-          accountType !== "family"
-        ) {
-          console.error(
-            "Invalid account type:",
-            accountType
-          );
-
-          setMessageType("error");
-
-          setMessage(
-            "Your account type could not be verified. Please contact support."
-          );
-
-          return;
-        }
-
-        console.log(
-          "Authenticated account:",
-          accountType
+        setMessage(
+          "We couldn't verify your account. Please try again."
         );
 
-        /*
-         * Make sure no Family Member session remains.
-         */
-
-        if (typeof window !== "undefined") {
-          sessionStorage.removeItem(
-            "sahabaquest_family_member_session"
-          );
-        }
-
-        /* =================================================
-           SEND USER TO CORRECT DASHBOARD
-        ================================================== */
-
-        if (accountType === "family") {
-          router.replace(
-            "/family-dashboard"
-          );
-        } else {
-          router.replace("/dashboard");
-        }
+        return;
       }
+
+      /*
+       * =================================================
+       * ROUTE ACCOUNT
+       *
+       * Admin is checked first.
+       * Organisation is checked next.
+       * Family / Individual follows.
+       * =================================================
+       */
+
+      await routeAuthenticatedUser(
+        data.user
+      );
+
     } catch (error) {
       console.error(
         "Unexpected login error:",
@@ -372,7 +503,9 @@ export default function LoginPage() {
       setMessageType("error");
 
       setMessage(
-        "Something went wrong while signing in. Please try again."
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while signing in. Please try again."
       );
     } finally {
       setLoading(false);
@@ -431,7 +564,10 @@ export default function LoginPage() {
         );
 
         setMessageType("error");
-        setMessage(error.message);
+
+        setMessage(
+          error.message
+        );
 
         return;
       }
@@ -441,6 +577,7 @@ export default function LoginPage() {
       setMessage(
         "If an account exists with this email, a password reset link has been sent. Please check your inbox."
       );
+
     } catch (error) {
       console.error(
         "Unexpected password reset error:",
@@ -506,6 +643,7 @@ export default function LoginPage() {
               </span>
 
               <div>
+
                 <strong>
                   Interactive Learning
                 </strong>
@@ -514,6 +652,7 @@ export default function LoginPage() {
                   Learn through engaging questions,
                   challenges and quests.
                 </p>
+
               </div>
 
             </div>
@@ -525,6 +664,7 @@ export default function LoginPage() {
               </span>
 
               <div>
+
                 <strong>
                   Friendly Competition
                 </strong>
@@ -533,6 +673,7 @@ export default function LoginPage() {
                   Build XP and compete with other
                   learners.
                 </p>
+
               </div>
 
             </div>
@@ -544,6 +685,7 @@ export default function LoginPage() {
               </span>
 
               <div>
+
                 <strong>
                   Meaningful Knowledge
                 </strong>
@@ -552,6 +694,7 @@ export default function LoginPage() {
                   Discover lessons from the lives
                   of the Sahabah.
                 </p>
+
               </div>
 
             </div>
@@ -619,6 +762,8 @@ export default function LoginPage() {
                 }
                 autoComplete="email"
                 autoFocus
+                disabled={loading}
+                required
               />
 
             </div>
@@ -652,6 +797,8 @@ export default function LoginPage() {
                     )
                   }
                   autoComplete="current-password"
+                  disabled={loading}
+                  required
                 />
 
                 <button
@@ -663,6 +810,7 @@ export default function LoginPage() {
                         !previous
                     )
                   }
+                  disabled={loading}
                 >
                   {showPassword
                     ? "Hide"
@@ -683,7 +831,10 @@ export default function LoginPage() {
                 onClick={
                   handleForgotPassword
                 }
-                disabled={resetLoading}
+                disabled={
+                  resetLoading ||
+                  loading
+                }
               >
                 {resetLoading
                   ? "Sending reset link..."
@@ -711,7 +862,10 @@ export default function LoginPage() {
             <button
               type="submit"
               className="login-button"
-              disabled={loading}
+              disabled={
+                loading ||
+                resetLoading
+              }
             >
               {loading
                 ? "Signing in..."
@@ -756,6 +910,10 @@ export default function LoginPage() {
           grid-template-columns: 0.9fr 1.1fr;
           background: #f7faf9;
         }
+
+        /* ================================================
+           BRAND PANEL
+        ================================================= */
 
         .brand-panel {
           position: relative;
@@ -912,6 +1070,10 @@ export default function LoginPage() {
           color: white;
         }
 
+        /* ================================================
+           LOGIN PANEL
+        ================================================= */
+
         .login-panel {
           display: flex;
           align-items: center;
@@ -956,6 +1118,10 @@ export default function LoginPage() {
           font-size: 14px;
           line-height: 1.6;
         }
+
+        /* ================================================
+           FORM
+        ================================================= */
 
         .form-group {
           margin-bottom: 19px;
@@ -1022,8 +1188,13 @@ export default function LoginPage() {
           padding: 8px;
         }
 
-        .password-toggle:hover {
+        .password-toggle:hover:not(:disabled) {
           color: #08766d;
+        }
+
+        .password-toggle:disabled {
+          cursor: not-allowed;
+          opacity: 0.5;
         }
 
         .forgot-row {
@@ -1053,6 +1224,10 @@ export default function LoginPage() {
           opacity: 0.65;
         }
 
+        /* ================================================
+           MESSAGE
+        ================================================= */
+
         .form-message {
           margin-bottom: 18px;
           padding: 13px 15px;
@@ -1074,6 +1249,10 @@ export default function LoginPage() {
           border:
             1px solid #f0d3d3;
         }
+
+        /* ================================================
+           LOGIN BUTTON
+        ================================================= */
 
         .login-button {
           width: 100%;
@@ -1103,6 +1282,10 @@ export default function LoginPage() {
           opacity: 0.65;
         }
 
+        /* ================================================
+           SIGNUP
+        ================================================= */
+
         .signup-link {
           display: flex;
           justify-content: center;
@@ -1130,6 +1313,10 @@ export default function LoginPage() {
           line-height: 1.6;
           text-align: center;
         }
+
+        /* ================================================
+           RESPONSIVE
+        ================================================= */
 
         @media (max-width: 1050px) {
 

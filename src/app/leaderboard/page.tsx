@@ -301,26 +301,14 @@ export default function LeaderboardPage() {
 
     /*
      * ALL-TIME LEADERBOARD
+     *
+     * The database function is the source of truth here. It excludes
+     * Family accounts and active admin accounts before returning data.
      */
     if (selected.id === "all-time") {
-      const { data, error } =
-        await supabase
-          .from("player_progress")
-          .select(
-            `
-              user_id,
-              total_xp,
-              current_level,
-              current_streak,
-              profiles!inner (
-                display_name,
-                username
-              )
-            `
-          )
-          .order("total_xp", {
-            ascending: false,
-          });
+      const { data, error } = await supabase.rpc(
+        "get_all_time_player_leaderboard"
+      );
 
       if (error) {
         setMessage(error.message);
@@ -329,91 +317,29 @@ export default function LeaderboardPage() {
       }
 
       const allTimeData =
-        (data ?? []) as unknown as AllTimeLeaderboardResult[];
-
-      // Family accounts belong on the Family Leaderboard, not here.
-      // We keep the existing query intact and filter them safely in memory.
-      const allTimeUserIds = allTimeData
-        .map((player) => player.user_id)
-        .filter(Boolean);
-
-      const familyUserIds = new Set<string>();
-
-      if (allTimeUserIds.length > 0) {
-        const {
-          data: familyProfiles,
-          error: familyProfilesError,
-        } = await supabase
-          .from("profiles")
-          .select("id")
-          .in("id", allTimeUserIds)
-          .eq("account_type", "family");
-
-        if (familyProfilesError) {
-          setMessage(familyProfilesError.message);
-          setLoading(false);
-          return;
-        }
-
-        for (const familyProfile of familyProfiles ?? []) {
-          familyUserIds.add(familyProfile.id);
-        }
-      }
-
-      const individualAllTimeData =
-        allTimeData.filter(
-          (player) => !familyUserIds.has(player.user_id)
-        );
+        (data ?? []) as unknown as Array<{
+          user_id: string;
+          display_name: string | null;
+          username: string | null;
+          total_xp: number | string | null;
+          current_level: number | null;
+          current_streak: number | null;
+        }>;
 
       const formattedPlayers: LeaderboardRow[] =
-        individualAllTimeData.map(
-          (
-            player: AllTimeLeaderboardResult
-          ) => {
-            const profile = Array.isArray(
-              player.profiles
-            )
-              ? player.profiles[0]
-              : player.profiles;
+        allTimeData.map((player) => ({
+          user_id: player.user_id,
+          display_name: player.display_name || "Player",
+          username: player.username || "",
+          monthly_xp: Number(player.total_xp || 0),
+          total_xp: Number(player.total_xp || 0),
+          current_level: Number(player.current_level || 1),
+          current_streak: Number(player.current_streak || 0),
+        }));
 
-            return {
-              user_id: player.user_id,
-              display_name:
-                profile?.display_name ||
-                "Player",
-              username:
-                profile?.username || "",
-              monthly_xp:
-                Number(
-                  player.total_xp || 0
-                ),
-              total_xp:
-                Number(
-                  player.total_xp || 0
-                ),
-              current_level:
-                Number(
-                  player.current_level ||
-                    1
-                ),
-              current_streak:
-                Number(
-                  player.current_streak ||
-                    0
-                ),
-            };
-          }
-        );
+      const sortedPlayers = sortLeaderboardPlayers(formattedPlayers);
 
-      const sortedPlayers =
-        sortLeaderboardPlayers(
-          formattedPlayers
-        );
-
-      setPlayers(
-        addRanks(sortedPlayers)
-      );
-
+      setPlayers(addRanks(sortedPlayers));
       setLoading(false);
       return;
     }
@@ -436,12 +362,10 @@ export default function LeaderboardPage() {
       data,
       error,
     } = await supabase.rpc(
-      "get_monthly_leaderboard",
+      "get_monthly_player_leaderboard",
       {
-        start_date:
-          selected.start.toISOString(),
-        end_date:
-          selected.end.toISOString(),
+        start_date: selected.start.toISOString(),
+        end_date: selected.end.toISOString(),
       }
     );
 
@@ -454,40 +378,8 @@ export default function LeaderboardPage() {
     const monthlyData =
       (data ?? []) as MonthlyLeaderboardResult[];
 
-    const monthlyUserIds = monthlyData
-      .map((player) => player.user_id)
-      .filter(Boolean);
-
-    const monthlyFamilyUserIds = new Set<string>();
-
-    if (monthlyUserIds.length > 0) {
-      const {
-        data: monthlyFamilyProfiles,
-        error: monthlyFamilyProfilesError,
-      } = await supabase
-        .from("profiles")
-        .select("id")
-        .in("id", monthlyUserIds)
-        .eq("account_type", "family");
-
-      if (monthlyFamilyProfilesError) {
-        setMessage(monthlyFamilyProfilesError.message);
-        setLoading(false);
-        return;
-      }
-
-      for (const familyProfile of monthlyFamilyProfiles ?? []) {
-        monthlyFamilyUserIds.add(familyProfile.id);
-      }
-    }
-
-    const individualMonthlyData =
-      monthlyData.filter(
-        (player) => !monthlyFamilyUserIds.has(player.user_id)
-      );
-
     const formattedPlayers: LeaderboardRow[] =
-      individualMonthlyData
+      monthlyData
         .filter(
           (
             player: MonthlyLeaderboardResult
@@ -550,48 +442,20 @@ export default function LeaderboardPage() {
         data: previousData,
         error: previousError,
       } = await supabase.rpc(
-        "get_monthly_leaderboard",
+        "get_monthly_player_leaderboard",
         {
-          start_date:
-            previousPeriod.start!.toISOString(),
-          end_date:
-            previousPeriod.end!.toISOString(),
+          start_date: previousPeriod.start!.toISOString(),
+          end_date: previousPeriod.end!.toISOString(),
         }
       );
 
       if (!previousError) {
         const previousMonthlyData =
-          (previousData ??
-            []) as MonthlyLeaderboardResult[];
-
-        const previousUserIds = previousMonthlyData
-          .map((player) => player.user_id)
-          .filter(Boolean);
-
-        const previousFamilyUserIds = new Set<string>();
-
-        if (previousUserIds.length > 0) {
-          const {
-            data: previousFamilyProfiles,
-          } = await supabase
-            .from("profiles")
-            .select("id")
-            .in("id", previousUserIds)
-            .eq("account_type", "family");
-
-          for (const familyProfile of previousFamilyProfiles ?? []) {
-            previousFamilyUserIds.add(familyProfile.id);
-          }
-        }
-
-        const previousIndividualData =
-          previousMonthlyData.filter(
-            (player) => !previousFamilyUserIds.has(player.user_id)
-          );
+          (previousData ?? []) as MonthlyLeaderboardResult[];
 
         const previousPlayers:
           LeaderboardRow[] =
-          previousIndividualData
+          previousMonthlyData
             .filter(
               (
                 player: MonthlyLeaderboardResult
