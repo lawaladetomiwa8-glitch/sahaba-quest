@@ -696,7 +696,7 @@ export function AppNavbar() {
         .sq-nav-links {
           display: flex;
           align-items: center;
-          justify-content: flex-end;
+          justify-content: flex-start;
           gap: 6px;
           flex: 1 1 auto;
           min-width: 0;
