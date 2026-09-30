@@ -225,9 +225,7 @@ export default function FamilyLeaderboardPage() {
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [selectedPeriod, setSelectedPeriod] = useState(
-    getCurrentMonthPeriod()
-  );
+  const [selectedPeriod, setSelectedPeriod] = useState("all-time");
   const [climbers, setClimbers] = useState<Climber[]>([]);
 
   const periods = getMonthPeriods();

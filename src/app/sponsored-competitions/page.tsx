@@ -1320,7 +1320,7 @@ export default function SponsoredCompetitionsPage() {
 
         .sq-card-meta {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 7px;
           margin-top: 14px;
         }
@@ -1708,6 +1708,11 @@ function FeaturedCompetition({
           <div className="sq-meta-box">
             <span>STARTS</span>
             <strong>{formatDate(competition.starts_at)}</strong>
+          </div>
+
+          <div className="sq-meta-box">
+            <span>ENDS</span>
+            <strong>{formatDate(competition.ends_at)}</strong>
           </div>
 
           <div className="sq-meta-box">
@@ -2269,6 +2274,11 @@ function CompetitionCard({
           <div>
             <span>START</span>
             <strong>{formatDate(competition.starts_at)}</strong>
+          </div>
+
+          <div>
+            <span>END</span>
+            <strong>{formatDate(competition.ends_at)}</strong>
           </div>
         </div>
 
