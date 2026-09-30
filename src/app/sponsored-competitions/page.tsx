@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { AppNavbar } from "../../components/ui";
 
 type Competition = {
   id: string;
@@ -186,8 +187,11 @@ export default function SponsoredCompetitionsPage() {
 
   if (loading) {
     return (
-      <main className="sq-sponsored-loading">
-        <div className="sq-sponsored-spinner">🏆</div>
+      <>
+        <AppNavbar />
+
+        <main className="sq-sponsored-loading">
+          <div className="sq-sponsored-spinner">🏆</div>
         <h3>Loading sponsored competitions...</h3>
         <p>Preparing the latest competitions for you.</p>
 
@@ -235,13 +239,17 @@ export default function SponsoredCompetitionsPage() {
               transform: translateY(-7px);
             }
           }
-        `}</style>
-      </main>
+          `}</style>
+        </main>
+      </>
     );
   }
 
   return (
-    <main className="sq-sponsored-page">
+    <>
+      <AppNavbar />
+
+      <main className="sq-sponsored-page">
       <section className="sq-sponsored-hero">
         <div className="sq-sponsored-hero-glow sq-glow-one" />
         <div className="sq-sponsored-hero-glow sq-glow-two" />
@@ -1623,8 +1631,9 @@ export default function SponsoredCompetitionsPage() {
             animation: none;
           }
         }
-      `}</style>
-    </main>
+        `}</style>
+      </main>
+    </>
   );
 }
 
@@ -1697,11 +1706,8 @@ function FeaturedCompetition({
           </div>
 
           <div className="sq-meta-box">
-            <span>STARTS — ENDS</span>
-            <strong>
-              {formatDate(competition.starts_at)} —{" "}
-              {formatDate(competition.ends_at)}
-            </strong>
+            <span>STARTS</span>
+            <strong>{formatDate(competition.starts_at)}</strong>
           </div>
 
           <div className="sq-meta-box">
@@ -2261,11 +2267,8 @@ function CompetitionCard({
           </div>
 
           <div>
-            <span>START — END</span>
-            <strong>
-              {formatDate(competition.starts_at)} —{" "}
-              {formatDate(competition.ends_at)}
-            </strong>
+            <span>START</span>
+            <strong>{formatDate(competition.starts_at)}</strong>
           </div>
         </div>
 

@@ -7,6 +7,7 @@ import {
   useRouter,
 } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import { AppNavbar } from "../../../components/ui";
 
 type Competition = {
   id: string;
@@ -391,17 +392,21 @@ export default function SponsoredCompetitionDetailPage() {
    */
   if (loading) {
     return (
-      <main
-        style={{
-          padding: 60,
-          textAlign: "center",
-        }}
-      >
+      <>
+        <AppNavbar />
+
+        <main
+          style={{
+            padding: 60,
+            textAlign: "center",
+          }}
+        >
         ⏳
         <h3>
           Loading competition...
         </h3>
-      </main>
+        </main>
+      </>
     );
   }
 
@@ -412,8 +417,11 @@ export default function SponsoredCompetitionDetailPage() {
    */
   if (!competition) {
     return (
-      <main
-        className="sq-card"
+      <>
+        <AppNavbar />
+
+        <main
+          className="sq-card"
         style={{
           padding: 30,
         }}
@@ -425,7 +433,8 @@ export default function SponsoredCompetitionDetailPage() {
         <p className="sq-subtitle">
           {message}
         </p>
-      </main>
+        </main>
+      </>
     );
   }
 
@@ -447,9 +456,12 @@ export default function SponsoredCompetitionDetailPage() {
    * ---------------------------------------------------------
    */
   return (
-    <main>
-      <Link
-        href="/sponsored-competitions"
+    <>
+      <AppNavbar />
+
+      <main>
+        <Link
+          href="/sponsored-competitions"
         style={{
           textDecoration: "none",
           color: "var(--muted)",
@@ -1064,6 +1076,7 @@ export default function SponsoredCompetitionDetailPage() {
           }
         }
       `}</style>
-    </main>
+      </main>
+    </>
   );
 }
