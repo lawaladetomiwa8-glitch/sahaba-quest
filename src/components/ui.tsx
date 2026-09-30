@@ -436,17 +436,22 @@ export function AppNavbar() {
               alignItems: "center",
               justifyContent: "center",
               borderRadius: "13px",
-              background:
-                "linear-gradient(145deg, #063f3b 0%, #075b55 55%, #08766d 100%)",
-              border: "1px solid rgba(8, 118, 109, 0.25)",
-              color: "#ffffff",
-              fontSize: "15px",
-              fontWeight: 900,
-              letterSpacing: "-0.5px",
+              overflow: "hidden",
+              flexShrink: 0,
               boxShadow: "0 5px 14px rgba(6, 63, 59, 0.18)",
             }}
           >
-            SQ
+            <img
+              src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+              alt="Sahaba Quest"
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "block",
+                objectFit: "contain",
+                borderRadius: "13px",
+              }}
+            />
           </span>
 
           <span
@@ -558,15 +563,22 @@ export function AppNavbar() {
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: "12px",
-                background:
-                  "linear-gradient(145deg, #063f3b 0%, #075b55 55%, #08766d 100%)",
-                color: "#ffffff",
-                fontSize: "14px",
-                fontWeight: 900,
+                overflow: "hidden",
+                flexShrink: 0,
                 boxShadow: "0 4px 12px rgba(6, 63, 59, 0.16)",
               }}
             >
-              SQ
+              <img
+                src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+                alt="Sahaba Quest"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "block",
+                  objectFit: "contain",
+                  borderRadius: "12px",
+                }}
+              />
             </span>
             <span
               style={{

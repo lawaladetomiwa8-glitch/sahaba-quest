@@ -412,7 +412,10 @@ export default function SignupPage() {
             className="success-logo"
             aria-label="Sahaba Quest home"
           >
-            SQ
+            <img
+              src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+              alt="Sahaba Quest"
+            />
           </Link>
 
           <div className="success-card">
@@ -645,15 +648,19 @@ export default function SignupPage() {
             align-items: center;
             justify-content: center;
             border-radius: 16px;
-            background: #08766d;
-            color: white;
+            background: white;
+            overflow: hidden;
             text-decoration: none;
-            font-size: 17px;
-            font-weight: 900;
-            letter-spacing: -0.5px;
             box-shadow:
               0 10px 25px
               rgba(8, 118, 109, 0.18);
+          }
+
+          .success-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
           }
 
           .success-card {
@@ -974,7 +981,10 @@ export default function SignupPage() {
         <div className="brand-content">
 
           <div className="brand-logo">
-            SQ
+            <img
+              src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+              alt="Sahaba Quest"
+            />
           </div>
 
           <span className="brand-badge">
@@ -1496,23 +1506,27 @@ export default function SignupPage() {
           max-width: 500px;
         }
 
-        .brand-logo {
-          width: 70px;
-          height: 70px;
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background:
-            rgba(255, 255, 255, 0.12);
-          border:
-            1px solid
-            rgba(255, 255, 255, 0.2);
-          font-size: 22px;
-          font-weight: 800;
-          letter-spacing: -1px;
-          margin-bottom: 28px;
-        }
+          .brand-logo {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border:
+              1px solid
+              rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            margin-bottom: 28px;
+          }
+
+          .brand-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+          }
 
         .brand-badge,
         .sq-badge {

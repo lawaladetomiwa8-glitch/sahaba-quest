@@ -446,22 +446,30 @@ export default function DashboardPage() {
             }}
           >
             <div
+              className="dashboard-loading-logo"
               style={{
                 width: "64px",
                 height: "64px",
                 margin: "0 auto 20px",
                 borderRadius: "20px",
-                background:
-                  "var(--primary-light)",
+                background: "white",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--primary)",
-                fontSize: "24px",
-                fontWeight: 900,
+                overflow: "hidden",
+                border: "1px solid var(--border)",
               }}
             >
-              SQ
+              <img
+                src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+                alt="Sahaba Quest"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
             </div>
 
             <h1 className="sq-title">

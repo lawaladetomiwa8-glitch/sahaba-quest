@@ -609,12 +609,14 @@ export default function LoginPage() {
 
         <div className="brand-content">
 
-          <Link
-            href="/"
+          <div
             className="brand-logo"
           >
-            SQ
-          </Link>
+            <img
+              src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+              alt="Sahaba Quest"
+            />
+          </div>
 
           <span className="brand-badge">
             LEARN • REMEMBER • COMPETE
@@ -965,22 +967,27 @@ export default function LoginPage() {
         }
 
         .brand-logo {
-          width: 72px;
-          height: 72px;
-          margin-bottom: 26px;
+          width: 58px;
+          height: 58px;
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 22px;
-          background:
-            rgba(255, 255, 255, 0.13);
+          background: white;
           border:
             1px solid
-            rgba(255, 255, 255, 0.18);
-          color: white;
-          text-decoration: none;
-          font-size: 24px;
-          font-weight: 900;
+            rgba(255, 255, 255, 0.2);
+          overflow: hidden;
+          margin-bottom: 24px;
+        }
+
+        .brand-logo img {
+          width: 48px;
+          height: 48px;
+          max-width: 48px;
+          max-height: 48px;
+          object-fit: contain;
+          display: block;
         }
 
         .brand-badge {

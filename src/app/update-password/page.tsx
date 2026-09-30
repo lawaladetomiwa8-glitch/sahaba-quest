@@ -209,7 +209,10 @@ export default function UpdatePasswordPage() {
       <main className="password-page">
         <section className="password-card status-card">
           <div className="sq-logo">
-            SQ
+            <img
+              src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+              alt="Sahaba Quest"
+            />
           </div>
 
           <span className="sq-badge">
@@ -265,6 +268,14 @@ export default function UpdatePasswordPage() {
             color: white;
             font-size: 20px;
             font-weight: 800;
+          }
+
+          .sq-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 18px;
+            display: block;
           }
 
           .sq-badge {
@@ -481,7 +492,10 @@ export default function UpdatePasswordPage() {
     <main className="password-page">
       <section className="password-card">
         <div className="sq-logo">
-          SQ
+          <img
+            src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+            alt="Sahaba Quest"
+          />
         </div>
 
         <span className="sq-badge">

@@ -190,24 +190,6 @@ export default function Home() {
                 textAlign: "center",
               }}
             >
-              <div
-                style={{
-                  width: "76px",
-                  height: "76px",
-                  margin: "0 auto 22px",
-                  borderRadius: "24px",
-                  background: "var(--primary-light)",
-                  color: "var(--primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "25px",
-                  fontWeight: 900,
-                }}
-              >
-                SQ
-              </div>
-
               <span className="sq-badge">
                 Account Active
               </span>
@@ -403,25 +385,6 @@ export default function Home() {
                   zIndex: 1,
                 }}
               >
-                <div
-                  style={{
-                    width: "72px",
-                    height: "72px",
-                    borderRadius: "22px",
-                    background: "rgba(255,255,255,0.13)",
-                    border:
-                      "1px solid rgba(255,255,255,0.18)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "24px",
-                    fontWeight: 900,
-                    marginBottom: "26px",
-                  }}
-                >
-                  SQ
-                </div>
-
                 <div
                   style={{
                     fontSize: "13px",

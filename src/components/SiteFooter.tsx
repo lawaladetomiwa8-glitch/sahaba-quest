@@ -70,7 +70,10 @@ export default function SiteFooter() {
           <div className="sq-footer-main">
             <div className="sq-footer-brand">
               <div className="sq-footer-brand-mark">
-                <span>SQ</span>
+                <img
+                  src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+                  alt="Sahaba Quest"
+                />
               </div>
 
               <div>
@@ -219,7 +222,10 @@ export default function SiteFooter() {
 
             <div className="sq-footer-modal-top">
               <div className="sq-footer-modal-icon">
-                SQ
+                <img
+                  src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+                  alt="Sahaba Quest"
+                />
               </div>
 
               <div>
@@ -324,6 +330,15 @@ export default function SiteFooter() {
           letter-spacing: -0.04em;
           box-shadow:
             0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .sq-footer-brand-mark img,
+        .sq-footer-modal-icon img {
+          width: 100%;
+          height: 100%;
+          border-radius: inherit;
+          object-fit: contain;
+          display: block;
         }
 
         .sq-footer-brand-name {
