@@ -921,6 +921,56 @@ export default function Home() {
             </div>
           </section>
 
+          {/* SAHABAH KNOWLEDGE */}
+          <section
+            id="sahabah"
+            className="sq-card"
+            style={{
+              marginTop: "28px",
+              padding: "34px",
+              background:
+                "linear-gradient(135deg, var(--primary-light), var(--white))",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                gap: "20px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ maxWidth: "700px" }}>
+                <span className="sq-badge">Public Knowledge Library</span>
+                <h2
+                  style={{
+                    margin: "16px 0 10px",
+                    fontSize: "30px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Explore the Sahabah
+                </h2>
+                <p
+                  className="sq-subtitle"
+                  style={{ margin: 0 }}
+                >
+                  Discover concise public profiles of the Companions and
+                  explore the people and history behind Sahaba Quest.
+                </p>
+              </div>
+
+              <Link
+                href="/sahabah"
+                className="sq-button-primary"
+                style={{ whiteSpace: "nowrap" }}
+              >
+                Explore Profiles →
+              </Link>
+            </div>
+          </section>
+
           {/* CLOSING CTA */}
           <section
             className="sq-card"
