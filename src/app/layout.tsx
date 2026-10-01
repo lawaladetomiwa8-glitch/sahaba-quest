@@ -10,6 +10,79 @@ const SITE_DESCRIPTION =
 const SITE_LOGO =
   "https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png";
 
+/* =========================================================
+   STRUCTURED DATA
+   Helps search engines and AI systems understand:
+   - Sahaba Quest
+   - Deen Skyline Limited
+   - The official website
+   - Official logo
+   - Business contact information
+========================================================= */
+
+const structuredData = {
+  "@context": "https://schema.org",
+
+  "@graph": [
+    {
+      "@type": "Organization",
+
+      "@id": `${SITE_URL}/#organization`,
+
+      name: SITE_NAME,
+
+      legalName: "Deen Skyline Limited",
+
+      url: SITE_URL,
+
+      logo: SITE_LOGO,
+
+      description: SITE_DESCRIPTION,
+
+      telephone: "+2349060479725",
+
+      email: "info@sahabaquest.com.ng",
+
+      address: {
+        "@type": "PostalAddress",
+
+        streetAddress:
+          "26b, Oluwalogbon Street Off Car Wash",
+
+        addressLocality: "Oworonshoki",
+
+        addressRegion: "Lagos State",
+
+        addressCountry: "NG",
+      },
+
+      parentOrganization: {
+        "@type": "Organization",
+
+        name: "Deen Skyline Limited",
+      },
+    },
+
+    {
+      "@type": "WebSite",
+
+      "@id": `${SITE_URL}/#website`,
+
+      url: SITE_URL,
+
+      name: SITE_NAME,
+
+      description: SITE_DESCRIPTION,
+
+      publisher: {
+        "@id": `${SITE_URL}/#organization`,
+      },
+
+      inLanguage: "en",
+    },
+  ],
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 
@@ -39,6 +112,7 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+
     googleBot: {
       index: true,
       follow: true,
@@ -55,13 +129,19 @@ export const metadata: Metadata = {
 
   openGraph: {
     type: "website",
+
     url: SITE_URL,
+
     siteName: SITE_NAME,
+
     title: SITE_NAME,
+
     description: SITE_DESCRIPTION,
+
     images: [
       {
         url: SITE_LOGO,
+
         alt: "Sahaba Quest",
       },
     ],
@@ -69,8 +149,11 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
+
     title: SITE_NAME,
+
     description: SITE_DESCRIPTION,
+
     images: [SITE_LOGO],
   },
 };
@@ -83,6 +166,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              structuredData
+            ).replace(/</g, "\\u003c"),
+          }}
+        />
+
         {children}
 
         <SiteFooter />
