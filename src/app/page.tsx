@@ -298,6 +298,34 @@ export default function Home() {
             gap: "10px",
           }}
         >
+          <Link
+            href="/about"
+            className="landing-nav-about"
+            style={{
+              color: "var(--muted)",
+              fontSize: "13px",
+              fontWeight: 700,
+              textDecoration: "none",
+              padding: "8px 6px",
+            }}
+          >
+            About
+          </Link>
+
+          <Link
+            href="/sahabah"
+            className="landing-nav-about"
+            style={{
+              color: "var(--muted)",
+              fontSize: "13px",
+              fontWeight: 700,
+              textDecoration: "none",
+              padding: "8px 6px",
+            }}
+          >
+            Sahabah
+          </Link>
+
           <span
             className="landing-nav-text"
             style={{
@@ -1041,7 +1069,8 @@ export default function Home() {
         }
 
         @media (max-width: 650px) {
-          .landing-nav-text {
+          .landing-nav-text,
+          .landing-nav-about {
             display: none !important;
           }
 
