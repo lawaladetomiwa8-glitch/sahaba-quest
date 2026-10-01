@@ -43,6 +43,28 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatHistoryDate(value: string) {
+  const date = new Date(value);
+  const day = date.getDate();
+  const suffix =
+    day % 100 >= 11 && day % 100 <= 13
+      ? "th"
+      : day % 10 === 1
+        ? "st"
+        : day % 10 === 2
+          ? "nd"
+          : day % 10 === 3
+            ? "rd"
+            : "th";
+
+  const monthAndYear = new Intl.DateTimeFormat("en-NG", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+
+  return `${day}${suffix} ${monthAndYear}`;
+}
+
 function getCountdown(value: string) {
   const difference = new Date(value).getTime() - Date.now();
 
@@ -491,19 +513,20 @@ export default function SponsoredCompetitionsPage() {
 
       {ended.length > 0 && (
         <section className="sq-competition-section sq-past-section">
-          <SectionTitle
-            kicker="COMPETITION HISTORY"
-            title="Past competitions."
-            subtitle="See the competitions that have already taken place."
-          />
+          <div className="sq-history-heading">
+            <span className="sq-history-kicker">COMPETITION HISTORY</span>
+            <h2>Past competitions.</h2>
+            <p>
+              Revisit completed competitions, see who competed and view the
+              final leaderboard.
+            </p>
+          </div>
 
-          <div className="sq-competition-grid">
+          <div className="sq-history-list">
             {ended.map((competition) => (
-              <CompetitionCard
+              <PastCompetitionCard
                 key={competition.id}
                 competition={competition}
-                onJoin={join}
-                premium={canParticipate}
               />
             ))}
           </div>
@@ -1370,7 +1393,307 @@ export default function SponsoredCompetitionsPage() {
         }
 
         .sq-past-section {
-          opacity: 0.92;
+          position: relative;
+          overflow: hidden;
+          padding: clamp(28px, 4vw, 46px);
+          border: 1px solid rgba(20, 184, 166, 0.14);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at 12% 0%, rgba(20, 184, 166, 0.1), transparent 30%),
+            radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.08), transparent 32%),
+            linear-gradient(145deg, rgba(248, 252, 251, 0.98), rgba(239, 248, 246, 0.96));
+          box-shadow: 0 18px 50px rgba(7, 50, 52, 0.06);
+        }
+
+        .sq-history-heading {
+          position: relative;
+          z-index: 1;
+          max-width: 720px;
+          margin: 0 auto 26px;
+          text-align: center;
+        }
+
+        .sq-history-kicker {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 30px;
+          padding: 0 12px;
+          border: 1px solid rgba(20, 184, 166, 0.2);
+          border-radius: 999px;
+          background: rgba(20, 184, 166, 0.08);
+          color: var(--primary);
+          font-size: 10px;
+          font-weight: 950;
+          letter-spacing: 0.14em;
+        }
+
+        .sq-history-heading h2 {
+          margin: 12px 0 7px;
+          color: #123b38;
+          font-size: clamp(28px, 3.4vw, 38px);
+          line-height: 1.05;
+          letter-spacing: -0.04em;
+          font-weight: 950;
+        }
+
+        .sq-history-heading p {
+          max-width: 560px;
+          margin: 0 auto;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.65;
+        }
+
+        .sq-history-list {
+          position: relative;
+          z-index: 1;
+          width: min(100%, 1040px);
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
+        }
+
+        .sq-history-card {
+          position: relative;
+          min-width: 0;
+          overflow: hidden;
+          border: 1px solid rgba(18, 59, 56, 0.1);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.94);
+          box-shadow: 0 14px 34px rgba(7, 50, 52, 0.07);
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            border-color 160ms ease;
+        }
+
+        .sq-history-card:hover {
+          transform: translateY(-3px);
+          border-color: rgba(20, 184, 166, 0.28);
+          box-shadow: 0 20px 42px rgba(7, 50, 52, 0.1);
+        }
+
+        .sq-history-card::before {
+          content: "";
+          position: absolute;
+          inset: 0 0 auto;
+          height: 4px;
+          background: linear-gradient(90deg, var(--primary), #6ee7d5, #93c5fd);
+        }
+
+        .sq-history-card-banner {
+          position: relative;
+          height: 118px;
+          overflow: hidden;
+          background:
+            radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.28), transparent 25%),
+            linear-gradient(135deg, #0c3f43, #167c72 55%, #2857a4);
+        }
+
+        .sq-history-card-banner img {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+          opacity: 0.7;
+          filter: saturate(0.78) brightness(0.82);
+        }
+
+        .sq-history-card-banner::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(6, 28, 32, 0.04), rgba(6, 28, 32, 0.48));
+        }
+
+        .sq-history-status {
+          position: absolute;
+          z-index: 2;
+          left: 15px;
+          top: 14px;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          min-height: 30px;
+          padding: 0 10px;
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          border-radius: 999px;
+          background: rgba(5, 31, 34, 0.64);
+          backdrop-filter: blur(9px);
+          color: white;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+        }
+
+        .sq-history-status span {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #8de8d7;
+          box-shadow: 0 0 0 4px rgba(141, 232, 215, 0.12);
+        }
+
+        .sq-history-card-content {
+          padding: 20px;
+        }
+
+        .sq-history-sponsor {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .sq-history-sponsor-icon {
+          width: 38px;
+          height: 38px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          border: 1px solid rgba(20, 184, 166, 0.16);
+          border-radius: 11px;
+          background: linear-gradient(135deg, var(--primary-light), rgba(20, 184, 166, 0.05));
+          font-size: 18px;
+        }
+
+        .sq-history-sponsor-icon img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          background: white;
+        }
+
+        .sq-history-sponsor-copy {
+          min-width: 0;
+        }
+
+        .sq-history-sponsor-copy span {
+          display: block;
+          margin-bottom: 2px;
+          color: var(--muted);
+          font-size: 8px;
+          font-weight: 950;
+          letter-spacing: 0.1em;
+        }
+
+        .sq-history-sponsor-copy strong {
+          display: block;
+          overflow: hidden;
+          color: #173f3b;
+          font-size: 12px;
+          font-weight: 900;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .sq-history-card h3 {
+          margin: 15px 0 6px;
+          color: #123b38;
+          font-size: 20px;
+          line-height: 1.12;
+          letter-spacing: -0.025em;
+        }
+
+        .sq-history-card-description {
+          margin: 0;
+          min-height: 36px;
+          color: var(--muted);
+          font-size: 11px;
+          line-height: 1.6;
+        }
+
+        .sq-history-details {
+          display: grid;
+          grid-template-columns: 1.35fr 0.85fr;
+          gap: 8px;
+          margin-top: 16px;
+        }
+
+        .sq-history-detail {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          min-width: 0;
+          padding: 10px;
+          border: 1px solid rgba(20, 184, 166, 0.1);
+          border-radius: 12px;
+          background: rgba(20, 184, 166, 0.055);
+        }
+
+        .sq-history-detail-wide {
+          grid-column: 1 / -1;
+        }
+
+        .sq-history-detail-icon {
+          width: 31px;
+          height: 31px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          border-radius: 9px;
+          background: white;
+          border: 1px solid rgba(20, 184, 166, 0.12);
+          font-size: 14px;
+        }
+
+        .sq-history-detail-copy {
+          min-width: 0;
+        }
+
+        .sq-history-detail-copy span {
+          display: block;
+          margin-bottom: 2px;
+          color: var(--muted);
+          font-size: 8px;
+          font-weight: 850;
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+        }
+
+        .sq-history-detail-copy strong {
+          display: block;
+          overflow: hidden;
+          color: #173f3b;
+          font-size: 10.5px;
+          font-weight: 900;
+          line-height: 1.35;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .sq-history-results {
+          width: 100%;
+          min-height: 44px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 14px;
+          padding: 0 15px;
+          border-radius: 11px;
+          color: #073c37;
+          background: linear-gradient(135deg, #7bead9, #55d4c5);
+          box-shadow: 0 9px 22px rgba(20, 184, 166, 0.16);
+          font-size: 11px;
+          font-weight: 950;
+          text-decoration: none;
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease;
+        }
+
+        .sq-history-results:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 13px 28px rgba(20, 184, 166, 0.22);
+        }
+
+        .sq-history-results-arrow {
+          font-size: 15px;
+          line-height: 1;
         }
 
         .sq-empty-state {
@@ -1461,6 +1784,39 @@ export default function SponsoredCompetitionsPage() {
           color: rgba(255, 255, 255, 0.63);
           font-size: 9px;
           font-weight: 800;
+        }
+
+        @media (max-width: 760px) {
+          .sq-past-section {
+            padding: 24px 16px;
+            border-radius: 23px;
+          }
+
+          .sq-history-list {
+            grid-template-columns: 1fr;
+          }
+
+          .sq-history-card-banner {
+            height: 125px;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .sq-history-heading h2 {
+            font-size: 29px;
+          }
+
+          .sq-history-card-content {
+            padding: 17px;
+          }
+
+          .sq-history-details {
+            grid-template-columns: 1fr;
+          }
+
+          .sq-history-detail-wide {
+            grid-column: auto;
+          }
         }
 
         @media (max-width: 1050px) {
@@ -1993,6 +2349,441 @@ function FeaturedCompetition({
           .sq-featured-actions {
             flex-direction: column;
             align-items: stretch;
+          }
+        }
+      `}</style>
+    </article>
+  );
+}
+
+function PastCompetitionCard({
+  competition,
+}: {
+  competition: Competition;
+}) {
+  return (
+    <article className="sq-history-card">
+      <div className="sq-history-card-banner">
+        {competition.sponsor_banner_url ? (
+          <img src={competition.sponsor_banner_url} alt="" />
+        ) : (
+          <div className="sq-card-banner-placeholder">🏆</div>
+        )}
+
+        <span className="sq-history-status">
+          <span aria-hidden="true" />
+          COMPLETED
+        </span>
+      </div>
+
+      <div className="sq-history-card-content">
+        <div className="sq-history-sponsor">
+          <div className="sq-history-sponsor-icon" aria-hidden="true">
+            {competition.sponsor_logo_url ? (
+              <img src={competition.sponsor_logo_url} alt="" />
+            ) : (
+              "🤝"
+            )}
+          </div>
+
+          <div className="sq-history-sponsor-copy">
+            <span>SPONSORED BY</span>
+            <strong>{competition.sponsor_name}</strong>
+          </div>
+        </div>
+
+        <h3>{competition.title}</h3>
+
+        <p className="sq-history-card-description">
+          {competition.description ||
+            "A special Sahaba Quest sponsored competition."}
+        </p>
+
+        <div className="sq-history-details">
+          <div className="sq-history-detail sq-history-detail-wide">
+            <div className="sq-history-detail-icon" aria-hidden="true">📅</div>
+            <div className="sq-history-detail-copy">
+              <span>HELD</span>
+              <strong>
+                {formatHistoryDate(competition.starts_at)} — {formatHistoryDate(competition.ends_at)}
+              </strong>
+            </div>
+          </div>
+
+          <div className="sq-history-detail">
+            <div className="sq-history-detail-icon" aria-hidden="true">🔄</div>
+            <div className="sq-history-detail-copy">
+              <span>FORMAT</span>
+              <strong>
+                {competition.competition_type === "weekly" ? "Weekly" : "Monthly"}
+              </strong>
+            </div>
+          </div>
+
+          <div className="sq-history-detail">
+            <div className="sq-history-detail-icon" aria-hidden="true">🏆</div>
+            <div className="sq-history-detail-copy">
+              <span>RESULTS</span>
+              <strong>Final leaderboard</strong>
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href={`/sponsored-competitions/${competition.id}/leaderboard`}
+          className="sq-history-results"
+        >
+          <span className="sq-history-results-icon" aria-hidden="true">
+            🏆
+          </span>
+          <span className="sq-history-results-label">
+            View Results &amp; Leaderboard
+          </span>
+          <span className="sq-history-results-arrow" aria-hidden="true">
+            →
+          </span>
+        </Link>
+      </div>
+
+      <style jsx>{`
+        .sq-history-card {
+          position: relative;
+          min-width: 0;
+          overflow: hidden;
+          border: 1px solid rgba(18, 59, 56, 0.1);
+          border-radius: 22px;
+          background: #ffffff;
+          box-shadow: 0 14px 34px rgba(7, 50, 52, 0.07);
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            border-color 160ms ease;
+        }
+
+        .sq-history-card:hover {
+          transform: translateY(-3px);
+          border-color: rgba(20, 184, 166, 0.28);
+          box-shadow: 0 20px 42px rgba(7, 50, 52, 0.1);
+        }
+
+        .sq-history-card::before {
+          content: "";
+          position: absolute;
+          inset: 0 0 auto;
+          z-index: 5;
+          height: 4px;
+          background: linear-gradient(
+            90deg,
+            var(--primary),
+            #6ee7d5,
+            #93c5fd
+          );
+        }
+
+        .sq-history-card-banner {
+          position: relative;
+          height: 126px;
+          overflow: hidden;
+          background:
+            radial-gradient(
+              circle at 25% 25%,
+              rgba(255, 255, 255, 0.28),
+              transparent 25%
+            ),
+            linear-gradient(
+              135deg,
+              #0c3f43,
+              #167c72 55%,
+              #2857a4
+            );
+        }
+
+        .sq-history-card-banner img {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+          opacity: 0.68;
+          filter: saturate(0.78) brightness(0.82);
+        }
+
+        .sq-history-card-banner::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(6, 28, 32, 0.04),
+            rgba(6, 28, 32, 0.52)
+          );
+        }
+
+        .sq-history-status {
+          position: absolute;
+          z-index: 3;
+          left: 16px;
+          top: 16px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-height: 32px;
+          padding: 0 11px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 999px;
+          background: rgba(5, 31, 34, 0.68);
+          backdrop-filter: blur(9px);
+          color: #ffffff;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: 0.1em;
+        }
+
+        .sq-history-status span {
+          width: 7px;
+          height: 7px;
+          flex: 0 0 auto;
+          border-radius: 50%;
+          background: #8de8d7;
+          box-shadow: 0 0 0 4px rgba(141, 232, 215, 0.12);
+        }
+
+        .sq-history-card-content {
+          padding: 22px;
+        }
+
+        .sq-history-sponsor {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          min-width: 0;
+          padding: 10px 12px;
+          border: 1px solid rgba(20, 184, 166, 0.12);
+          border-radius: 14px;
+          background: linear-gradient(
+            135deg,
+            #ffffff,
+            rgba(20, 184, 166, 0.045)
+          );
+        }
+
+        .sq-history-sponsor-icon {
+          width: 40px;
+          height: 40px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          border: 1px solid rgba(20, 184, 166, 0.16);
+          border-radius: 11px;
+          background: linear-gradient(
+            135deg,
+            var(--primary-light),
+            rgba(20, 184, 166, 0.05)
+          );
+          color: var(--primary);
+          font-size: 18px;
+        }
+
+        .sq-history-sponsor-icon img {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: contain;
+          background: #ffffff;
+        }
+
+        .sq-history-sponsor-copy {
+          min-width: 0;
+        }
+
+        .sq-history-sponsor-copy span {
+          display: block;
+          margin-bottom: 3px;
+          color: var(--muted);
+          font-size: 8px;
+          font-weight: 950;
+          letter-spacing: 0.1em;
+        }
+
+        .sq-history-sponsor-copy strong {
+          display: block;
+          overflow: hidden;
+          color: #173f3b;
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1.25;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .sq-history-card h3 {
+          margin: 17px 0 7px;
+          color: #123b38;
+          font-size: 21px;
+          line-height: 1.12;
+          letter-spacing: -0.025em;
+        }
+
+        .sq-history-card-description {
+          margin: 0;
+          color: var(--muted);
+          font-size: 11.5px;
+          line-height: 1.6;
+        }
+
+        .sq-history-details {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 9px;
+          margin-top: 18px;
+        }
+
+        .sq-history-detail {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid rgba(20, 184, 166, 0.11);
+          border-radius: 13px;
+          background: rgba(20, 184, 166, 0.045);
+        }
+
+        .sq-history-detail-wide {
+          grid-column: 1 / -1;
+        }
+
+        .sq-history-detail-icon {
+          width: 36px;
+          height: 36px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(20, 184, 166, 0.13);
+          border-radius: 10px;
+          background: #ffffff;
+          font-size: 16px;
+          box-shadow: 0 3px 9px rgba(7, 50, 52, 0.04);
+        }
+
+        .sq-history-detail-copy {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .sq-history-detail-copy span {
+          display: block;
+          margin-bottom: 4px;
+          color: var(--muted);
+          font-size: 8px;
+          font-weight: 950;
+          letter-spacing: 0.09em;
+          text-transform: uppercase;
+        }
+
+        .sq-history-detail-copy strong {
+          display: block;
+          color: #173f3b;
+          font-size: 12px;
+          font-weight: 900;
+          line-height: 1.35;
+        }
+
+        .sq-history-results {
+          width: 100%;
+          min-height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          box-sizing: border-box;
+          margin-top: 15px;
+          padding: 0 17px;
+          border: 1px solid rgba(20, 184, 166, 0.18);
+          border-radius: 12px;
+          color: #073c37;
+          background: linear-gradient(135deg, #7bead9, #55d4c5);
+          box-shadow: 0 9px 22px rgba(20, 184, 166, 0.16);
+          font-size: 11.5px;
+          font-weight: 950;
+          text-decoration: none;
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            filter 160ms ease;
+        }
+
+        .sq-history-results:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.02);
+          box-shadow: 0 13px 28px rgba(20, 184, 166, 0.23);
+        }
+
+        .sq-history-results:focus-visible {
+          outline: 3px solid rgba(20, 184, 166, 0.28);
+          outline-offset: 3px;
+        }
+
+        .sq-history-results-icon {
+          width: 28px;
+          height: 28px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.35);
+          font-size: 14px;
+        }
+
+        .sq-history-results-label {
+          text-align: center;
+        }
+
+        .sq-history-results-arrow {
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        .sq-card-banner-placeholder {
+          height: 100%;
+          display: grid;
+          place-items: center;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 44px;
+        }
+
+        @media (max-width: 760px) {
+          .sq-history-card-content {
+            padding: 19px;
+          }
+
+          .sq-history-card-banner {
+            height: 122px;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .sq-history-details {
+            grid-template-columns: 1fr;
+          }
+
+          .sq-history-detail-wide {
+            grid-column: auto;
+          }
+
+          .sq-history-detail-copy strong {
+            font-size: 11.5px;
+          }
+
+          .sq-history-results {
+            min-height: 46px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .sq-history-card,
+          .sq-history-results {
+            transition: none;
           }
         }
       `}</style>
