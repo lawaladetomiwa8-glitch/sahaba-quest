@@ -18,8 +18,8 @@ type Question = {
   option_b: string | null;
   option_c: string | null;
   option_d: string | null;
-  correct_answer: string;
   explanation: string | null;
+  question_type: "multiple_choice" | "fill_blank";
 };
 
 type QuizOption = {
@@ -28,7 +28,9 @@ type QuizOption = {
 
 type QuizResult = {
   is_correct: boolean;
+  timed_out: boolean;
   correct_answer: string;
+  question_type: "multiple_choice" | "fill_blank";
   xp_earned: number;
   current_streak: number;
   best_streak: number;
@@ -39,6 +41,7 @@ type QuizResult = {
   correct_answers_in_attempt: number;
   questions_required: number;
   correct_required_to_pass: number;
+  response_time_ms: number;
 };
 
 type ResumeSession = {
@@ -428,7 +431,7 @@ export default function QuizPage() {
     const { data: savedQuestion, error: questionError } = await supabase
       .from("questions")
       .select(
-        "id, level, question, option_a, option_b, option_c, option_d, correct_answer, explanation"
+        "id, level, question, option_a, option_b, option_c, option_d, explanation, question_type"
       )
       .eq("id", resumeSession.current_question_id)
       .eq("is_published", true)
@@ -454,12 +457,19 @@ export default function QuizPage() {
     /*
      * Create and shuffle the answer options.
      */
-    const shuffledOptions: QuizOption[] = [
-      { value: savedQuestion.option_a },
-      { value: savedQuestion.option_b },
-      { value: savedQuestion.option_c },
-      { value: savedQuestion.option_d },
-    ];
+    const optionValues = [
+      savedQuestion.option_a,
+      savedQuestion.option_b,
+      savedQuestion.option_c,
+      savedQuestion.option_d,
+    ].filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0
+    );
+
+    const shuffledOptions: QuizOption[] = optionValues.map((value) => ({
+      value,
+    }));
 
     shuffleOptions(shuffledOptions);
 
@@ -721,8 +731,16 @@ export default function QuizPage() {
 
     setSelectedAnswer(normalizedAnswer);
 
-    const result = data as QuizResult;
+    const rawResult = Array.isArray(data) ? data[0] : data;
 
+    if (!rawResult) {
+      setMessage("The quiz server returned no submission result.");
+      return;
+    }
+
+    const result = rawResult as QuizResult;
+
+    setTimeUp(result.timed_out === true);
     setAttemptQuestions(result.questions_answered_in_level);
     setAttemptCorrect(result.correct_answers_in_attempt);
 
@@ -763,8 +781,16 @@ export default function QuizPage() {
       return;
     }
 
-    const result = data as QuizResult;
+    const rawResult = Array.isArray(data) ? data[0] : data;
 
+    if (!rawResult) {
+      setMessage("The quiz server returned no timeout result.");
+      return;
+    }
+
+    const result = rawResult as QuizResult;
+
+    setTimeUp(result.timed_out === true);
     setAttemptQuestions(result.questions_answered_in_level);
     setAttemptCorrect(result.correct_answers_in_attempt);
 
@@ -1425,7 +1451,7 @@ export default function QuizPage() {
   const isCorrect = quizResult?.is_correct === true;
 
   const isFillInBlank =
-    options.length === 0;
+    question.question_type === "fill_blank";
 
   const currentQuestionNumber =
     Math.min(attemptQuestions + 1, 50);
@@ -1708,8 +1734,15 @@ export default function QuizPage() {
                 const isSelected =
                   selectedAnswer === option.value;
 
+                const correctAnswer =
+                  quizResult?.correct_answer?.trim() ?? "";
+
                 const isCorrectOption =
-                  option.value === question.correct_answer;
+                  answered &&
+                  !timeUp &&
+                  correctAnswer !== "" &&
+                  option.value.trim().toLowerCase() ===
+                    correctAnswer.toLowerCase();
 
                 let answerClass = "sq-answer";
 
@@ -1944,7 +1977,7 @@ export default function QuizPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {question.correct_answer}
+                  {quizResult?.correct_answer || "Not available"}
                 </div>
               </div>
 
