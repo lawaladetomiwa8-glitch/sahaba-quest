@@ -12,17 +12,6 @@ type OptionKey = (typeof OPTIONS)[number];
 
 type QuestionType = "multiple_choice" | "fill_blank";
 
-function getQuestionType(question: QuizQuestion): QuestionType {
-  const hasOptions = [
-    question.option_a,
-    question.option_b,
-    question.option_c,
-    question.option_d,
-  ].some((value) => typeof value === "string" && value.trim().length > 0);
-
-  return hasOptions ? "multiple_choice" : "fill_blank";
-}
-
 function normalizeFillBlankAnswer(value: string): string {
   return value
     .trim()
@@ -58,10 +47,11 @@ type QuizQuestion = {
   id: string;
   level: number;
   question: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
+  option_a: string | null;
+  option_b: string | null;
+  option_c: string | null;
+  option_d: string | null;
+  question_type: QuestionType;
   question_started_at: string;
 };
 
@@ -441,7 +431,7 @@ export default function FamilyMemberQuizPage() {
           p_selected_answer:
             fromTimeout
               ? ""
-              : getQuestionType(question) === "fill_blank"
+              : question.question_type === "fill_blank"
               ? normalizeFillBlankAnswer(answer)
               : answer,
           p_response_time_ms: fromTimeout
@@ -656,7 +646,7 @@ export default function FamilyMemberQuizPage() {
 
   const answered = Boolean(answerResult);
   const timedOut = Boolean(answerResult?.timed_out);
-  const questionType = question ? getQuestionType(question) : "multiple_choice";
+  const questionType: QuestionType = question?.question_type ?? "multiple_choice";
   const timerUrgent = timeLeft <= 5 && !answered;
 
   return (
@@ -832,18 +822,21 @@ export default function FamilyMemberQuizPage() {
               ) : (
                 <div style={{ display: "grid", gap: 12, marginTop: 28 }}>
                   {OPTIONS.map((key) => {
-                    const isSelected = selectedAnswer === question[key];
+                    const optionValue = question[key];
+                    if (!optionValue) return null;
+
+                    const isSelected = selectedAnswer === optionValue;
                     const isCorrectOption =
-                      answerResult && question[key] === answerResult.correct_answer;
+                      Boolean(answerResult) && optionValue === answerResult?.correct_answer;
                     const isWrongSelected =
-                      answerResult && isSelected && !answerResult.is_correct;
+                      Boolean(answerResult) && isSelected && !answerResult?.is_correct;
 
                     return (
                       <button
                         key={key}
                         type="button"
                         disabled={submitting || answered}
-                        onClick={() => submitAnswer(question[key])}
+                        onClick={() => submitAnswer(optionValue)}
                         style={{
                           width: "100%",
                           textAlign: "left",
@@ -873,7 +866,7 @@ export default function FamilyMemberQuizPage() {
                         <span style={{ width: 34, height: 34, flex: "0 0 34px", borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", background: "white", border: "1px solid var(--border)", fontWeight: 900 }}>
                           {optionLabels[key]}
                         </span>
-                        <span style={{ paddingTop: 5, fontWeight: 700 }}>{question[key]}</span>
+                        <span style={{ paddingTop: 5, fontWeight: 700 }}>{optionValue}</span>
                       </button>
                     );
                   })}
