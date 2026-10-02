@@ -479,6 +479,7 @@ export default function QuizPage() {
     setQuestion(savedQuestion as Question);
     setOptions(shuffledOptions);
     setSelectedAnswer(null);
+    setQuizResult(null);
     setTimeUp(false);
 
     /*
@@ -559,6 +560,7 @@ export default function QuizPage() {
     setQuestion(null);
     setOptions([]);
     setSelectedAnswer(null);
+    setQuizResult(null);
     setTimeUp(false);
     setQuestionStartedAt(null);
 
@@ -759,7 +761,6 @@ export default function QuizPage() {
       return;
     }
 
-    setTimeUp(true);
     setMessage("Time's up!");
 
     const responseTime = questionStartedAt
@@ -1449,6 +1450,7 @@ export default function QuizPage() {
   // The database function is the authoritative source of truth.
   // Do not independently recalculate correctness in the browser.
   const isCorrect = quizResult?.is_correct === true;
+  const timedOut = quizResult?.timed_out === true || timeUp;
 
   const isFillInBlank =
     question.question_type === "fill_blank";
@@ -1739,22 +1741,24 @@ export default function QuizPage() {
 
                 const isCorrectOption =
                   answered &&
-                  !timeUp &&
+                  !timedOut &&
                   correctAnswer !== "" &&
                   option.value.trim().toLowerCase() ===
                     correctAnswer.toLowerCase();
 
+                const isSelectedWrong =
+                  answered &&
+                  !timedOut &&
+                  isSelected &&
+                  !isCorrectOption;
+
                 let answerClass = "sq-answer";
 
-                if (answered && isCorrectOption) {
+                if (isCorrectOption) {
                   answerClass += " sq-correct";
                 }
 
-                if (
-                  answered &&
-                  isSelected &&
-                  !isCorrectOption
-                ) {
+                if (isSelectedWrong) {
                   answerClass += " sq-wrong";
                 }
 
@@ -1782,7 +1786,7 @@ export default function QuizPage() {
                       {option.value}
                     </span>
 
-                    {answered && isCorrectOption && (
+                    {isCorrectOption && (
                       <span
                         style={{
                           fontSize: "20px",
@@ -1793,9 +1797,7 @@ export default function QuizPage() {
                       </span>
                     )}
 
-                    {answered &&
-                      isSelected &&
-                      !isCorrectOption && (
+                    {isSelectedWrong && (
                         <span
                           style={{
                             fontSize: "20px",
@@ -1820,13 +1822,13 @@ export default function QuizPage() {
                 borderRadius: "20px",
                 background: isCorrect
                   ? "var(--success-light)"
-                  : timeUp
+                  : timedOut
                   ? "var(--secondary-light)"
                   : "var(--danger-light)",
                 border: `1px solid ${
                   isCorrect
                     ? "rgba(22, 163, 74, 0.2)"
-                    : timeUp
+                    : timedOut
                     ? "rgba(212, 167, 44, 0.25)"
                     : "rgba(220, 38, 38, 0.2)"
                 }`,
@@ -1855,7 +1857,7 @@ export default function QuizPage() {
                 >
                   {isCorrect
                     ? "✓"
-                    : timeUp
+                    : timedOut
                     ? "⏱"
                     : "!"}
                 </div>
@@ -1870,7 +1872,7 @@ export default function QuizPage() {
                   >
                     {isCorrect
                       ? "Excellent!"
-                      : timeUp
+                      : timedOut
                       ? "Time's Up!"
                       : "Not quite!"}
                   </h3>
