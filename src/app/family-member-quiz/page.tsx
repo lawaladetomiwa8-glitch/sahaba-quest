@@ -10,6 +10,26 @@ const QUESTION_TIME_MS = QUESTION_TIME_SECONDS * 1000;
 const OPTIONS = ["option_a", "option_b", "option_c", "option_d"] as const;
 type OptionKey = (typeof OPTIONS)[number];
 
+type QuestionType = "multiple_choice" | "fill_blank";
+
+function getQuestionType(question: QuizQuestion): QuestionType {
+  const hasOptions = [
+    question.option_a,
+    question.option_b,
+    question.option_c,
+    question.option_d,
+  ].some((value) => typeof value === "string" && value.trim().length > 0);
+
+  return hasOptions ? "multiple_choice" : "fill_blank";
+}
+
+function normalizeFillBlankAnswer(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\\s+/g, " ");
+}
+
 type MemberProgress = {
   member_id: string;
   display_name: string;
@@ -418,8 +438,22 @@ export default function FamilyMemberQuizPage() {
           p_session_token: token,
           p_session_id: gameSession.session_id,
           p_question_id: submittedQuestionId,
-          p_selected_answer: fromTimeout ? "" : answer,
-          p_response_time_ms: fromTimeout ? QUESTION_TIME_MS : null,
+          p_selected_answer:
+            fromTimeout
+              ? ""
+              : getQuestionType(question) === "fill_blank"
+              ? normalizeFillBlankAnswer(answer)
+              : answer,
+          p_response_time_ms: fromTimeout
+            ? QUESTION_TIME_MS
+            : Math.min(
+                QUESTION_TIME_MS,
+                Math.max(
+                  0,
+                  Date.now() -
+                    new Date(question.question_started_at).getTime()
+                )
+              ),
         }
       );
 
@@ -621,6 +655,8 @@ export default function FamilyMemberQuizPage() {
   };
 
   const answered = Boolean(answerResult);
+  const timedOut = Boolean(answerResult?.timed_out);
+  const questionType = question ? getQuestionType(question) : "multiple_choice";
   const timerUrgent = timeLeft <= 5 && !answered;
 
   return (
@@ -704,9 +740,21 @@ export default function FamilyMemberQuizPage() {
                     textAlign: "center",
                     fontSize: 22,
                     fontWeight: 900,
-                    background: timerUrgent ? "#fef2f2" : "#ecfdf5",
-                    color: timerUrgent ? "#b91c1c" : "#047857",
-                    border: timerUrgent ? "1px solid #fecaca" : "1px solid #a7f3d0",
+                    background: timedOut
+                      ? "#fef3c7"
+                      : timerUrgent
+                      ? "#fef2f2"
+                      : "#ecfdf5",
+                    color: timedOut
+                      ? "#92400e"
+                      : timerUrgent
+                      ? "#b91c1c"
+                      : "#047857",
+                    border: timedOut
+                      ? "1px solid #fcd34d"
+                      : timerUrgent
+                      ? "1px solid #fecaca"
+                      : "1px solid #a7f3d0",
                   }}
                 >
                   {answered ? "—" : `${timeLeft}s`}
@@ -717,55 +765,139 @@ export default function FamilyMemberQuizPage() {
                 {question.question}
               </h2>
 
-              <div style={{ display: "grid", gap: 12, marginTop: 28 }}>
-                {OPTIONS.map((key) => {
-                  const isSelected = selectedAnswer === question[key];
-                  const isCorrectOption = answerResult && question[key] === answerResult.correct_answer;
-                  const isWrongSelected = answerResult && isSelected && !answerResult.is_correct;
-
-                  return (
+              {questionType === "fill_blank" ? (
+                <div style={{ marginTop: 28 }}>
+                  <label
+                    htmlFor="family-member-answer"
+                    style={{
+                      display: "block",
+                      marginBottom: 10,
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: "var(--muted)",
+                    }}
+                  >
+                    Type your answer
+                  </label>
+                  <input
+                    id="family-member-answer"
+                    type="text"
+                    value={selectedAnswer}
+                    onChange={(event) => setSelectedAnswer(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        selectedAnswer.trim() &&
+                        !submitting &&
+                        !answered
+                      ) {
+                        void submitAnswer(selectedAnswer);
+                      }
+                    }}
+                    disabled={submitting || answered}
+                    autoComplete="off"
+                    placeholder="Enter your answer"
+                    style={{
+                      width: "100%",
+                      padding: "16px 18px",
+                      borderRadius: 16,
+                      border: "1px solid var(--border)",
+                      background: "#fff",
+                      color: "var(--foreground)",
+                      fontSize: 16,
+                      outline: "none",
+                    }}
+                  />
+                  {!answered && (
                     <button
-                      key={key}
                       type="button"
-                      disabled={submitting || answered}
-                      onClick={() => submitAnswer(question[key])}
+                      onClick={() => submitAnswer(selectedAnswer)}
+                      disabled={submitting || !selectedAnswer.trim()}
+                      className="sq-button-primary"
                       style={{
+                        marginTop: 14,
                         width: "100%",
-                        textAlign: "left",
-                        padding: "18px 20px",
-                        borderRadius: 16,
-                        border: isCorrectOption
-                          ? "2px solid #16a34a"
-                          : isWrongSelected
-                          ? "2px solid #dc2626"
-                          : "1px solid var(--border)",
-                        background: isCorrectOption
-                          ? "#f0fdf4"
-                          : isWrongSelected
-                          ? "#fef2f2"
-                          : isSelected
-                          ? "var(--primary-light)"
-                          : "#f8faf9",
-                        color: "var(--foreground)",
-                        cursor: submitting || answered ? "default" : "pointer",
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 14,
-                        fontSize: 15,
-                        lineHeight: 1.5,
+                        border: "none",
+                        cursor:
+                          submitting || !selectedAnswer.trim()
+                            ? "not-allowed"
+                            : "pointer",
+                        opacity: submitting || !selectedAnswer.trim() ? 0.6 : 1,
                       }}
                     >
-                      <span style={{ width: 34, height: 34, flex: "0 0 34px", borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", background: "white", border: "1px solid var(--border)", fontWeight: 900 }}>
-                        {optionLabels[key]}
-                      </span>
-                      <span style={{ paddingTop: 5, fontWeight: 700 }}>{question[key]}</span>
+                      {submitting ? "Submitting…" : "Submit Answer"}
                     </button>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 12, marginTop: 28 }}>
+                  {OPTIONS.map((key) => {
+                    const isSelected = selectedAnswer === question[key];
+                    const isCorrectOption =
+                      answerResult && question[key] === answerResult.correct_answer;
+                    const isWrongSelected =
+                      answerResult && isSelected && !answerResult.is_correct;
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        disabled={submitting || answered}
+                        onClick={() => submitAnswer(question[key])}
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "18px 20px",
+                          borderRadius: 16,
+                          border: isCorrectOption
+                            ? "2px solid #16a34a"
+                            : isWrongSelected
+                            ? "2px solid #dc2626"
+                            : "1px solid var(--border)",
+                          background: isCorrectOption
+                            ? "#f0fdf4"
+                            : isWrongSelected
+                            ? "#fef2f2"
+                            : isSelected
+                            ? "var(--primary-light)"
+                            : "#f8faf9",
+                          color: "var(--foreground)",
+                          cursor: submitting || answered ? "default" : "pointer",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 14,
+                          fontSize: 15,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <span style={{ width: 34, height: 34, flex: "0 0 34px", borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", background: "white", border: "1px solid var(--border)", fontWeight: 900 }}>
+                          {optionLabels[key]}
+                        </span>
+                        <span style={{ paddingTop: 5, fontWeight: 700 }}>{question[key]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {answerResult && (
-                <div style={{ marginTop: 22, padding: 20, borderRadius: 16, background: answerResult.timed_out ? "#fff7ed" : answerResult.is_correct ? "#f0fdf4" : "#fff7ed", border: answerResult.is_correct ? "1px solid #bbf7d0" : "1px solid #fed7aa" }}>
+                <div
+                  style={{
+                    marginTop: 22,
+                    padding: 20,
+                    borderRadius: 16,
+                    background: answerResult.timed_out
+                      ? "#fffbeb"
+                      : answerResult.is_correct
+                      ? "#f0fdf4"
+                      : "#fef2f2",
+                    border: answerResult.timed_out
+                      ? "1px solid #fcd34d"
+                      : answerResult.is_correct
+                      ? "1px solid #bbf7d0"
+                      : "1px solid #fecaca",
+                  }}
+                >
                   <h3 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>
                     {answerResult.timed_out
                       ? "Time's Up! ⏰"
@@ -777,6 +909,12 @@ export default function FamilyMemberQuizPage() {
                   {answerResult.timed_out && (
                     <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.6 }}>
                       You did not answer within 15 seconds, so no XP was awarded.
+                    </p>
+                  )}
+
+                  {answerResult.timed_out && answerResult.correct_answer && (
+                    <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.6 }}>
+                      The correct answer is: <strong>{answerResult.correct_answer}</strong>
                     </p>
                   )}
 

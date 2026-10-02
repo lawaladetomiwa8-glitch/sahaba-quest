@@ -59,6 +59,15 @@ type DisplayOption = {
   value: string;
 };
 
+function isFillBlankQuestion(question: Question): boolean {
+  return ![
+    question.option_a,
+    question.option_b,
+    question.option_c,
+    question.option_d,
+  ].some((value) => value && value.trim().length > 0);
+}
+
 /*
  * Family Quest settings
  */
@@ -87,7 +96,10 @@ function createShuffledOptions(
     question.option_b,
     question.option_c,
     question.option_d,
-  ];
+  ].filter(
+    (value): value is string =>
+      Boolean(value && value.trim().length > 0)
+  );
 
   for (let i = values.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -149,6 +161,9 @@ export default function FamilyQuestPage() {
   const [selectedAnswer, setSelectedAnswer] =
     useState<string | null>(null);
 
+  const [typedAnswer, setTypedAnswer] =
+    useState("");
+
   const [submitting, setSubmitting] =
     useState(false);
 
@@ -169,6 +184,10 @@ export default function FamilyQuestPage() {
 
   const [result, setResult] =
     useState<AnswerResult | null>(null);
+
+  // True only when the answer was submitted because the 15-second timer expired.
+  const [timedOut, setTimedOut] =
+    useState(false);
 
   const [error, setError] =
     useState("");
@@ -327,13 +346,17 @@ export default function FamilyQuestPage() {
          * Shuffle ONLY the displayed options.
          */
         setDisplayOptions(
-          createShuffledOptions(
-            nextQuestion
-          )
+          isFillBlankQuestion(nextQuestion)
+            ? []
+            : createShuffledOptions(
+                nextQuestion
+              )
         );
 
         setSelectedAnswer(null);
+        setTypedAnswer("");
         setResult(null);
+        setTimedOut(false);
         setTimeLeft(
           QUESTION_TIME
         );
@@ -458,7 +481,9 @@ export default function FamilyQuestPage() {
           setQuestion(null);
           setDisplayOptions([]);
           setSelectedAnswer(null);
+          setTypedAnswer("");
           setResult(null);
+          setTimedOut(false);
           setShowResult(false);
 
           await loadQuestion(
@@ -553,13 +578,6 @@ export default function FamilyQuestPage() {
               .eq(
                 "level",
                 existingSession.level
-              )
-              .in(
-                "track",
-                [
-                  "family",
-                  "shared",
-                ]
               )
               .eq(
                 "is_published",
@@ -1040,6 +1058,7 @@ export default function FamilyQuestPage() {
         }
 
         clearTimer();
+        setTimedOut(true);
         setSubmitting(true);
 
         try {
@@ -1133,8 +1152,14 @@ export default function FamilyQuestPage() {
 
       try {
         const elapsed =
-          QUESTION_TIME -
-          timeLeft;
+          Math.min(
+            QUESTION_TIME,
+            Math.max(
+              0,
+              QUESTION_TIME -
+                timeLeft
+            )
+          );
 
         const {
           data,
@@ -1606,7 +1631,9 @@ export default function FamilyQuestPage() {
           <div className="flex justify-center mb-5">
             <div
               className={`px-5 py-2 rounded-full font-bold ${
-                timeLeft <= 5
+                timedOut
+                  ? "bg-amber-100 text-amber-700"
+                  : timeLeft <= 5
                   ? "bg-red-100 text-red-700"
                   : "bg-emerald-100 text-emerald-700"
               }`}
@@ -1630,9 +1657,48 @@ export default function FamilyQuestPage() {
                 }
               </h2>
 
-              {/* ANSWER OPTIONS */}
+              {/* ANSWER */}
 
-              <div className="grid gap-3 mt-7">
+              {isFillBlankQuestion(question) ? (
+                <div className="mt-7 space-y-3">
+                  <input
+                    type="text"
+                    value={typedAnswer}
+                    onChange={(event) =>
+                      setTypedAnswer(event.target.value)
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && typedAnswer.trim()) {
+                        void handleAnswer(typedAnswer.trim());
+                      }
+                    }}
+                    disabled={submitting || !!result || timedOut}
+                    placeholder="Type your answer"
+                    className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const answer = typedAnswer.trim();
+                      if (answer) void handleAnswer(answer);
+                    }}
+                    disabled={
+                      submitting ||
+                      !!result ||
+                      timedOut ||
+                      !typedAnswer.trim()
+                    }
+                    className="w-full rounded-2xl bg-slate-900 py-4 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Submit Answer
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* ANSWER OPTIONS */}
+
+                  <div className="grid gap-3 mt-7">
                 {displayOptions.map(
                   (option) => {
                     /*
@@ -1715,20 +1781,32 @@ export default function FamilyQuestPage() {
                     );
                   }
                 )}
-              </div>
+                  </div>
+                </>
+              )}
 
               {/* FEEDBACK */}
 
               {result && (
                 <div
                   className={`mt-6 rounded-2xl border p-5 ${
-                    result.is_correct
+                    timedOut
+                      ? "border-amber-200 bg-amber-50"
+                      : result.is_correct
                       ? "border-emerald-200 bg-emerald-50"
                       : "border-red-200 bg-red-50"
                   }`}
                 >
-                  <div className="font-bold text-lg">
-                    {result.is_correct
+                  <div className={`font-bold text-lg ${
+                    timedOut
+                      ? "text-amber-800"
+                      : result.is_correct
+                      ? "text-emerald-800"
+                      : "text-red-800"
+                  }`}>
+                    {timedOut
+                      ? "Time’s Up! ⏰"
+                      : result.is_correct
                       ? "Correct! 🎉"
                       : "Not quite."}
                   </div>
@@ -1755,7 +1833,13 @@ export default function FamilyQuestPage() {
                     </div>
                   )}
 
-                  <div className="mt-3 text-sm font-semibold text-emerald-700">
+                  <div className={`mt-3 text-sm font-semibold ${
+                    timedOut
+                      ? "text-amber-700"
+                      : result.is_correct
+                      ? "text-emerald-700"
+                      : "text-red-700"
+                  }`}>
                     {result.xp_earned >
                     0
                       ? `+${result.xp_earned} Family XP`

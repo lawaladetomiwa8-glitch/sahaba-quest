@@ -14,12 +14,12 @@ type Question = {
   id: string;
   level: number;
   question: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
+  option_a: string | null;
+  option_b: string | null;
+  option_c: string | null;
+  option_d: string | null;
   correct_answer: string;
-  explanation: string;
+  explanation: string | null;
 };
 
 type QuizOption = {
@@ -65,6 +65,7 @@ export default function QuizPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [typedAnswer, setTypedAnswer] = useState("");
 
   const [timeLeft, setTimeLeft] = useState(15);
   const [timeUp, setTimeUp] = useState(false);
@@ -294,6 +295,7 @@ export default function QuizPage() {
     setQuestion(null);
     setOptions([]);
     setSelectedAnswer(null);
+    setTypedAnswer("");
     setTimeUp(false);
     setQuestionStartedAt(null);
     setResumeSession(null);
@@ -611,14 +613,22 @@ export default function QuizPage() {
     const nextQuestion = data[0] as Question;
 
     /*
-     * Create the answer options.
+     * Build options only for multiple-choice questions.
+     * Fill-in-the-blank questions intentionally have NULL option fields.
      */
-    const shuffledOptions: QuizOption[] = [
-      { value: nextQuestion.option_a },
-      { value: nextQuestion.option_b },
-      { value: nextQuestion.option_c },
-      { value: nextQuestion.option_d },
-    ];
+    const optionValues = [
+      nextQuestion.option_a,
+      nextQuestion.option_b,
+      nextQuestion.option_c,
+      nextQuestion.option_d,
+    ].filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0
+    );
+
+    const shuffledOptions: QuizOption[] = optionValues.map((value) => ({
+      value,
+    }));
 
     shuffleOptions(shuffledOptions);
 
@@ -645,6 +655,7 @@ export default function QuizPage() {
     setQuestion(nextQuestion);
     setOptions(shuffledOptions);
     setSelectedAnswer(null);
+    setTypedAnswer("");
     setTimeLeft(15);
     setTimeUp(false);
     setQuestionStartedAt(startedAt.getTime());
@@ -672,7 +683,9 @@ export default function QuizPage() {
    */
 
   async function handleAnswer(answer: string) {
-    if (selectedAnswer || timeUp || !question || !sessionId) {
+    const normalizedAnswer = answer.trim().replace(/\s+/g, " " );
+
+    if (!normalizedAnswer || selectedAnswer || timeUp || !question || !sessionId) {
       return;
     }
 
@@ -696,8 +709,8 @@ export default function QuizPage() {
       {
         p_session_id: sessionId,
         p_question_id: question.id,
-        p_selected_answer: answer,
-        p_response_time_ms: responseTime,
+        p_selected_answer: normalizedAnswer,
+        p_response_time_ms: Math.min(Math.max(responseTime, 0), 15000),
       }
     );
 
@@ -706,7 +719,7 @@ export default function QuizPage() {
       return;
     }
 
-    setSelectedAnswer(answer);
+    setSelectedAnswer(normalizedAnswer);
 
     const result = data as QuizResult;
 
@@ -741,7 +754,7 @@ export default function QuizPage() {
         p_session_id: sessionId,
         p_question_id: question.id,
         p_selected_answer: null,
-        p_response_time_ms: responseTime,
+        p_response_time_ms: Math.min(Math.max(responseTime, 0), 15000),
       }
     );
 
@@ -1407,9 +1420,12 @@ export default function QuizPage() {
   const answered =
     selectedAnswer !== null || timeUp;
 
-  const isCorrect =
-    selectedAnswer !== null &&
-    selectedAnswer === question.correct_answer;
+  // The database function is the authoritative source of truth.
+  // Do not independently recalculate correctness in the browser.
+  const isCorrect = quizResult?.is_correct === true;
+
+  const isFillInBlank =
+    options.length === 0;
 
   const currentQuestionNumber =
     Math.min(attemptQuestions + 1, 50);
@@ -1646,84 +1662,121 @@ export default function QuizPage() {
           </div>
 
           {/* ANSWERS */}
-          <div
-            style={{
-              display: "grid",
-              gap: "14px",
-            }}
-          >
-            {options.map((option, index) => {
-              const isSelected =
-                selectedAnswer === option.value;
-
-              const isCorrectOption =
-                option.value === question.correct_answer;
-
-              let answerClass = "sq-answer";
-
-              if (answered && isCorrectOption) {
-                answerClass += " sq-correct";
-              }
-
-              if (
-                answered &&
-                isSelected &&
-                !isCorrectOption
-              ) {
-                answerClass += " sq-wrong";
-              }
-
-              return (
-                <button
-                  key={`${question.id}-${option.value}`}
-                  className={answerClass}
-                  onClick={() =>
-                    handleAnswer(option.value)
+          {isFillInBlank ? (
+            <div style={{ display: "grid", gap: "14px" }}>
+              <input
+                type="text"
+                value={typedAnswer}
+                onChange={(event) => setTypedAnswer(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && typedAnswer.trim()) {
+                    void handleAnswer(typedAnswer);
                   }
-                  disabled={answered}
-                >
-                  <span className="sq-answer-letter">
-                    {String.fromCharCode(65 + index)}
-                  </span>
+                }}
+                placeholder="Type your answer..."
+                disabled={answered}
+                autoComplete="off"
+                style={{
+                  width: "100%",
+                  padding: "16px 18px",
+                  borderRadius: "14px",
+                  border: "1px solid var(--border)",
+                  background: "var(--background)",
+                  color: "var(--foreground)",
+                  fontSize: "16px",
+                  outline: "none",
+                }}
+              />
 
-                  <span
-                    style={{
-                      flex: 1,
-                      fontSize: "16px",
-                      lineHeight: 1.5,
-                      fontWeight: 600,
-                    }}
+              <button
+                type="button"
+                className="sq-primary-button"
+                onClick={() => void handleAnswer(typedAnswer)}
+                disabled={answered || !typedAnswer.trim()}
+              >
+                Submit Answer
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gap: "14px",
+              }}
+            >
+              {options.map((option, index) => {
+                const isSelected =
+                  selectedAnswer === option.value;
+
+                const isCorrectOption =
+                  option.value === question.correct_answer;
+
+                let answerClass = "sq-answer";
+
+                if (answered && isCorrectOption) {
+                  answerClass += " sq-correct";
+                }
+
+                if (
+                  answered &&
+                  isSelected &&
+                  !isCorrectOption
+                ) {
+                  answerClass += " sq-wrong";
+                }
+
+                return (
+                  <button
+                    key={`${question.id}-${option.value}`}
+                    className={answerClass}
+                    onClick={() =>
+                      void handleAnswer(option.value)
+                    }
+                    disabled={answered}
                   >
-                    {option.value}
-                  </span>
+                    <span className="sq-answer-letter">
+                      {String.fromCharCode(65 + index)}
+                    </span>
 
-                  {answered && isCorrectOption && (
                     <span
                       style={{
-                        fontSize: "20px",
-                        color: "var(--success)",
+                        flex: 1,
+                        fontSize: "16px",
+                        lineHeight: 1.5,
+                        fontWeight: 600,
                       }}
                     >
-                      ✓
+                      {option.value}
                     </span>
-                  )}
 
-                  {answered &&
-                    isSelected &&
-                    !isCorrectOption && (
+                    {answered && isCorrectOption && (
                       <span
                         style={{
                           fontSize: "20px",
-                          color: "var(--danger)",
+                          color: "var(--success)",
                         }}
                       >
-                        ×
+                        ✓
                       </span>
                     )}
-                </button>
-              );
-            })}
-          </div>
+
+                    {answered &&
+                      isSelected &&
+                      !isCorrectOption && (
+                        <span
+                          style={{
+                            fontSize: "20px",
+                            color: "var(--danger)",
+                          }}
+                        >
+                          ×
+                        </span>
+                      )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* FEEDBACK */}
           {answered && (
