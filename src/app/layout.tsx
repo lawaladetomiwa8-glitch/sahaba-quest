@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
+import { Analytics } from "@vercel/analytics/next";
 
 const SITE_URL = "https://sahabaquest.com.ng";
 const SITE_NAME = "Sahaba Quest";
@@ -178,6 +179,8 @@ export default function RootLayout({
         {children}
 
         <SiteFooter />
+
+        <Analytics />
       </body>
     </html>
   );
