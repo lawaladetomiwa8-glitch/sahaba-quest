@@ -656,7 +656,7 @@ export default function FamilyDashboardPage() {
               Sahaba Quest journey. Learn
               together, test your knowledge,
               and grow your family's
-              understanding of the Sahabah.
+              understanding of the Sahaba.
             </p>
 
             <div

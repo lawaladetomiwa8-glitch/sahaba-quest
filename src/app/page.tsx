@@ -1,23 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
 export default function Home() {
-  const router = useRouter();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<
-    "error" | "success"
-  >("error");
+  const [messageType, setMessageType] = useState<"error" | "success">("error");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -39,93 +30,6 @@ export default function Home() {
     } = await supabase.auth.getUser();
 
     setUserEmail(user?.email ?? null);
-  }
-
-  async function handleLogin() {
-    if (!email || !password) {
-      setMessageType("error");
-      setMessage("Please enter your email and password.");
-      return;
-    }
-
-    setLoading(true);
-    setMessage("");
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setMessageType("error");
-      setMessage(error.message);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(false);
-    router.push("/dashboard");
-  }
-
-  async function handleForgotPassword() {
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail) {
-      setMessageType("error");
-      setMessage("Please enter your email address first.");
-      return;
-    }
-
-    try {
-      setResetLoading(true);
-      setMessage("");
-
-      /*
-       * Always send password-reset users to the production
-       * password-update page on the Sahaba Quest domain.
-       *
-       * This keeps the reset flow consistent whether the user
-       * starts it from the homepage or from /login.
-       */
-      const redirectTo =
-        "https://sahabaquest.com.ng/update-password";
-
-      const { error } =
-        await supabase.auth.resetPasswordForEmail(
-          cleanEmail,
-          {
-            redirectTo,
-          }
-        );
-
-      if (error) {
-        console.error(
-          "Password reset error:",
-          error
-        );
-
-        setMessageType("error");
-        setMessage(error.message);
-        return;
-      }
-
-      setMessageType("success");
-      setMessage(
-        "If an account exists with this email, a password reset link has been sent. Please check your inbox."
-      );
-    } catch (error) {
-      console.error(
-        "Unexpected password reset error:",
-        error
-      );
-
-      setMessageType("error");
-      setMessage(
-        "Unable to send the password reset email. Please try again."
-      );
-    } finally {
-      setResetLoading(false);
-    }
   }
 
   async function handleLogout() {
@@ -190,9 +94,7 @@ export default function Home() {
                 textAlign: "center",
               }}
             >
-              <span className="sq-badge">
-                Account Active
-              </span>
+              <span className="sq-badge">Account Active</span>
 
               <h1
                 className="sq-title"
@@ -211,9 +113,8 @@ export default function Home() {
                   marginRight: "auto",
                 }}
               >
-                Your Sahaba Quest journey is ready. Continue
-                learning, build your knowledge, and compete with
-                other players.
+                Your Sahaba Quest journey is ready. Continue learning, build
+                your knowledge, and compete with other players.
               </p>
 
               <div
@@ -274,7 +175,7 @@ export default function Home() {
   }
 
   /* =========================================================
-     LANDING + SIGN-IN EXPERIENCE
+     LANDING EXPERIENCE
      ========================================================= */
 
   return (
@@ -286,6 +187,7 @@ export default function Home() {
       }}
     >
       {/* NAVIGATION */}
+
       <header className="sq-nav">
         <Link href="/" className="sq-logo">
           Sahaba Quest
@@ -313,7 +215,7 @@ export default function Home() {
           </Link>
 
           <Link
-            href="/sahabah"
+            href="/sahaba"
             className="landing-nav-about"
             style={{
               color: "var(--muted)",
@@ -323,19 +225,22 @@ export default function Home() {
               padding: "8px 6px",
             }}
           >
-            Sahabah
+            Sahaba
           </Link>
 
-          <span
-            className="landing-nav-text"
+          <Link
+            href="/login"
+            className="landing-nav-signin"
             style={{
-              color: "var(--muted)",
+              color: "var(--primary-dark)",
               fontSize: "13px",
-              fontWeight: 600,
+              fontWeight: 800,
+              textDecoration: "none",
+              padding: "8px 6px",
             }}
           >
-            Learn • Remember • Compete
-          </span>
+            Sign In
+          </Link>
 
           <Link
             href="/signup"
@@ -352,6 +257,7 @@ export default function Home() {
       </header>
 
       {/* HERO */}
+
       <section className="sq-page">
         <div
           className="sq-container"
@@ -369,6 +275,7 @@ export default function Home() {
             }}
           >
             {/* HERO CONTENT */}
+
             <section
               className="sq-card"
               style={{
@@ -436,7 +343,7 @@ export default function Home() {
                 >
                   Know the
                   <br />
-                  Sahabah.
+                  Sahaba.
                 </h1>
 
                 <p
@@ -448,10 +355,10 @@ export default function Home() {
                     color: "rgba(255,255,255,0.86)",
                   }}
                 >
-                  Sahaba Quest is a gamified Islamic learning
-                  platform designed to help Muslims discover the
-                  lives, sacrifices, character, and remarkable
-                  stories of the Companions of the Prophet ﷺ.
+                  Sahaba Quest is a gamified Islamic learning platform
+                  designed to help Muslims discover the lives, sacrifices,
+                  character, and remarkable stories of the Companions of the
+                  Prophet ﷺ.
                 </p>
 
                 <div
@@ -534,8 +441,7 @@ export default function Home() {
                       minHeight: "50px",
                       padding: "0 20px",
                       borderRadius: "14px",
-                      border:
-                        "1px solid rgba(255,255,255,0.22)",
+                      border: "1px solid rgba(255,255,255,0.22)",
                       color: "white",
                       fontWeight: 700,
                       fontSize: "14px",
@@ -547,231 +453,218 @@ export default function Home() {
               </div>
             </section>
 
-            {/* SIGN IN */}
+            {/* WELCOME PANEL */}
+
             <section
-              className="sq-card"
+              className="sq-card landing-welcome-panel"
               style={{
                 padding: "42px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
+                position: "relative",
+                overflow: "hidden",
+                background:
+                  "linear-gradient(145deg, #f8fffd 0%, #ffffff 58%, #ecfdf5 100%)",
               }}
             >
               <div
                 style={{
+                  position: "absolute",
+                  width: "230px",
+                  height: "230px",
+                  borderRadius: "50%",
+                  background: "rgba(20, 158, 147, 0.07)",
+                  right: "-80px",
+                  top: "-70px",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "absolute",
+                  width: "150px",
+                  height: "150px",
+                  borderRadius: "50%",
+                  background: "rgba(15, 118, 110, 0.05)",
+                  left: "-65px",
+                  bottom: "-65px",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 1,
                   maxWidth: "460px",
                   width: "100%",
                   margin: "0 auto",
                 }}
               >
                 <span className="sq-badge">
-                  Welcome back
+                  Welcome to Sahaba Quest
                 </span>
 
                 <h2
                   style={{
-                    margin: "18px 0 8px",
-                    fontSize: "32px",
+                    margin: "18px 0 12px",
+                    fontSize: "clamp(30px, 3.2vw, 40px)",
                     lineHeight: 1.15,
                     fontWeight: 900,
-                    letterSpacing: "-0.7px",
+                    letterSpacing: "-0.8px",
+                    color: "var(--text)",
                   }}
                 >
-                  Sign in
+                  Your journey to meaningful Islamic learning starts here.
                 </h2>
 
-                <p className="sq-subtitle">
-                  Continue your Sahaba Quest journey.
-                </p>
-
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    handleLogin();
-                  }}
+                <p
+                  className="sq-subtitle"
                   style={{
-                    marginTop: "28px",
+                    margin: 0,
+                    maxWidth: "430px",
+                    lineHeight: 1.75,
                   }}
                 >
-                  {/* EMAIL */}
-                  <div style={{ marginBottom: "18px" }}>
-                    <label
-                      htmlFor="email"
-                      className="sq-label"
-                    >
-                      Email address
-                    </label>
+                  Discover the lives, character, sacrifices, and remarkable
+                  stories of the Sahaba through an engaging learning
+                  experience.
+                </p>
 
-                    <input
-                      id="email"
-                      type="email"
-                      className="sq-input"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(event) =>
-                        setEmail(event.target.value)
-                      }
-                      autoComplete="email"
-                    />
-                  </div>
-
-                  {/* PASSWORD */}
-                  <div style={{ marginBottom: "10px" }}>
-                    <label
-                      htmlFor="password"
-                      className="sq-label"
-                    >
-                      Password
-                    </label>
-
-                    <div
-                      style={{
-                        position: "relative",
-                      }}
-                    >
-                      <input
-                        id="password"
-                        type={
-                          showPassword
-                            ? "text"
-                            : "password"
-                        }
-                        className="sq-input"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(event) =>
-                          setPassword(event.target.value)
-                        }
-                        autoComplete="current-password"
-                        style={{
-                          paddingRight: "85px",
-                        }}
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowPassword(
-                            (previous) => !previous
-                          )
-                        }
-                        style={{
-                          position: "absolute",
-                          right: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          border: "none",
-                          background: "transparent",
-                          color: "var(--muted)",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          padding: "8px",
-                        }}
-                      >
-                        {showPassword ? "Hide" : "Show"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* FORGOT PASSWORD */}
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "12px",
+                    marginTop: "26px",
+                  }}
+                >
                   <div
                     style={{
                       display: "flex",
-                      justifyContent: "flex-end",
-                      marginBottom: "20px",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "13px 14px",
+                      borderRadius: "14px",
+                      background: "rgba(20, 158, 147, 0.07)",
+                      border: "1px solid rgba(20, 158, 147, 0.10)",
                     }}
                   >
-                    <button
-                      type="button"
-                      style={{
-                        border: "none",
-                        background: "transparent",
-                        padding: 0,
-                        color: "var(--primary)",
-                        fontSize: "13px",
-                        fontWeight: 700,
-                      }}
-                      onClick={handleForgotPassword}
-                      disabled={resetLoading}
-                    >
-                      {resetLoading
-                        ? "Sending reset link..."
-                        : "Forgot password?"}
-                    </button>
+                    <span style={{ fontSize: "20px" }}>📖</span>
+
+                    <div>
+                      <strong
+                        style={{
+                          display: "block",
+                          fontSize: "13px",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        Learn with purpose
+                      </strong>
+
+                      <span
+                        style={{
+                          color: "var(--muted)",
+                          fontSize: "12px",
+                        }}
+                      >
+                        Explore authentic stories and meaningful questions.
+                      </span>
+                    </div>
                   </div>
 
-                  {/* MESSAGE */}
-                  {message && (
-                    <div
-                      style={{
-                        marginBottom: "18px",
-                        padding: "13px 15px",
-                        borderRadius: "13px",
-                        background:
-                          messageType === "success"
-                            ? "var(--success-light)"
-                            : "var(--danger-light)",
-                        border:
-                          messageType === "success"
-                            ? "1px solid rgba(22, 163, 74, 0.15)"
-                            : "1px solid rgba(220, 38, 38, 0.15)",
-                        color:
-                          messageType === "success"
-                            ? "var(--success)"
-                            : "var(--danger)",
-                        fontSize: "13px",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {message}
-                    </div>
-                  )}
-
-                  {/* SIGN IN */}
-                  <button
-                    type="submit"
-                    className="sq-button-primary"
-                    disabled={loading}
+                  <div
                     style={{
-                      width: "100%",
-                      minHeight: "54px",
-                      fontSize: "15px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "13px 14px",
+                      borderRadius: "14px",
+                      background: "rgba(20, 158, 147, 0.05)",
+                      border: "1px solid rgba(20, 158, 147, 0.09)",
                     }}
                   >
-                    {loading
-                      ? "Signing in..."
-                      : "Sign In →"}
-                  </button>
-                </form>
+                    <span style={{ fontSize: "20px" }}>🏆</span>
 
-                {/* SIGN UP */}
+                    <div>
+                      <strong
+                        style={{
+                          display: "block",
+                          fontSize: "13px",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        Grow as you learn
+                      </strong>
+
+                      <span
+                        style={{
+                          color: "var(--muted)",
+                          fontSize: "12px",
+                        }}
+                      >
+                        Build knowledge, track progress, and challenge
+                        yourself.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div
                   style={{
-                    marginTop: "24px",
-                    paddingTop: "22px",
-                    borderTop:
-                      "1px solid var(--border)",
-                    textAlign: "center",
-                    color: "var(--muted)",
-                    fontSize: "14px",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                    marginTop: "28px",
                   }}
                 >
-                  Don't have an account?{" "}
                   <Link
                     href="/signup"
+                    className="sq-button-primary"
+                    style={{
+                      minHeight: "48px",
+                      padding: "0 20px",
+                    }}
+                  >
+                    Create Your Free Account →
+                  </Link>
+
+                  <Link
+                    href="/sahaba"
+                    className="sq-button-secondary"
+                    style={{
+                      minHeight: "48px",
+                      padding: "0 20px",
+                    }}
+                  >
+                    Explore the Sahaba
+                  </Link>
+                </div>
+
+                <p
+                  style={{
+                    margin: "18px 0 0",
+                    color: "var(--muted-light)",
+                    fontSize: "12px",
+                  }}
+                >
+                  Already have an account?{" "}
+                  <Link
+                    href="/login"
                     style={{
                       color: "var(--primary)",
                       fontWeight: 800,
                     }}
                   >
-                    Create one
+                    Sign in
                   </Link>
-                </div>
+                </p>
               </div>
             </section>
           </div>
 
           {/* WHAT IS SAHABA QUEST */}
+
           <section
             id="about"
             style={{
@@ -800,8 +693,8 @@ export default function Home() {
               </h2>
 
               <p className="sq-subtitle">
-                Sahaba Quest is designed to turn learning about
-                the Companions into an engaging, consistent habit.
+                Sahaba Quest is designed to turn learning about the Companions
+                into an engaging, consistent habit.
               </p>
             </div>
 
@@ -841,7 +734,7 @@ export default function Home() {
                     fontWeight: 800,
                   }}
                 >
-                  Learn the Sahabah
+                  Learn the Sahaba
                 </h3>
 
                 <p
@@ -852,9 +745,8 @@ export default function Home() {
                     lineHeight: 1.7,
                   }}
                 >
-                  Explore meaningful questions about the lives,
-                  character, sacrifices, and experiences of the
-                  Companions.
+                  Explore meaningful questions about the lives, character,
+                  sacrifices, and experiences of the Companions.
                 </p>
               </div>
 
@@ -897,8 +789,8 @@ export default function Home() {
                     lineHeight: 1.7,
                   }}
                 >
-                  Build XP, maintain your streak, monitor your
-                  progress, and see how your knowledge develops.
+                  Build XP, maintain your streak, monitor your progress, and
+                  see how your knowledge develops.
                 </p>
               </div>
 
@@ -941,17 +833,17 @@ export default function Home() {
                     lineHeight: 1.7,
                   }}
                 >
-                  Challenge yourself and eventually compete with
-                  friends, families, schools, communities, and
-                  sponsored competitions.
+                  Challenge yourself and eventually compete with friends,
+                  families, schools, communities, and sponsored competitions.
                 </p>
               </div>
             </div>
           </section>
 
-          {/* SAHABAH KNOWLEDGE */}
+          {/* SAHABA KNOWLEDGE */}
+
           <section
-            id="sahabah"
+            id="sahaba"
             className="sq-card"
             style={{
               marginTop: "28px",
@@ -970,7 +862,10 @@ export default function Home() {
               }}
             >
               <div style={{ maxWidth: "700px" }}>
-                <span className="sq-badge">Public Knowledge Library</span>
+                <span className="sq-badge">
+                  Public Knowledge Library
+                </span>
+
                 <h2
                   style={{
                     margin: "16px 0 10px",
@@ -978,8 +873,9 @@ export default function Home() {
                     fontWeight: 900,
                   }}
                 >
-                  Explore the Sahabah
+                  Explore the Sahaba
                 </h2>
+
                 <p
                   className="sq-subtitle"
                   style={{ margin: 0 }}
@@ -990,7 +886,7 @@ export default function Home() {
               </div>
 
               <Link
-                href="/sahabah"
+                href="/sahaba"
                 className="sq-button-primary"
                 style={{ whiteSpace: "nowrap" }}
               >
@@ -1000,6 +896,7 @@ export default function Home() {
           </section>
 
           {/* CLOSING CTA */}
+
           <section
             className="sq-card"
             style={{
@@ -1028,8 +925,8 @@ export default function Home() {
                 marginRight: "auto",
               }}
             >
-              Begin your journey with the Companions of the
-              Messenger of Allah ﷺ.
+              Begin your journey with the Companions of the Messenger of
+              Allah ﷺ.
             </p>
 
             <Link
@@ -1044,6 +941,7 @@ export default function Home() {
           </section>
 
           {/* FOOTER */}
+
           <footer
             style={{
               padding: "34px 0 10px",
@@ -1069,7 +967,6 @@ export default function Home() {
         }
 
         @media (max-width: 650px) {
-          .landing-nav-text,
           .landing-nav-about {
             display: none !important;
           }

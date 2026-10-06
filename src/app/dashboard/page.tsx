@@ -1496,7 +1496,7 @@ export default function DashboardPage() {
                 your knowledge and
                 strengthen your
                 connection with the
-                lives of the Sahabah.
+                lives of the Sahaba.
               </p>
             </div>
 

@@ -248,7 +248,7 @@ function buildEmailHtml({
       >
         Thank you for being part of Sahaba Quest.
         Continue your journey of learning about the
-        lives, sacrifices and legacy of the Sahabah.
+        lives, sacrifices and legacy of the Sahaba.
       </p>
 
     </div>

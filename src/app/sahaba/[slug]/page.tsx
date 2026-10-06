@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSahabahProfile, sahabahProfiles } from "@/data/sahabah-data";
+import {
+  getSahabahProfile,
+  sahabahProfiles,
+} from "@/data/sahabah-data";
 
 const SITE_URL = "https://sahabaquest.com.ng";
 
@@ -10,16 +13,20 @@ type PageProps = {
 };
 
 export function generateStaticParams() {
-  return sahabahProfiles.map((profile) => ({ slug: profile.slug }));
+  return sahabahProfiles.map((profile) => ({
+    slug: profile.slug,
+  }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const profile = getSahabahProfile(slug);
 
   if (!profile) {
     return {
-      title: "Sahabah | Sahaba Quest",
+      title: "Sahaba | Sahaba Quest",
     };
   }
 
@@ -27,12 +34,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${profile.name} | Sahaba Quest`,
     description: profile.summary,
     alternates: {
-      canonical: `${SITE_URL}/sahabah/${profile.slug}`,
+      canonical: `${SITE_URL}/sahaba/${profile.slug}`,
     },
   };
 }
 
-export default async function SahabahProfilePage({ params }: PageProps) {
+export default async function SahabaProfilePage({
+  params,
+}: PageProps) {
   const { slug } = await params;
   const profile = getSahabahProfile(slug);
 
@@ -40,7 +49,7 @@ export default async function SahabahProfilePage({ params }: PageProps) {
     notFound();
   }
 
-  const profileUrl = `${SITE_URL}/sahabah/${profile.slug}`;
+  const profileUrl = `${SITE_URL}/sahaba/${profile.slug}`;
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -51,7 +60,9 @@ export default async function SahabahProfilePage({ params }: PageProps) {
         url: profileUrl,
         name: `${profile.name} | Sahaba Quest`,
         description: profile.summary,
-        isPartOf: { "@id": `${SITE_URL}/#website` },
+        isPartOf: {
+          "@id": `${SITE_URL}/#website`,
+        },
       },
       {
         "@type": "BreadcrumbList",
@@ -65,8 +76,8 @@ export default async function SahabahProfilePage({ params }: PageProps) {
           {
             "@type": "ListItem",
             position: 2,
-            name: "Sahabah",
-            item: `${SITE_URL}/sahabah`,
+            name: "Sahaba",
+            item: `${SITE_URL}/sahaba`,
           },
           {
             "@type": "ListItem",
@@ -87,21 +98,31 @@ export default async function SahabahProfilePage({ params }: PageProps) {
           "radial-gradient(circle at top left, rgba(204, 251, 241, 0.75), transparent 30%), var(--background)",
       }}
     >
+      {/* Navigation */}
       <header className="sq-nav">
         <Link href="/" className="sq-logo">
           Sahaba Quest
         </Link>
+
         <Link
           href="/signup"
           className="sq-button-primary"
-          style={{ minHeight: "42px", padding: "0 16px", fontSize: "13px" }}
+          style={{
+            minHeight: "42px",
+            padding: "0 16px",
+            fontSize: "13px",
+          }}
         >
           Create Account
         </Link>
       </header>
 
       <section className="sq-page">
-        <div className="sq-container" style={{ maxWidth: "900px" }}>
+        <div
+          className="sq-container"
+          style={{ maxWidth: "900px" }}
+        >
+          {/* Breadcrumb */}
           <nav
             aria-label="Breadcrumb"
             style={{
@@ -110,23 +131,46 @@ export default async function SahabahProfilePage({ params }: PageProps) {
               marginBottom: "24px",
             }}
           >
-            <Link href="/" style={{ color: "var(--primary)", fontWeight: 700 }}>
+            <Link
+              href="/"
+              style={{
+                color: "var(--primary)",
+                fontWeight: 700,
+              }}
+            >
               Home
             </Link>
+
             <span aria-hidden="true"> / </span>
+
             <Link
-              href="/sahabah"
-              style={{ color: "var(--primary)", fontWeight: 700 }}
+              href="/sahaba"
+              style={{
+                color: "var(--primary)",
+                fontWeight: 700,
+              }}
             >
-              Sahabah
+              Sahaba
             </Link>
+
             <span aria-hidden="true"> / </span>
+
             <span>{profile.name}</span>
           </nav>
 
-          <article className="sq-card" style={{ padding: "42px" }}>
-            <span className="sq-badge">{profile.category}</span>
+          {/* Profile */}
+          <article
+            className="sq-card"
+            style={{
+              padding: "42px",
+            }}
+          >
+            {/* Category */}
+            <span className="sq-badge">
+              {profile.category}
+            </span>
 
+            {/* Name */}
             <h1
               style={{
                 margin: "18px 0 6px",
@@ -139,6 +183,7 @@ export default async function SahabahProfilePage({ params }: PageProps) {
               {profile.name}
             </h1>
 
+            {/* Arabic Name */}
             <div
               lang="ar"
               dir="rtl"
@@ -151,6 +196,7 @@ export default async function SahabahProfilePage({ params }: PageProps) {
               {profile.arabicName}
             </div>
 
+            {/* Overview */}
             <div
               style={{
                 marginTop: "30px",
@@ -161,10 +207,15 @@ export default async function SahabahProfilePage({ params }: PageProps) {
               }}
             >
               <h2
-                style={{ margin: 0, fontSize: "20px", fontWeight: 900 }}
+                style={{
+                  margin: 0,
+                  fontSize: "20px",
+                  fontWeight: 900,
+                }}
               >
                 Overview
               </h2>
+
               <p
                 style={{
                   margin: "10px 0 0",
@@ -177,8 +228,15 @@ export default async function SahabahProfilePage({ params }: PageProps) {
               </p>
             </div>
 
+            {/* Key Points */}
             <section style={{ marginTop: "32px" }}>
-              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 900 }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "22px",
+                  fontWeight: 900,
+                }}
+              >
                 Key points
               </h2>
 
@@ -191,13 +249,19 @@ export default async function SahabahProfilePage({ params }: PageProps) {
                 }}
               >
                 {profile.highlights.map((highlight) => (
-                  <li key={highlight} style={{ marginBottom: "10px" }}>
+                  <li
+                    key={highlight}
+                    style={{
+                      marginBottom: "10px",
+                    }}
+                  >
                     {highlight}
                   </li>
                 ))}
               </ul>
             </section>
 
+            {/* Source */}
             <section
               style={{
                 marginTop: "32px",
@@ -213,12 +277,13 @@ export default async function SahabahProfilePage({ params }: PageProps) {
                   lineHeight: 1.6,
                 }}
               >
-                Starter profile source: {profile.sourceLabel}. These pages are
-                intentionally concise and will be expanded as the Sahaba Quest
-                knowledge library grows.
+                Starter profile source: {profile.sourceLabel}.
+                These pages are intentionally concise and will be
+                expanded as the Sahaba Quest knowledge library grows.
               </p>
             </section>
 
+            {/* Actions */}
             <div
               style={{
                 display: "flex",
@@ -227,10 +292,17 @@ export default async function SahabahProfilePage({ params }: PageProps) {
                 marginTop: "28px",
               }}
             >
-              <Link href="/sahabah" className="sq-button-secondary">
-                ← All Sahabah
+              <Link
+                href="/sahaba"
+                className="sq-button-secondary"
+              >
+                ← All Sahaba
               </Link>
-              <Link href="/signup" className="sq-button-primary">
+
+              <Link
+                href="/signup"
+                className="sq-button-primary"
+              >
                 Test Your Knowledge →
               </Link>
             </div>
@@ -238,10 +310,14 @@ export default async function SahabahProfilePage({ params }: PageProps) {
         </div>
       </section>
 
+      {/* Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+          __html: JSON.stringify(structuredData).replace(
+            /</g,
+            "\\u003c"
+          ),
         }}
       />
     </main>

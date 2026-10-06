@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { sahabahProfiles } from "@/data/sahabah-data";
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   description:
     "Explore concise, public knowledge profiles about the Sahaba and discover the people, history and lessons behind Sahaba Quest.",
   alternates: {
-    canonical: `${SITE_URL}/sahabah`,
+    canonical: `${SITE_URL}/sahaba`,
   },
 };
 
@@ -18,12 +19,14 @@ const structuredData = {
   "@graph": [
     {
       "@type": "CollectionPage",
-      "@id": `${SITE_URL}/sahabah#collection`,
-      url: `${SITE_URL}/sahabah`,
-      name: "Sahabah | Sahaba Quest",
+      "@id": `${SITE_URL}/sahaba#collection`,
+      url: `${SITE_URL}/sahaba`,
+      name: "Sahaba | Sahaba Quest",
       description:
         "Explore public knowledge profiles about the Companions of the Prophet Muhammad ﷺ.",
-      isPartOf: { "@id": `${SITE_URL}/#website` },
+      isPartOf: {
+        "@id": `${SITE_URL}/#website`,
+      },
     },
     {
       "@type": "BreadcrumbList",
@@ -38,14 +41,14 @@ const structuredData = {
           "@type": "ListItem",
           position: 2,
           name: "Sahaba",
-          item: `${SITE_URL}/sahabah`,
+          item: `${SITE_URL}/sahaba`,
         },
       ],
     },
   ],
 };
 
-export default function SahabahDirectoryPage() {
+export default function SahabaDirectoryPage() {
   return (
     <main
       style={{
@@ -54,21 +57,31 @@ export default function SahabahDirectoryPage() {
           "radial-gradient(circle at top left, rgba(204, 251, 241, 0.75), transparent 30%), var(--background)",
       }}
     >
+      {/* Navigation */}
       <header className="sq-nav">
         <Link href="/" className="sq-logo">
           Sahaba Quest
         </Link>
+
         <Link
           href="/signup"
           className="sq-button-primary"
-          style={{ minHeight: "42px", padding: "0 16px", fontSize: "13px" }}
+          style={{
+            minHeight: "42px",
+            padding: "0 16px",
+            fontSize: "13px",
+          }}
         >
           Create Account
         </Link>
       </header>
 
       <section className="sq-page">
-        <div className="sq-container" style={{ maxWidth: "1120px" }}>
+        <div
+          className="sq-container"
+          style={{ maxWidth: "1120px" }}
+        >
+          {/* Breadcrumb */}
           <nav
             aria-label="Breadcrumb"
             style={{
@@ -77,15 +90,23 @@ export default function SahabahDirectoryPage() {
               marginBottom: "24px",
             }}
           >
-            <Link href="/" style={{ color: "var(--primary)", fontWeight: 700 }}>
+            <Link
+              href="/"
+              style={{
+                color: "var(--primary)",
+                fontWeight: 700,
+              }}
+            >
               Home
             </Link>
+
             <span aria-hidden="true"> / </span>
-            <span>Sahabah</span>
+            <span>Sahaba</span>
           </nav>
 
+          {/* Hero Section */}
           <section
-            className="sq-card"
+            className="sq-card sahaba-hero"
             style={{
               padding: "44px",
               background:
@@ -109,7 +130,12 @@ export default function SahabahDirectoryPage() {
               }}
             />
 
-            <div style={{ position: "relative", zIndex: 1 }}>
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
               <div
                 style={{
                   fontSize: "12px",
@@ -143,26 +169,25 @@ export default function SahabahDirectoryPage() {
                   color: "rgba(255,255,255,0.88)",
                 }}
               >
-                Start with these public knowledge profiles and discover the
-                people whose lives and history form part of the learning
-                experience behind Sahaba Quest.
+                Start with these public knowledge profiles and
+                discover the people whose lives and history form
+                part of the learning experience behind Sahaba Quest.
               </p>
             </div>
           </section>
 
+          {/* Sahaba Profiles */}
           <section style={{ marginTop: "42px" }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                gap: "18px",
-              }}
-            >
+            <div className="sahaba-profile-grid">
               {sahabahProfiles.map((profile) => (
                 <article
                   key={profile.slug}
                   className="sq-card"
-                  style={{ padding: "28px" }}
+                  style={{
+                    padding: "28px",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
                 >
                   <div
                     style={{
@@ -173,7 +198,10 @@ export default function SahabahDirectoryPage() {
                     }}
                   >
                     <div>
-                      <span className="sq-badge">{profile.title}</span>
+                      <span className="sq-badge">
+                        {profile.title}
+                      </span>
+
                       <h2
                         style={{
                           margin: "16px 0 5px",
@@ -184,6 +212,7 @@ export default function SahabahDirectoryPage() {
                       >
                         {profile.name}
                       </h2>
+
                       <div
                         lang="ar"
                         dir="rtl"
@@ -204,19 +233,21 @@ export default function SahabahDirectoryPage() {
                       color: "var(--muted)",
                       fontSize: "14px",
                       lineHeight: 1.75,
+                      flexGrow: 1,
                     }}
                   >
                     {profile.summary}
                   </p>
 
                   <Link
-                    href={`/sahabah/${profile.slug}`}
+                    href={`/sahaba/${profile.slug}`}
                     className="sq-button-secondary"
                     style={{
                       display: "inline-flex",
                       marginTop: "22px",
                       minHeight: "44px",
                       alignItems: "center",
+                      alignSelf: "flex-start",
                     }}
                   >
                     Explore Profile →
@@ -226,8 +257,9 @@ export default function SahabahDirectoryPage() {
             </div>
           </section>
 
+          {/* Call to Action */}
           <section
-            className="sq-card"
+            className="sq-card sahaba-cta"
             style={{
               marginTop: "28px",
               padding: "30px",
@@ -236,21 +268,36 @@ export default function SahabahDirectoryPage() {
                 "linear-gradient(135deg, var(--primary-light), var(--white))",
             }}
           >
-            <h2 style={{ margin: 0, fontSize: "24px", fontWeight: 900 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: "24px",
+                fontWeight: 900,
+              }}
+            >
               Learn through play.
             </h2>
+
             <p
               className="sq-subtitle"
-              style={{ maxWidth: "650px", margin: "10px auto 0" }}
+              style={{
+                maxWidth: "650px",
+                margin: "10px auto 0",
+              }}
             >
-              These public pages are the beginning of a growing Sahaba Quest
-              knowledge library. Create an account to continue into quizzes,
-              quests, challenges and progress tracking.
+              These public pages are the beginning of a growing
+              Sahaba Quest knowledge library. Create an account
+              to continue into quizzes, quests, challenges and
+              progress tracking.
             </p>
+
             <Link
               href="/signup"
               className="sq-button-primary"
-              style={{ display: "inline-flex", marginTop: "18px" }}
+              style={{
+                display: "inline-flex",
+                marginTop: "18px",
+              }}
             >
               Start Your Journey →
             </Link>
@@ -258,17 +305,36 @@ export default function SahabahDirectoryPage() {
         </div>
       </section>
 
+      {/* Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+          __html: JSON.stringify(structuredData).replace(
+            /</g,
+            "\\u003c"
+          ),
         }}
       />
 
+      {/* Responsive Styles */}
       <style>{`
+        .sahaba-profile-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
+        }
+
         @media (max-width: 700px) {
-          .sq-container > section:nth-of-type(2) > div {
-            grid-template-columns: 1fr !important;
+          .sahaba-profile-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .sahaba-hero {
+            padding: 28px 22px !important;
+          }
+
+          .sahaba-cta {
+            padding: 24px 20px !important;
           }
         }
       `}</style>

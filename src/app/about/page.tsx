@@ -13,7 +13,7 @@ const aboutStructuredData = {
   url: `${SITE_URL}/about`,
   name: `About ${SITE_NAME}`,
   description:
-    "Learn about Sahaba Quest, a gamified Islamic learning platform designed to help Muslims learn about the Sahabah and Sahabiyat through interactive learning and competition.",
+    "Learn about Sahaba Quest, a gamified Islamic learning platform designed to help Muslims learn about the Sahaba and Sahabiyat through interactive learning and competition.",
   isPartOf: {
     "@type": "WebSite",
     "@id": `${SITE_URL}/#website`,
@@ -33,7 +33,7 @@ const aboutStructuredData = {
 export const metadata: Metadata = {
   title: "About Sahaba Quest",
   description:
-    "Learn about Sahaba Quest, a gamified Islamic learning platform for learning about the Sahabah and Sahabiyat through quizzes, quests, challenges, competitions and leaderboards.",
+    "Learn about Sahaba Quest, a gamified Islamic learning platform for learning about the Sahaba and Sahabiyat through quizzes, quests, challenges, competitions and leaderboards.",
   alternates: {
     canonical: `${SITE_URL}/about`,
   },
@@ -92,7 +92,7 @@ export default function AboutPage() {
           }}
         >
           <Link
-            href="/sahabah"
+            href="/sahaba"
             className="sq-button-secondary"
             style={{
               minHeight: "42px",
@@ -100,7 +100,7 @@ export default function AboutPage() {
               fontSize: "13px",
             }}
           >
-            Explore Sahabah
+            Explore Sahaba
           </Link>
 
           <Link
@@ -155,7 +155,7 @@ export default function AboutPage() {
               }}
             >
               Sahaba Quest is a gamified Islamic learning platform designed
-              to help Muslims discover and learn about the Sahabah and
+              to help Muslims discover and learn about the Sahaba and
               Sahabiyat through interactive learning experiences.
             </p>
           </div>
@@ -239,7 +239,7 @@ export default function AboutPage() {
                 }}
               >
                 Explore questions and public knowledge resources about the
-                Sahabah and Sahabiyat.
+                Sahabaand Sahabiyat.
               </p>
             </div>
 
@@ -460,7 +460,7 @@ export default function AboutPage() {
               className="about-links-grid"
             >
               <Link
-                href="/sahabah"
+                href="/sahaba"
                 style={{
                   padding: "18px",
                   borderRadius: "14px",
@@ -468,7 +468,7 @@ export default function AboutPage() {
                   background: "#f8faf9",
                 }}
               >
-                <strong>Explore the Sahabah →</strong>
+                <strong>Explore the Sahaba →</strong>
                 <span
                   style={{
                     display: "block",

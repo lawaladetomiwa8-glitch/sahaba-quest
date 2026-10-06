@@ -6,7 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 const SITE_URL = "https://sahabaquest.com.ng";
 const SITE_NAME = "Sahaba Quest";
 const SITE_DESCRIPTION =
-  "Sahaba Quest is a gamified Islamic learning platform where Muslims can learn about the Sahabah and Sahabiyat through quizzes, quests, challenges, competitions and leaderboards.";
+  "Sahaba Quest is a gamified Islamic learning platform where Muslims can learn about the Sahaba and Sahabiyat through quizzes, quests, challenges, competitions and leaderboards.";
 
 const SITE_LOGO =
   "https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png";
@@ -93,7 +93,7 @@ export const metadata: Metadata = {
 
   keywords: [
     "Sahaba Quest",
-    "Sahabah",
+    "Sahaba",
     "Sahabiyat",
     "Islamic learning",
     "Islamic education",

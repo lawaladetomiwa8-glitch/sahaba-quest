@@ -16,27 +16,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/sahabah`,
+      url: `${BASE_URL}/sahaba`,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/sahabah/abu-bakr-as-siddiq`,
+      url: `${BASE_URL}/sahaba/abu-bakr-as-siddiq`,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${BASE_URL}/sahabah/umar-ibn-al-khattab`,
+      url: `${BASE_URL}/sahaba/umar-ibn-al-khattab`,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${BASE_URL}/sahabah/uthman-ibn-affan`,
+      url: `${BASE_URL}/sahaba/uthman-ibn-affan`,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${BASE_URL}/sahabah/ali-ibn-talib`,
+      url: `${BASE_URL}/sahaba/ali-ibn-talib`,
       changeFrequency: "monthly",
       priority: 0.7,
     },
