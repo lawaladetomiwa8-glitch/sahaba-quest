@@ -140,10 +140,7 @@ export default function Home() {
                   marginTop: "24px",
                 }}
               >
-                <Link
-                  href="/dashboard"
-                  className="sq-button-primary"
-                >
+                <Link href="/dashboard" className="sq-button-primary">
                   Go to Dashboard →
                 </Link>
 
@@ -160,7 +157,7 @@ export default function Home() {
                 <p
                   style={{
                     marginTop: "18px",
-                    color: "var(--muted)",
+                    color: messageType === "success" ? "var(--primary)" : "var(--muted)",
                     fontSize: "14px",
                   }}
                 >
@@ -226,6 +223,21 @@ export default function Home() {
             }}
           >
             Sahaba
+          </Link>
+
+          {/* SCHOOLS & MADRASAS */}
+          <Link
+            href="/schools"
+            className="landing-nav-about"
+            style={{
+              color: "var(--muted)",
+              fontSize: "13px",
+              fontWeight: 700,
+              textDecoration: "none",
+              padding: "8px 6px",
+            }}
+          >
+            Schools & Madrasas
           </Link>
 
           <Link
@@ -501,9 +513,7 @@ export default function Home() {
                   margin: "0 auto",
                 }}
               >
-                <span className="sq-badge">
-                  Welcome to Sahaba Quest
-                </span>
+                <span className="sq-badge">Welcome to Sahaba Quest</span>
 
                 <h2
                   style={{
@@ -584,7 +594,7 @@ export default function Home() {
                       border: "1px solid rgba(20, 158, 147, 0.09)",
                     }}
                   >
-                    <span style={{ fontSize: "20px" }}>🏆</span>
+                    <span style={{ fontSize: "20px" }}>🌱</span>
 
                     <div>
                       <strong
@@ -678,9 +688,7 @@ export default function Home() {
                 textAlign: "center",
               }}
             >
-              <span className="sq-badge">
-                Built for meaningful learning
-              </span>
+              <span className="sq-badge">Built for meaningful learning</span>
 
               <h2
                 style={{
@@ -862,9 +870,7 @@ export default function Home() {
               }}
             >
               <div style={{ maxWidth: "700px" }}>
-                <span className="sq-badge">
-                  Public Knowledge Library
-                </span>
+                <span className="sq-badge">Public Knowledge Library</span>
 
                 <h2
                   style={{
@@ -876,10 +882,7 @@ export default function Home() {
                   Explore the Sahaba
                 </h2>
 
-                <p
-                  className="sq-subtitle"
-                  style={{ margin: 0 }}
-                >
+                <p className="sq-subtitle" style={{ margin: 0 }}>
                   Discover concise public profiles of the Companions and
                   explore the people and history behind Sahaba Quest.
                 </p>
