@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  isValidPhoneNumber,
+  parsePhoneNumber,
+} from "libphonenumber-js";
+import type { CountryCode } from "libphonenumber-js";
 import { supabaseServer } from "../../../../lib/supabase-server";
 
 type SchoolType =
@@ -42,6 +47,27 @@ function isStrongPassword(password: string): boolean {
 function generateSchoolCode(): string {
   const random = Math.floor(100000 + Math.random() * 900000);
   return `SQ-${random}`;
+}
+
+function isValidCountryCode(country: string): country is CountryCode {
+  return /^[A-Z]{2}$/.test(country);
+}
+
+function normalizePhoneNumber(
+  phone: string,
+  country: CountryCode
+): string | null {
+  try {
+    const parsed = parsePhoneNumber(phone, country);
+
+    if (!parsed.isValid()) {
+      return null;
+    }
+
+    return parsed.number;
+  } catch {
+    return null;
+  }
 }
 
 async function createUniqueSchool(
@@ -94,7 +120,13 @@ export async function POST(request: NextRequest) {
 
     const schoolName = cleanString(body.school_name);
     const schoolType = cleanString(body.school_type) as SchoolType;
-    const country = cleanString(body.country) || "Nigeria";
+
+    // Country is expected to be an ISO 3166-1 alpha-2 code.
+    // Example: NG, GH, GB, US.
+    const country = (
+      cleanString(body.country) || "NG"
+    ).toUpperCase();
+
     const state = cleanString(body.state);
     const city = cleanString(body.city);
     const address = cleanString(body.address);
@@ -142,6 +174,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ---------------------------------------------------------
+    // Country validation
+    // ---------------------------------------------------------
+
+    if (!isValidCountryCode(country)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Please select a valid country.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ---------------------------------------------------------
+    // Administrator validation
+    // ---------------------------------------------------------
+
     if (!adminFullName) {
       return NextResponse.json(
         {
@@ -184,11 +234,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ---------------------------------------------------------
+    // Contact phone validation
+    // ---------------------------------------------------------
+
     if (!contactPhone) {
       return NextResponse.json(
         {
           success: false,
           error: "Contact phone number is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidPhoneNumber(contactPhone, country)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Please enter a valid phone number for the selected country.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Normalize the number to international E.164 format.
+    // Example:
+    // 08012345678 + NG → +2348012345678
+    const normalizedContactPhone = normalizePhoneNumber(
+      contactPhone,
+      country
+    );
+
+    if (!normalizedContactPhone) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Unable to validate the contact phone number.",
         },
         { status: 400 }
       );
@@ -205,7 +288,7 @@ export async function POST(request: NextRequest) {
       state || null,
       city || null,
       address || null,
-      contactPhone
+      normalizedContactPhone
     );
 
     createdSchoolId = school.id;

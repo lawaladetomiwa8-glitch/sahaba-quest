@@ -12,6 +12,9 @@ type VerificationResult = {
   already_processed?: boolean;
   current_period_end?: string;
   student_seat_limit?: number;
+  currency?: string;
+  billing_interval?: string;
+  total_amount?: number;
 };
 
 function SchoolPaymentCallbackContent() {
@@ -35,9 +38,6 @@ function SchoolPaymentCallbackContent() {
       const transactionId =
         searchParams.get("transaction_id");
 
-      const paymentStatus =
-        searchParams.get("status");
-
       // -------------------------------------------------------
       // 1. Make sure Flutterwave returned the required values
       // -------------------------------------------------------
@@ -52,30 +52,14 @@ function SchoolPaymentCallbackContent() {
         return;
       }
 
-      // -------------------------------------------------------
-      // 2. Check the redirect status
-      //
-      // This is only an early check.
-      // The server still verifies the transaction directly
-      // with Flutterwave.
-      // -------------------------------------------------------
-
-      if (
-        paymentStatus &&
-        paymentStatus !== "successful"
-      ) {
-        setStatus("failed");
-
-        setMessage(
-          "The school payment was not completed successfully."
-        );
-
-        return;
-      }
-
       try {
         // -----------------------------------------------------
-        // 3. Send transaction details to our server
+        // 2. Send transaction details to our server
+        //
+        // IMPORTANT:
+        // We do NOT trust the redirect status returned by
+        // Flutterwave. The server performs the authoritative
+        // verification directly with Flutterwave.
         // -----------------------------------------------------
 
         const response = await fetch(
@@ -102,7 +86,7 @@ function SchoolPaymentCallbackContent() {
         setResult(data);
 
         // -----------------------------------------------------
-        // 4. Handle verification failure
+        // 3. Handle verification failure
         // -----------------------------------------------------
 
         if (!response.ok || !data.success) {
@@ -117,7 +101,7 @@ function SchoolPaymentCallbackContent() {
         }
 
         // -----------------------------------------------------
-        // 5. Payment successfully verified
+        // 4. Payment successfully verified
         // -----------------------------------------------------
 
         setStatus("success");
@@ -217,6 +201,27 @@ function SchoolPaymentCallbackContent() {
                         day: "numeric",
                       }
                     )}
+                  </p>
+                </div>
+              )}
+
+              {/* Billing information */}
+
+              {result?.total_amount !==
+                undefined && (
+                <div className="mt-4 rounded-xl border p-4">
+                  <p className="text-sm text-muted-foreground">
+                    Amount paid
+                  </p>
+
+                  <p className="mt-1 font-semibold">
+                    {result.currency === "NGN"
+                      ? `₦${Number(
+                          result.total_amount
+                        ).toLocaleString()}`
+                      : `${result.currency || ""} ${Number(
+                          result.total_amount
+                        ).toLocaleString()}`}
                   </p>
                 </div>
               )}
