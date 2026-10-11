@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import {
 
   useCallback,
@@ -15,8 +13,6 @@ import {
 } from "react";
 
 import { useRouter } from "next/navigation";
-
-
 
 type Question = {
 
@@ -44,8 +40,6 @@ type Question = {
 
 };
 
-
-
 type QuestSession = {
 
   id: string;
@@ -67,8 +61,6 @@ type QuestSession = {
     | "abandoned";
 
 };
-
-
 
 type QuestResult = {
 
@@ -110,8 +102,6 @@ type QuestResult = {
 
 };
 
-
-
 const options = [
 
   ["A", "option_a"],
@@ -124,77 +114,51 @@ const options = [
 
 ] as const;
 
-
-
 const QUESTION_TIME_MS = 15000;
-
-
 
 export default function SchoolStudentQuestPage() {
 
   const router = useRouter();
 
-
-
   const [session, setSession] =
 
     useState<QuestSession | null>(null);
-
-
 
   const [question, setQuestion] =
 
     useState<Question | null>(null);
 
-
-
   const [questionNumber, setQuestionNumber] =
 
     useState(1);
-
-
 
   const [totalQuestions, setTotalQuestions] =
 
     useState(50);
 
-
-
   const [timeLeft, setTimeLeft] =
 
     useState(15);
-
-
 
   const [selectedAnswer, setSelectedAnswer] =
 
     useState("");
 
-
-
   const [result, setResult] =
 
     useState<QuestResult | null>(null);
-
-
 
   const [loading, setLoading] =
 
     useState(true);
 
-
-
   const [submitting, setSubmitting] =
 
     useState(false);
 
-
-
   const [message, setMessage] =
 
     useState("");
-
-
 
   /*
 
@@ -222,25 +186,17 @@ export default function SchoolStudentQuestPage() {
 
    */
 
-
-
   const transitionMessageRef =
 
     useRef<string | null>(null);
-
-
 
   const questionStartedAt =
 
     useRef<string | null>(null);
 
-
-
   const questionTimeMsRef =
 
     useRef(QUESTION_TIME_MS);
-
-
 
   // The server returns the authoritative deadline and server clock.
 
@@ -248,31 +204,21 @@ export default function SchoolStudentQuestPage() {
 
   // visible timer or causing a premature timeout.
 
-
-
   const questionDeadlineAt =
 
     useRef<string | null>(null);
-
-
 
   const serverClockOffsetMs =
 
     useRef(0);
 
-
-
   const answerSubmittedRef =
 
     useRef(false);
 
-
-
   const submissionInProgressRef =
 
     useRef(false);
-
-
 
   /*
 
@@ -294,13 +240,9 @@ export default function SchoolStudentQuestPage() {
 
    */
 
-
-
   const questInitializationRef =
 
     useRef(false);
-
-
 
   /*
 
@@ -311,8 +253,6 @@ export default function SchoolStudentQuestPage() {
    * ---------------------------------------------------------
 
    */
-
-
 
   const loadQuestion = useCallback(
 
@@ -326,19 +266,13 @@ export default function SchoolStudentQuestPage() {
 
        */
 
-
-
       submissionInProgressRef.current = false;
 
       answerSubmittedRef.current = false;
 
-
-
       questionDeadlineAt.current = null;
 
       serverClockOffsetMs.current = 0;
-
-
 
       setSubmitting(false);
 
@@ -347,8 +281,6 @@ export default function SchoolStudentQuestPage() {
       setResult(null);
 
       setMessage("");
-
-
 
       const currentToken =
 
@@ -362,8 +294,6 @@ export default function SchoolStudentQuestPage() {
 
           : null;
 
-
-
       if (!currentToken) {
 
         router.replace(
@@ -376,13 +306,9 @@ export default function SchoolStudentQuestPage() {
 
       }
 
-
-
       const questionRequestStartedAtMs =
 
         Date.now();
-
-
 
       const response = await fetch(
 
@@ -416,13 +342,9 @@ export default function SchoolStudentQuestPage() {
 
       );
 
-
-
       const questionResponseReceivedAtMs =
 
         Date.now();
-
-
 
       const data =
 
@@ -432,15 +354,11 @@ export default function SchoolStudentQuestPage() {
 
           .catch(() => ({}));
 
-
-
       /*
 
        * Session expired.
 
        */
-
-
 
       if (response.status === 401) {
 
@@ -450,15 +368,11 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         sessionStorage.removeItem(
 
           "school_student_expires_at"
 
         );
-
-
 
         router.replace(
 
@@ -466,13 +380,9 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         return;
 
       }
-
-
 
       if (
 
@@ -492,21 +402,15 @@ export default function SchoolStudentQuestPage() {
 
          */
 
-
-
         await new Promise((resolve) =>
 
           window.setTimeout(resolve, 100)
 
         );
 
-
-
         const retryRequestStartedAtMs =
 
           Date.now();
-
-
 
         const retryResponse = await fetch(
 
@@ -540,13 +444,9 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         const retryResponseReceivedAtMs =
 
           Date.now();
-
-
 
         const retryData =
 
@@ -556,8 +456,6 @@ export default function SchoolStudentQuestPage() {
 
             .catch(() => ({}));
 
-
-
         if (retryResponse.status === 401) {
 
           sessionStorage.removeItem(
@@ -566,15 +464,11 @@ export default function SchoolStudentQuestPage() {
 
           );
 
-
-
           sessionStorage.removeItem(
 
             "school_student_expires_at"
 
           );
-
-
 
           router.replace(
 
@@ -582,13 +476,9 @@ export default function SchoolStudentQuestPage() {
 
           );
 
-
-
           return;
 
         }
-
-
 
         if (!retryResponse.ok) {
 
@@ -610,15 +500,11 @@ export default function SchoolStudentQuestPage() {
 
              */
 
-
-
             setMessage("");
 
             return;
 
           }
-
-
 
           throw new Error(
 
@@ -630,15 +516,11 @@ export default function SchoolStudentQuestPage() {
 
         }
 
-
-
         setQuestion(
 
           retryData.question
 
         );
-
-
 
         setQuestionNumber(
 
@@ -646,21 +528,15 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         setTotalQuestions(
 
           retryData.total_questions
 
         );
 
-
-
         questionStartedAt.current =
 
           retryData.question_started_at;
-
-
 
         const retryStartedAtMs =
 
@@ -669,8 +545,6 @@ export default function SchoolStudentQuestPage() {
             retryData.question_started_at
 
           ).getTime();
-
-
 
         const retryTimeMs =
 
@@ -688,13 +562,9 @@ export default function SchoolStudentQuestPage() {
 
             : QUESTION_TIME_MS;
 
-
-
         questionTimeMsRef.current =
 
           retryTimeMs;
-
-
 
         const retryServerNowMs =
 
@@ -708,8 +578,6 @@ export default function SchoolStudentQuestPage() {
 
             : Date.now();
 
-
-
         const retryRequestMidpointMs =
 
           (
@@ -719,8 +587,6 @@ export default function SchoolStudentQuestPage() {
             retryResponseReceivedAtMs
 
           ) / 2;
-
-
 
         serverClockOffsetMs.current =
 
@@ -736,8 +602,6 @@ export default function SchoolStudentQuestPage() {
 
             : 0;
 
-
-
         const retryDeadlineAt =
 
           retryData.question_deadline_at ||
@@ -750,13 +614,9 @@ export default function SchoolStudentQuestPage() {
 
           ).toISOString();
 
-
-
         questionDeadlineAt.current =
 
           retryDeadlineAt;
-
-
 
         const retryDeadlineMs =
 
@@ -765,8 +625,6 @@ export default function SchoolStudentQuestPage() {
             retryDeadlineAt
 
           ).getTime();
-
-
 
         const retryRemainingMs =
 
@@ -779,8 +637,6 @@ export default function SchoolStudentQuestPage() {
             serverClockOffsetMs.current
 
           );
-
-
 
         setTimeLeft(
 
@@ -800,25 +656,17 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         answerSubmittedRef.current =
 
           false;
-
-
 
         submissionInProgressRef.current =
 
           false;
 
-
-
         return;
 
       }
-
-
 
       if (!response.ok) {
 
@@ -832,15 +680,11 @@ export default function SchoolStudentQuestPage() {
 
       }
 
-
-
       setQuestion(
 
         data.question
 
       );
-
-
 
       setQuestionNumber(
 
@@ -848,21 +692,15 @@ export default function SchoolStudentQuestPage() {
 
       );
 
-
-
       setTotalQuestions(
 
         data.total_questions
 
       );
 
-
-
       questionStartedAt.current =
 
         data.question_started_at;
-
-
 
       /*
 
@@ -878,8 +716,6 @@ export default function SchoolStudentQuestPage() {
 
        */
 
-
-
       const startedAtMs =
 
         new Date(
@@ -887,8 +723,6 @@ export default function SchoolStudentQuestPage() {
           data.question_started_at
 
         ).getTime();
-
-
 
       const questionTimeMs =
 
@@ -906,13 +740,9 @@ export default function SchoolStudentQuestPage() {
 
           : QUESTION_TIME_MS;
 
-
-
       questionTimeMsRef.current =
 
         questionTimeMs;
-
-
 
       const serverNowMs =
 
@@ -926,8 +756,6 @@ export default function SchoolStudentQuestPage() {
 
           : Date.now();
 
-
-
       const questionRequestMidpointMs =
 
         (
@@ -937,8 +765,6 @@ export default function SchoolStudentQuestPage() {
           questionResponseReceivedAtMs
 
         ) / 2;
-
-
 
       serverClockOffsetMs.current =
 
@@ -954,8 +780,6 @@ export default function SchoolStudentQuestPage() {
 
           : 0;
 
-
-
       const deadlineAt =
 
         data.question_deadline_at ||
@@ -968,13 +792,9 @@ export default function SchoolStudentQuestPage() {
 
         ).toISOString();
 
-
-
       questionDeadlineAt.current =
 
         deadlineAt;
-
-
 
       const deadlineMs =
 
@@ -983,8 +803,6 @@ export default function SchoolStudentQuestPage() {
           deadlineAt
 
         ).getTime();
-
-
 
       const remainingMs =
 
@@ -997,8 +815,6 @@ export default function SchoolStudentQuestPage() {
           serverClockOffsetMs.current
 
         );
-
-
 
       const remainingSeconds =
 
@@ -1016,15 +832,11 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
       setTimeLeft(
 
         remainingSeconds
 
       );
-
-
 
       /*
 
@@ -1032,13 +844,9 @@ export default function SchoolStudentQuestPage() {
 
        */
 
-
-
       answerSubmittedRef.current =
 
         false;
-
-
 
       submissionInProgressRef.current =
 
@@ -1050,8 +858,6 @@ export default function SchoolStudentQuestPage() {
 
   );
 
-
-
   /*
 
    * ---------------------------------------------------------
@@ -1061,8 +867,6 @@ export default function SchoolStudentQuestPage() {
    * ---------------------------------------------------------
 
    */
-
-
 
   const startQuest = useCallback(
 
@@ -1080,8 +884,6 @@ export default function SchoolStudentQuestPage() {
 
           : null;
 
-
-
       if (!currentToken) {
 
         router.replace(
@@ -1090,13 +892,9 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         return;
 
       }
-
-
 
       const transitionMessage =
 
@@ -1104,13 +902,9 @@ export default function SchoolStudentQuestPage() {
 
       transitionMessageRef.current = null;
 
-
-
       setLoading(true);
 
       setMessage(transitionMessage ?? "");
-
-
 
       try {
 
@@ -1144,8 +938,6 @@ export default function SchoolStudentQuestPage() {
 
           );
 
-
-
         const data =
 
           await response
@@ -1153,8 +945,6 @@ export default function SchoolStudentQuestPage() {
             .json()
 
             .catch(() => ({}));
-
-
 
         if (response.status === 401) {
 
@@ -1164,15 +954,11 @@ export default function SchoolStudentQuestPage() {
 
           );
 
-
-
           sessionStorage.removeItem(
 
             "school_student_expires_at"
 
           );
-
-
 
           router.replace(
 
@@ -1180,13 +966,9 @@ export default function SchoolStudentQuestPage() {
 
           );
 
-
-
           return;
 
         }
-
-
 
         if (!response.ok) {
 
@@ -1200,15 +982,11 @@ export default function SchoolStudentQuestPage() {
 
         }
 
-
-
         setSession(
 
           data.session
 
         );
-
-
 
         await loadQuestion(
 
@@ -1240,8 +1018,6 @@ export default function SchoolStudentQuestPage() {
 
   );
 
-
-
   /*
 
    * ---------------------------------------------------------
@@ -1251,8 +1027,6 @@ export default function SchoolStudentQuestPage() {
    * ---------------------------------------------------------
 
    */
-
-
 
   useEffect(() => {
 
@@ -1270,8 +1044,6 @@ export default function SchoolStudentQuestPage() {
 
      */
 
-
-
     if (
 
       questInitializationRef.current
@@ -1282,19 +1054,13 @@ export default function SchoolStudentQuestPage() {
 
     }
 
-
-
     questInitializationRef.current =
 
       true;
 
-
-
     void startQuest();
 
   }, [startQuest]);
-
-
 
   /*
 
@@ -1317,8 +1083,6 @@ export default function SchoolStudentQuestPage() {
    * relying on the browser clock alone when the two clocks differ.
 
    */
-
-
 
   useEffect(() => {
 
@@ -1344,8 +1108,6 @@ export default function SchoolStudentQuestPage() {
 
     }
 
-
-
     const deadlineMs =
 
       new Date(
@@ -1353,8 +1115,6 @@ export default function SchoolStudentQuestPage() {
         questionDeadlineAt.current
 
       ).getTime();
-
-
 
     if (
 
@@ -1370,8 +1130,6 @@ export default function SchoolStudentQuestPage() {
 
     }
 
-
-
     const updateTimer = () => {
 
       const estimatedServerNowMs =
@@ -1380,15 +1138,11 @@ export default function SchoolStudentQuestPage() {
 
         serverClockOffsetMs.current;
 
-
-
       const remainingMs =
 
         deadlineMs -
 
         estimatedServerNowMs;
-
-
 
       const remainingSeconds =
 
@@ -1406,15 +1160,11 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
       setTimeLeft(
 
         remainingSeconds
 
       );
-
-
 
       if (
 
@@ -1438,11 +1188,7 @@ export default function SchoolStudentQuestPage() {
 
     };
 
-
-
     updateTimer();
-
-
 
     const timer =
 
@@ -1453,8 +1199,6 @@ export default function SchoolStudentQuestPage() {
         100
 
       );
-
-
 
     return () => {
 
@@ -1476,8 +1220,6 @@ export default function SchoolStudentQuestPage() {
 
   ]);
 
-
-
   /*
 
    * ---------------------------------------------------------
@@ -1487,8 +1229,6 @@ export default function SchoolStudentQuestPage() {
    * ---------------------------------------------------------
 
    */
-
-
 
   async function submitAnswer(
 
@@ -1512,8 +1252,6 @@ export default function SchoolStudentQuestPage() {
 
      */
 
-
-
     if (
 
       answerSubmittedRef.current ||
@@ -1525,8 +1263,6 @@ export default function SchoolStudentQuestPage() {
       return;
 
     }
-
-
 
     if (
 
@@ -1540,8 +1276,6 @@ export default function SchoolStudentQuestPage() {
 
     }
 
-
-
     const currentToken =
 
       typeof window !== "undefined"
@@ -1554,8 +1288,6 @@ export default function SchoolStudentQuestPage() {
 
         : null;
 
-
-
     if (!currentToken) {
 
       router.replace(
@@ -1564,13 +1296,9 @@ export default function SchoolStudentQuestPage() {
 
       );
 
-
-
       return;
 
     }
-
-
 
     /*
 
@@ -1582,17 +1310,11 @@ export default function SchoolStudentQuestPage() {
 
      */
 
-
-
     submissionInProgressRef.current =
 
       true;
 
-
-
     setSubmitting(true);
-
-
 
     /*
 
@@ -1604,15 +1326,11 @@ export default function SchoolStudentQuestPage() {
 
      */
 
-
-
     setSelectedAnswer(
 
       answer
 
     );
-
-
 
     try {
 
@@ -1668,8 +1386,6 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
       const data =
 
         await response
@@ -1678,15 +1394,11 @@ export default function SchoolStudentQuestPage() {
 
           .catch(() => ({}));
 
-
-
       /*
 
        * Session expired.
 
        */
-
-
 
       if (
 
@@ -1698,15 +1410,11 @@ export default function SchoolStudentQuestPage() {
 
           false;
 
-
-
         sessionStorage.removeItem(
 
           "school_student_session_token"
 
         );
-
-
 
         sessionStorage.removeItem(
 
@@ -1714,21 +1422,15 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         router.replace(
 
           "/schools/student-login"
 
         );
 
-
-
         return;
 
       }
-
-
 
       /*
 
@@ -1741,8 +1443,6 @@ export default function SchoolStudentQuestPage() {
        * the synchronous ref prevents the frontend race.
 
        */
-
-
 
       if (
 
@@ -1762,8 +1462,6 @@ export default function SchoolStudentQuestPage() {
 
          */
 
-
-
         console.warn(
 
           "School Quest received QUESTION_NOT_ACTIVE; ignoring stale submission.",
@@ -1772,31 +1470,21 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         answerSubmittedRef.current =
 
           true;
-
-
 
         submissionInProgressRef.current =
 
           false;
 
-
-
         setSubmitting(false);
 
         setMessage("");
 
-
-
         return;
 
       }
-
-
 
       if (
 
@@ -1812,8 +1500,6 @@ export default function SchoolStudentQuestPage() {
 
          */
 
-
-
         console.warn(
 
           "School Quest duplicate answer prevented:",
@@ -1822,31 +1508,21 @@ export default function SchoolStudentQuestPage() {
 
         );
 
-
-
         answerSubmittedRef.current =
 
           true;
-
-
 
         submissionInProgressRef.current =
 
           false;
 
-
-
         setSubmitting(false);
 
         setMessage("");
 
-
-
         return;
 
       }
-
-
 
       if (!response.ok) {
 
@@ -1860,8 +1536,6 @@ export default function SchoolStudentQuestPage() {
 
       }
 
-
-
       /*
 
        * The server accepted the answer.
@@ -1874,19 +1548,13 @@ export default function SchoolStudentQuestPage() {
 
        */
 
-
-
       answerSubmittedRef.current =
 
         true;
 
-
-
       submissionInProgressRef.current =
 
         false;
-
-
 
       /*
 
@@ -1897,8 +1565,6 @@ export default function SchoolStudentQuestPage() {
        * The database remains the source of truth.
 
        */
-
-
 
       setSession(
 
@@ -1938,8 +1604,6 @@ export default function SchoolStudentQuestPage() {
 
       );
 
-
-
       const shouldAutoAdvance =
 
         data.level_completed === true &&
@@ -1952,8 +1616,6 @@ export default function SchoolStudentQuestPage() {
 
         data.next_level > session.level;
 
-
-
       if (shouldAutoAdvance) {
 
         const transitionMessage =
@@ -1962,13 +1624,9 @@ export default function SchoolStudentQuestPage() {
 
           `Preparing Level ${data.next_level}...`;
 
-
-
         transitionMessageRef.current =
 
           transitionMessage;
-
-
 
         setQuestion(null);
 
@@ -1978,15 +1636,11 @@ export default function SchoolStudentQuestPage() {
 
         setMessage(transitionMessage);
 
-
-
         await startQuest();
 
         return;
 
       }
-
-
 
       setResult(data);
 
@@ -2002,17 +1656,11 @@ export default function SchoolStudentQuestPage() {
 
        */
 
-
-
       submissionInProgressRef.current =
 
         false;
 
-
-
       setSubmitting(false);
-
-
 
       setMessage(
 
@@ -2028,8 +1676,6 @@ export default function SchoolStudentQuestPage() {
 
   }
 
-
-
   /*
 
    * ---------------------------------------------------------
@@ -2039,8 +1685,6 @@ export default function SchoolStudentQuestPage() {
    * ---------------------------------------------------------
 
    */
-
-
 
   async function nextQuestion() {
 
@@ -2055,8 +1699,6 @@ export default function SchoolStudentQuestPage() {
       return;
 
     }
-
-
 
     if (
 
@@ -2090,19 +1732,13 @@ export default function SchoolStudentQuestPage() {
 
       );
 
-
-
       return;
 
     }
 
-
-
     try {
 
       setMessage("");
-
-
 
       await loadQuestion(
 
@@ -2122,15 +1758,11 @@ export default function SchoolStudentQuestPage() {
 
       );
 
-
-
       setSubmitting(false);
 
     }
 
   }
-
-
 
   /*
 
@@ -2142,59 +1774,48 @@ export default function SchoolStudentQuestPage() {
 
    */
 
-
-
-  if (
-
-    loading &&
-
-    !question
-
-  ) {
-
+  if (loading && !question) {
     return (
+      <main className="sq-quest-page sq-quest-loading-page">
+        <div className="sq-loading-decoration sq-loading-decoration-one" />
+        <div className="sq-loading-decoration sq-loading-decoration-two" />
 
-      <main className="sq-quest-page">
-
-        <div className="sq-quest-loading">
-
-          <div className="sq-quest-logo">
-
-            SQ
-
+        <section
+          className="sq-quest-loading"
+          role="status"
+          aria-live="polite"
+          aria-label="Preparing your quest"
+        >
+          <div className="sq-loading-emblem">
+            <div className="sq-loading-emblem-inner">
+              <span>SQ</span>
+            </div>
+            <span className="sq-loading-orbit sq-loading-orbit-one" />
+            <span className="sq-loading-orbit sq-loading-orbit-two" />
           </div>
 
+          <div className="sq-loading-eyebrow">SAHABA QUEST</div>
 
+          <h1>{message || "Bismillah, let's begin."}</h1>
 
-          <h1>
-
-            {message || "Bismillah — preparing your Quest..."}
-
-          </h1>
-
-
-
-          <p>
-
-            May Allah increase you in
-
-            beneficial knowledge.
-
+          <p className="sq-loading-description">
+            Preparing your quest and bringing your next question to you.
           </p>
 
-        </div>
+          <div className="sq-loading-progress" aria-hidden="true">
+            <span />
+          </div>
 
-
+          <p className="sq-loading-footer">
+            <span className="sq-loading-dot" />
+            May Allah increase you in beneficial knowledge.
+          </p>
+        </section>
 
         <QuestStyles />
-
       </main>
-
     );
-
   }
-
-
 
   /*
 
@@ -2205,8 +1826,6 @@ export default function SchoolStudentQuestPage() {
    * ---------------------------------------------------------
 
    */
-
-
 
   if (
 
@@ -2228,8 +1847,6 @@ export default function SchoolStudentQuestPage() {
 
           </h1>
 
-
-
           <p>
 
             {message ||
@@ -2237,8 +1854,6 @@ export default function SchoolStudentQuestPage() {
               "Your Quest could not be loaded."}
 
           </p>
-
-
 
           <button
 
@@ -2249,8 +1864,6 @@ export default function SchoolStudentQuestPage() {
             Try Again
 
           </button>
-
-
 
           <button
 
@@ -2274,8 +1887,6 @@ export default function SchoolStudentQuestPage() {
 
         </div>
 
-
-
         <QuestStyles />
 
       </main>
@@ -2283,8 +1894,6 @@ export default function SchoolStudentQuestPage() {
     );
 
   }
-
-
 
   /*
 
@@ -2295,8 +1904,6 @@ export default function SchoolStudentQuestPage() {
    * ---------------------------------------------------------
 
    */
-
-
 
   return (
 
@@ -2324,15 +1931,11 @@ export default function SchoolStudentQuestPage() {
 
         </button>
 
-
-
         <div className="sq-quest-brand">
 
           Sahaba Quest
 
         </div>
-
-
 
         <div className="sq-quest-level">
 
@@ -2341,8 +1944,6 @@ export default function SchoolStudentQuestPage() {
         </div>
 
       </header>
-
-
 
       <div className="sq-quest-shell">
 
@@ -2356,8 +1957,6 @@ export default function SchoolStudentQuestPage() {
 
             </span>
 
-
-
             <strong>
 
               Question{" "}
@@ -2369,8 +1968,6 @@ export default function SchoolStudentQuestPage() {
             </strong>
 
           </div>
-
-
 
           <div
 
@@ -2391,8 +1988,6 @@ export default function SchoolStudentQuestPage() {
           </div>
 
         </div>
-
-
 
         <div className="sq-quest-progress">
 
@@ -2416,8 +2011,6 @@ export default function SchoolStudentQuestPage() {
 
         </div>
 
-
-
         <section className="sq-question-card">
 
           <span className="sq-question-label">
@@ -2426,15 +2019,11 @@ export default function SchoolStudentQuestPage() {
 
           </span>
 
-
-
           <h1>
 
             {question.question}
 
           </h1>
-
-
 
           <div className="sq-answer-grid">
 
@@ -2446,15 +2035,11 @@ export default function SchoolStudentQuestPage() {
 
                   question[key];
 
-
-
                 if (!value) {
 
                   return null;
 
                 }
-
-
 
                 const isSelected =
 
@@ -2462,15 +2047,11 @@ export default function SchoolStudentQuestPage() {
 
                   value;
 
-
-
                 const isCorrect =
 
                   result?.correct_answer ===
 
                   value;
-
-
 
                 const isWrong =
 
@@ -2479,8 +2060,6 @@ export default function SchoolStudentQuestPage() {
                   isSelected &&
 
                   !result.is_correct;
-
-
 
                 return (
 
@@ -2544,8 +2123,6 @@ export default function SchoolStudentQuestPage() {
 
                     </span>
 
-
-
                     <span>
 
                       {value}
@@ -2561,8 +2138,6 @@ export default function SchoolStudentQuestPage() {
             )}
 
           </div>
-
-
 
           {result && (
 
@@ -2594,8 +2169,6 @@ export default function SchoolStudentQuestPage() {
 
               </strong>
 
-
-
               <span>
 
                 Correct answer:{" "}
@@ -2607,8 +2180,6 @@ export default function SchoolStudentQuestPage() {
                 </b>
 
               </span>
-
-
 
               {result.level_completed && (
 
@@ -2623,8 +2194,6 @@ export default function SchoolStudentQuestPage() {
                 </span>
 
               )}
-
-
 
               <button
 
@@ -2650,8 +2219,6 @@ export default function SchoolStudentQuestPage() {
 
         </section>
 
-
-
         {message && (
 
           <div className="sq-quest-message">
@@ -2664,8 +2231,6 @@ export default function SchoolStudentQuestPage() {
 
       </div>
 
-
-
       <QuestStyles />
 
     </main>
@@ -2673,8 +2238,6 @@ export default function SchoolStudentQuestPage() {
   );
 
 }
-
-
 
 /*
 
@@ -2685,8 +2248,6 @@ export default function SchoolStudentQuestPage() {
  * ============================================================
 
  */
-
-
 
 function QuestStyles() {
 
@@ -2703,8 +2264,6 @@ function QuestStyles() {
         color: #17221d;
 
       }
-
-
 
       .sq-quest-header {
 
@@ -2724,8 +2283,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-quest-back {
 
         border: 0;
@@ -2740,8 +2297,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-quest-brand {
 
         font-weight: 900;
@@ -2750,8 +2305,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-quest-level {
 
         font-weight: 800;
@@ -2759,8 +2312,6 @@ function QuestStyles() {
         color: #64746d;
 
       }
-
-
 
       .sq-quest-shell {
 
@@ -2776,8 +2327,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-quest-top {
 
         display: flex;
@@ -2789,8 +2338,6 @@ function QuestStyles() {
         margin-bottom: 12px;
 
       }
-
-
 
       .sq-quest-top span,
 
@@ -2808,8 +2355,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-quest-top strong {
 
         display: block;
@@ -2819,8 +2364,6 @@ function QuestStyles() {
         font-size: 18px;
 
       }
-
-
 
       .sq-timer {
 
@@ -2846,8 +2389,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-timer.danger {
 
         background: #fee2e2;
@@ -2855,8 +2396,6 @@ function QuestStyles() {
         color: #b91c1c;
 
       }
-
-
 
       .sq-quest-progress {
 
@@ -2871,8 +2410,6 @@ function QuestStyles() {
         margin-bottom: 18px;
 
       }
-
-
 
       .sq-quest-progress > div {
 
@@ -2898,8 +2435,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-question-card {
 
         background: #ffffff;
@@ -2917,8 +2452,6 @@ function QuestStyles() {
           rgba(15, 118, 110, 0.08);
 
       }
-
-
 
       .sq-question-card h1 {
 
@@ -2940,8 +2473,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-answer-grid {
 
         display: grid;
@@ -2949,8 +2480,6 @@ function QuestStyles() {
         gap: 12px;
 
       }
-
-
 
       .sq-answer {
 
@@ -2986,8 +2515,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-answer:hover:not(
 
           :disabled
@@ -3006,8 +2533,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-answer.selected {
 
         border-color: #0f766e;
@@ -3015,8 +2540,6 @@ function QuestStyles() {
         background: #ecfdf5;
 
       }
-
-
 
       .sq-answer.correct {
 
@@ -3026,8 +2549,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-answer.wrong {
 
         border-color: #dc2626;
@@ -3035,8 +2556,6 @@ function QuestStyles() {
         background: #fef2f2;
 
       }
-
-
 
       .sq-answer-letter {
 
@@ -3060,8 +2579,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-result {
 
         margin-top: 20px;
@@ -3076,8 +2593,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-result.good {
 
         background: #f0fdf4;
@@ -3086,8 +2601,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-result.bad {
 
         background: #fff7ed;
@@ -3095,8 +2608,6 @@ function QuestStyles() {
         border: 1px solid #fed7aa;
 
       }
-
-
 
       .sq-result button,
 
@@ -3122,8 +2633,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-quest-error {
 
         min-height: 100vh;
@@ -3142,8 +2651,6 @@ function QuestStyles() {
 
       }
 
-
-
       .sq-quest-error .secondary {
 
         background: #ffffff;
@@ -3154,47 +2661,251 @@ function QuestStyles() {
 
       }
 
-
+      .sq-quest-loading-page {
+        position: relative;
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        isolation: isolate;
+        padding: 28px 20px;
+        background:
+          radial-gradient(
+            ellipse at 50% 35%,
+            rgba(204, 251, 241, 0.55) 0%,
+            rgba(247, 249, 248, 0) 55%
+          ),
+          #f7f9f8;
+      }
 
       .sq-quest-loading {
-
-        min-height: 100vh;
-
-        display: grid;
-
-        place-items: center;
-
-        align-content: center;
-
+        position: relative;
+        z-index: 1;
+        width: min(100%, 480px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         text-align: center;
-
-        gap: 10px;
-
+        padding: 42px 30px 34px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(15, 118, 110, 0.12);
+        border-radius: 28px;
+        box-shadow:
+          0 24px 70px rgba(15, 74, 67, 0.08),
+          0 4px 16px rgba(15, 74, 67, 0.04);
+        animation: sq-loading-appear 0.6s ease-out both;
       }
 
+      .sq-loading-decoration {
+        position: absolute;
+        z-index: -1;
+        width: 300px;
+        height: 300px;
+        border: 1px solid rgba(15, 118, 110, 0.08);
+        border-radius: 50%;
+        pointer-events: none;
+      }
 
+      .sq-loading-decoration-one {
+        top: -170px;
+        right: -100px;
+      }
 
-      .sq-quest-logo {
+      .sq-loading-decoration-two {
+        bottom: -190px;
+        left: -100px;
+        width: 380px;
+        height: 380px;
+      }
 
-        width: 62px;
-
-        height: 62px;
-
-        border-radius: 18px;
-
+      .sq-loading-emblem {
+        position: relative;
+        width: 100px;
+        height: 100px;
         display: grid;
-
         place-items: center;
-
-        background: #0f766e;
-
-        color: #ffffff;
-
-        font-weight: 900;
-
+        margin-bottom: 30px;
       }
 
+      .sq-loading-emblem-inner {
+        width: 70px;
+        height: 70px;
+        display: grid;
+        place-items: center;
+        border-radius: 22px;
+        background: linear-gradient(145deg, #15958a, #115e59);
+        color: #ffffff;
+        box-shadow:
+          0 12px 28px rgba(15, 118, 110, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        transform: rotate(-7deg);
+        animation: sq-emblem-float 3s ease-in-out infinite;
+      }
 
+      .sq-loading-emblem-inner span {
+        font-size: 23px;
+        font-weight: 900;
+        letter-spacing: -1px;
+        transform: rotate(7deg);
+      }
+
+      .sq-loading-orbit {
+        position: absolute;
+        inset: 0;
+        border: 1px solid rgba(15, 118, 110, 0.18);
+        border-radius: 50%;
+      }
+
+      .sq-loading-orbit-one {
+        animation: sq-orbit-pulse 2.4s ease-in-out infinite;
+      }
+
+      .sq-loading-orbit-two {
+        inset: 9px;
+        border-color: rgba(212, 167, 44, 0.35);
+        animation: sq-orbit-pulse 2.4s ease-in-out 0.8s infinite;
+      }
+
+      .sq-loading-eyebrow {
+        margin-bottom: 12px;
+        color: #0f766e;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+      }
+
+      .sq-quest-loading h1 {
+        max-width: 100%;
+        margin: 0;
+        color: #173c35;
+        font-size: clamp(22px, 4vw, 30px);
+        font-weight: 850;
+        line-height: 1.3;
+        letter-spacing: -0.035em;
+        overflow-wrap: anywhere;
+      }
+
+      .sq-loading-description {
+        max-width: 330px;
+        margin: 13px 0 0;
+        color: #697a73;
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .sq-loading-progress {
+        width: min(100%, 220px);
+        height: 5px;
+        margin-top: 30px;
+        overflow: hidden;
+        border-radius: 99px;
+        background: #e5efeb;
+      }
+
+      .sq-loading-progress span {
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #0f766e, #d4a72c);
+        animation: sq-loading-slide 1.5s ease-in-out infinite;
+      }
+
+      .sq-loading-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        margin: 25px 0 0;
+        color: #87958e;
+        font-size: 11px;
+        line-height: 1.6;
+      }
+
+      .sq-loading-dot {
+        width: 7px;
+        height: 7px;
+        flex: 0 0 7px;
+        border-radius: 50%;
+        background: #d4a72c;
+      }
+
+      @keyframes sq-loading-appear {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes sq-emblem-float {
+        0%, 100% {
+          transform: translateY(0) rotate(-7deg);
+        }
+        50% {
+          transform: translateY(-5px) rotate(-4deg);
+        }
+      }
+
+      @keyframes sq-orbit-pulse {
+        0%, 100% {
+          opacity: 0.35;
+          transform: scale(0.96);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.04);
+        }
+      }
+
+      @keyframes sq-loading-slide {
+        0% {
+          transform: translateX(-110%);
+        }
+        100% {
+          transform: translateX(275%);
+        }
+      }
+
+      @media (max-width: 480px) {
+        .sq-quest-loading-page {
+          padding: 20px 16px;
+        }
+
+        .sq-quest-loading {
+          padding: 34px 22px 28px;
+          border-radius: 24px;
+        }
+
+        .sq-loading-emblem {
+          margin-bottom: 24px;
+        }
+
+        .sq-loading-description {
+          font-size: 13px;
+        }
+
+        .sq-loading-footer {
+          font-size: 10px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .sq-quest-loading,
+        .sq-loading-emblem-inner,
+        .sq-loading-orbit,
+        .sq-loading-progress span {
+          animation: none !important;
+        }
+
+        .sq-loading-progress span {
+          width: 100%;
+          opacity: 0.7;
+        }
+      }
 
       .sq-quest-message {
 
@@ -3212,8 +2923,6 @@ function QuestStyles() {
 
       }
 
-
-
       @media (max-width: 640px) {
 
         .sq-quest-header {
@@ -3222,15 +2931,11 @@ function QuestStyles() {
 
         }
 
-
-
         .sq-quest-brand {
 
           font-size: 14px;
 
         }
-
-
 
         .sq-quest-shell {
 
@@ -3246,8 +2951,6 @@ function QuestStyles() {
 
         }
 
-
-
         .sq-question-card {
 
           padding: 22px 16px;
@@ -3255,8 +2958,6 @@ function QuestStyles() {
           border-radius: 18px;
 
         }
-
-
 
         .sq-answer {
 
