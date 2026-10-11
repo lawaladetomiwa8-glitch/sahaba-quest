@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseServer } from "@/lib/supabase-server";
@@ -52,6 +53,7 @@ async function getSchoolAdmin(request: Request) {
 
   if (adminError) {
     console.error("School admin lookup failed:", adminError);
+
     return {
       error: NextResponse.json(
         {
@@ -102,7 +104,9 @@ async function getSeatSummary(schoolId: string) {
     .eq("status", "active");
 
   if (countError) {
-    throw new Error(`Unable to count active students: ${countError.message}`);
+    throw new Error(
+      `Unable to count active students: ${countError.message}`
+    );
   }
 
   const limit = Number(subscription?.student_seat_limit ?? 0);
@@ -124,6 +128,9 @@ function hashPin(pin: string) {
   return crypto.createHash("sha256").update(pin).digest("hex");
 }
 
+// ---------------------------------------------------------
+// UPDATE STUDENT
+// ---------------------------------------------------------
 export async function PATCH(
   request: Request,
   context: RouteContext
@@ -161,10 +168,12 @@ export async function PATCH(
     }
 
     const requestedStatus = body?.status;
+
     const hasClassChange = Object.prototype.hasOwnProperty.call(
       body,
       "class_id"
     );
+
     const resetPin = body?.reset_pin === true;
 
     if (
@@ -197,6 +206,7 @@ export async function PATCH(
 
     if (studentLookupError) {
       console.error("Student lookup failed:", studentLookupError);
+
       return NextResponse.json(
         { success: false, message: "Unable to find the student." },
         { status: 500 }
@@ -229,15 +239,22 @@ export async function PATCH(
 
         if (classError) {
           console.error("Target class lookup failed:", classError);
+
           return NextResponse.json(
-            { success: false, message: "Unable to verify the selected class." },
+            {
+              success: false,
+              message: "Unable to verify the selected class.",
+            },
             { status: 500 }
           );
         }
 
         if (!targetClass) {
           return NextResponse.json(
-            { success: false, message: "Selected class was not found." },
+            {
+              success: false,
+              message: "Selected class was not found.",
+            },
             { status: 404 }
           );
         }
@@ -271,6 +288,7 @@ export async function PATCH(
 
       if (schoolError) {
         console.error("School lookup failed:", schoolError);
+
         return NextResponse.json(
           { success: false, message: "Unable to verify the school." },
           { status: 500 }
@@ -342,25 +360,24 @@ export async function PATCH(
         .update(updatePayload)
         .eq("id", existingStudent.id)
         .eq("school_id", admin.school_id)
-        .select(
-          `
-            id,
-            first_name,
-            last_name,
-            student_id,
-            status,
-            class_id,
-            created_at,
-            school_classes (
-              class_name,
-              academic_session
-            )
-          `
-        )
+        .select(`
+          id,
+          first_name,
+          last_name,
+          student_id,
+          status,
+          class_id,
+          created_at,
+          school_classes (
+            class_name,
+            academic_session
+          )
+        `)
         .single();
 
     if (updateError || !updatedStudent) {
       console.error("Student update failed:", updateError);
+
       return NextResponse.json(
         {
           success: false,
@@ -403,6 +420,121 @@ export async function PATCH(
           error instanceof Error
             ? error.message
             : "An unexpected error occurred while updating the student.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// ---------------------------------------------------------
+// PERMANENTLY DELETE STUDENT
+// ---------------------------------------------------------
+export async function DELETE(
+  request: Request,
+  context: RouteContext
+) {
+  try {
+    // Verify the authenticated school administrator.
+    const auth = await getSchoolAdmin(request);
+
+    if ("error" in auth) {
+      return auth.error;
+    }
+
+    const { admin } = auth;
+    const { studentId } = await context.params;
+
+    if (!studentId) {
+      return NextResponse.json(
+        { success: false, message: "Student ID is required." },
+        { status: 400 }
+      );
+    }
+
+    // Confirm that the student belongs to this administrator's school.
+    const { data: student, error: studentLookupError } =
+      await supabaseServer
+        .from("school_students")
+        .select("id, first_name, last_name, student_id")
+        .eq("id", studentId)
+        .eq("school_id", admin.school_id)
+        .maybeSingle();
+
+    if (studentLookupError) {
+      console.error("Student lookup failed during deletion:", studentLookupError);
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unable to verify the student before deletion.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!student) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Student not found in your school.",
+        },
+        { status: 404 }
+      );
+    }
+
+    // Permanently delete only this school's student record.
+    // Related records with ON DELETE CASCADE are removed by the database.
+    const { data: deletedStudent, error: deleteError } =
+      await supabaseServer
+        .from("school_students")
+        .delete()
+        .eq("id", student.id)
+        .eq("school_id", admin.school_id)
+        .select("id")
+        .maybeSingle();
+
+    if (deleteError) {
+      console.error("Student deletion failed:", deleteError);
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unable to delete the student. Please try again.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!deletedStudent) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "The student was not deleted. The record may have already been removed.",
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Student and associated learning records were permanently deleted.",
+        student_id: student.student_id,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("School student DELETE error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred while deleting the student.",
       },
       { status: 500 }
     );

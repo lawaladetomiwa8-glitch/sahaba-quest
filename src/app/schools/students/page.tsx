@@ -180,6 +180,8 @@ export default function SchoolStudentsPage() {
 
   const [resettingId, setResettingId] = useState<string | null>(null);
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const [resetPin, setResetPin] = useState<string | null>(null);
 
   const seatRemaining = Math.max(seatLimit - seatUsed, 0);
@@ -586,6 +588,57 @@ export default function SchoolStudentsPage() {
 
     }
 
+  }
+
+  async function handleDeleteStudent(student: Student) {
+    const confirmed = window.confirm(
+      `PERMANENTLY DELETE ${student.first_name} ${student.last_name}?\n\n` +
+        `Student ID: ${student.student_id}\n\n` +
+        "This action cannot be undone. The student's associated learning " +
+        "history, progress, sessions, and question attempts will also be deleted.\n\n" +
+        "Do you want to continue?"
+    );
+
+    if (!confirmed) return;
+
+    setDeletingId(student.id);
+    setPageError("");
+    setSuccessMessage("");
+
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+
+      const response = await fetch(`/api/schools/students/${student.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await readJsonResponse<{
+        success: boolean;
+        message?: string;
+      }>(response);
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to delete student.");
+      }
+
+      setStudents((current) =>
+        current.filter((item) => item.id !== student.id)
+      );
+
+      setSuccessMessage(
+        data.message || "Student permanently deleted successfully."
+      );
+    } catch (error) {
+      setPageError(
+        error instanceof Error ? error.message : "Unable to delete student."
+      );
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   async function handleResetPin(student: Student) {
@@ -1791,6 +1844,34 @@ export default function SchoolStudentsPage() {
 
                                 : "Reset PIN"}
 
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                deletingId === student.id ||
+                                updatingId === student.id ||
+                                resettingId === student.id
+                              }
+                              onClick={() => handleDeleteStudent(student)}
+                              style={{
+                                border: "1px solid #fecaca",
+                                borderRadius: 8,
+                                background: "#fef2f2",
+                                color: "#b91c1c",
+                                padding: "8px 10px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor:
+                                  deletingId === student.id ||
+                                  updatingId === student.id ||
+                                  resettingId === student.id
+                                    ? "not-allowed"
+                                    : "pointer",
+                                opacity: deletingId === student.id ? 0.6 : 1,
+                              }}
+                            >
+                              {deletingId === student.id ? "Deleting..." : "Delete"}
                             </button>
 
                           </div>
