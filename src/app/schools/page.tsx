@@ -40,8 +40,8 @@ const pricing = {
   NGN: {
     symbol: "₦",
     name: "Nigerian Naira",
-    monthly: 800,
-    termly: 2400,
+    monthly: 200,
+    termly: 600,
   },
   USD: {
     symbol: "$",
