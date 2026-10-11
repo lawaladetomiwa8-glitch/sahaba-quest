@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
@@ -20,8 +18,6 @@ import {
 
 import { supabase } from "../../lib/supabase";
 
-
-
 type SchoolType =
 
   | "school"
@@ -32,19 +28,11 @@ type SchoolType =
 
   | "other";
 
-
-
 type BillingInterval = "monthly" | "termly";
-
-
 
 type Currency = "NGN" | "USD" | "GBP" | "EUR";
 
-
-
 const countryCodes = getCountries();
-
-
 
 const countryOptions = countryCodes
 
@@ -55,8 +43,6 @@ const countryOptions = countryCodes
       type: "region",
 
     }).of(code);
-
-
 
     return {
 
@@ -71,8 +57,6 @@ const countryOptions = countryCodes
   })
 
   .sort((a, b) => a.name.localeCompare(b.name));
-
-
 
 const pricing = {
 
@@ -142,8 +126,6 @@ const pricing = {
 
 >;
 
-
-
 function formatAmount(currency: Currency, amount: number) {
 
   return new Intl.NumberFormat(
@@ -166,13 +148,9 @@ function formatAmount(currency: Currency, amount: number) {
 
 }
 
-
-
 export default function SchoolsPage() {
 
   const [step, setStep] = useState(1);
-
-
 
   const [schoolName, setSchoolName] = useState("");
 
@@ -180,13 +158,9 @@ export default function SchoolsPage() {
 
     useState<SchoolType>("school");
 
-
-
   const [country, setCountry] =
 
     useState<CountryCode>("NG");
-
-
 
   const [state, setState] = useState("");
 
@@ -196,8 +170,6 @@ export default function SchoolsPage() {
 
   const [contactPhone, setContactPhone] = useState("");
 
-
-
   const [adminFullName, setAdminFullName] = useState("");
 
   const [adminEmail, setAdminEmail] = useState("");
@@ -206,23 +178,15 @@ export default function SchoolsPage() {
 
   const [confirmPassword, setConfirmPassword] = useState("");
 
-
-
   const [studentSeats, setStudentSeats] = useState(10);
-
-
 
   const [billingInterval, setBillingInterval] =
 
     useState<BillingInterval>("monthly");
 
-
-
   const [currency, setCurrency] =
 
     useState<Currency>("NGN");
-
-
 
   const [loading, setLoading] = useState(false);
 
@@ -233,10 +197,10 @@ export default function SchoolsPage() {
     useState("");
 
   const [schoolId, setSchoolId] = useState<string | null>(null);
+
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+
   const [verificationNotice, setVerificationNotice] = useState("");
-
-
 
   const currentPrice = useMemo(() => {
 
@@ -250,8 +214,6 @@ export default function SchoolsPage() {
 
   }, [currency, billingInterval, studentSeats]);
 
-
-
   const selectedCountry = useMemo(() => {
 
     return countryOptions.find(
@@ -262,13 +224,9 @@ export default function SchoolsPage() {
 
   }, [country]);
 
-
-
   function validateContactPhone() {
 
     const phone = contactPhone.trim();
-
-
 
     if (!phone) {
 
@@ -276,15 +234,11 @@ export default function SchoolsPage() {
 
     }
 
-
-
-    if (!/^[0-9+\-().\s]+$/.test(phone)) {
+    if (!/^[0-9+().\s-]+$/.test(phone)) {
 
       return "Please enter a valid phone number. Letters and invalid characters are not allowed.";
 
     }
-
-
 
     try {
 
@@ -300,13 +254,9 @@ export default function SchoolsPage() {
 
     }
 
-
-
     return "";
 
   }
-
-
 
   function validateStepOne() {
 
@@ -316,15 +266,11 @@ export default function SchoolsPage() {
 
     }
 
-
-
     if (!state.trim()) {
 
       return "Please enter the state.";
 
     }
-
-
 
     if (!city.trim()) {
 
@@ -332,11 +278,7 @@ export default function SchoolsPage() {
 
     }
 
-
-
     const phoneError = validateContactPhone();
-
-
 
     if (phoneError) {
 
@@ -344,13 +286,9 @@ export default function SchoolsPage() {
 
     }
 
-
-
     return "";
 
   }
-
-
 
   function validateStepTwo() {
 
@@ -360,15 +298,11 @@ export default function SchoolsPage() {
 
     }
 
-
-
     if (!adminEmail.trim()) {
 
       return "Please enter the administrator's email.";
 
     }
-
-
 
     if (!adminPassword) {
 
@@ -376,15 +310,11 @@ export default function SchoolsPage() {
 
     }
 
-
-
     if (adminPassword.length < 8) {
 
       return "Password must contain at least 8 characters.";
 
     }
-
-
 
     if (!/[A-Z]/.test(adminPassword)) {
 
@@ -392,15 +322,11 @@ export default function SchoolsPage() {
 
     }
 
-
-
     if (!/[a-z]/.test(adminPassword)) {
 
       return "Password must contain at least one lowercase letter.";
 
     }
-
-
 
     if (!/\d/.test(adminPassword)) {
 
@@ -408,15 +334,11 @@ export default function SchoolsPage() {
 
     }
 
-
-
     if (!/[^A-Za-z0-9]/.test(adminPassword)) {
 
       return "Password must contain at least one special character.";
 
     }
-
-
 
     if (adminPassword !== confirmPassword) {
 
@@ -424,23 +346,15 @@ export default function SchoolsPage() {
 
     }
 
-
-
     return "";
 
   }
-
-
 
   function goToStepTwo() {
 
     setError("");
 
-
-
     const validationError = validateStepOne();
-
-
 
     if (validationError) {
 
@@ -449,242 +363,397 @@ export default function SchoolsPage() {
       return;
 
     }
-
-
 
     setStep(2);
 
   }
 
-
-
   async function handleAdminRegistration() {
+
     setError("");
+
     setSuccessMessage("");
 
     const validationError = validateStepTwo();
+
     if (validationError) {
+
       setError(validationError);
+
       return;
+
     }
+
     if (loading) return;
 
     setLoading(true);
+
     try {
+
       const phoneError = validateContactPhone();
+
       if (phoneError) {
+
         setError(phoneError);
+
         setStep(1);
+
         return;
+
       }
 
       const response = await fetch("/api/schools/register", {
+
         method: "POST",
+
         headers: { "Content-Type": "application/json" },
+
         body: JSON.stringify({
+
           school_name: schoolName.trim(),
+
           school_type: schoolType,
+
           country,
+
           state: state.trim(),
+
           city: city.trim(),
+
           address: address.trim(),
+
           contact_phone: contactPhone.trim(),
+
           admin_full_name: adminFullName.trim(),
+
           admin_email: adminEmail.trim().toLowerCase(),
+
           admin_password: adminPassword,
+
         }),
+
       });
+
       const result = await response.json();
 
       if (!response.ok || !result.success) {
+
         throw new Error(result.error || "Unable to create the school.");
+
       }
 
       const createdSchoolId = result.school?.id;
+
       if (!createdSchoolId) {
+
         throw new Error("The server did not return the new school ID. Please contact support before trying registration again.");
+
       }
 
       // Store only the school ID and email; never store the password.
+
       window.localStorage.setItem("sahabaQuestPendingSchoolId", createdSchoolId);
+
       window.localStorage.setItem("sahabaQuestPendingSchoolEmail", adminEmail.trim().toLowerCase());
+
       setSchoolId(createdSchoolId);
+
       setVerificationNotice(
+
         `We've sent a confirmation email to ${adminEmail.trim().toLowerCase()}. Please open that email and click the confirmation link before choosing a plan.`
+
       );
+
       setShowVerificationModal(true);
+
     } catch (err) {
+
       console.error("School administrator registration error:", err);
+
       setError(err instanceof Error ? err.message : "Unable to complete school registration.");
+
     } finally {
+
       setLoading(false);
+
     }
+
   }
 
   useEffect(() => {
+
     let mounted = true;
 
     const completeVerificationReturn = async (session: any) => {
+
       if (!mounted || !session?.user?.email_confirmed_at) return;
+
       const url = new URL(window.location.href);
+
       if (url.searchParams.get("email_verification") !== "complete") return;
 
       const querySchoolId = url.searchParams.get("school_id");
+
       const storedSchoolId = window.localStorage.getItem("sahabaQuestPendingSchoolId");
+
       const resolvedSchoolId = querySchoolId || storedSchoolId;
 
       if (!resolvedSchoolId) {
+
         setError("Your email is verified, but we couldn't find the pending school registration. Please contact support rather than registering again.");
+
         return;
+
       }
 
       window.localStorage.setItem("sahabaQuestPendingSchoolId", resolvedSchoolId);
+
       setSchoolId(resolvedSchoolId);
+
       setShowVerificationModal(false);
+
       setVerificationNotice("");
+
       setError("");
+
       setSuccessMessage("Email verified successfully. You can now choose your school plan.");
+
       setStep(3);
 
       url.searchParams.delete("email_verification");
+
       url.searchParams.delete("school_id");
+
       window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+
     };
 
     const resumeFromUrl = async () => {
+
       const url = new URL(window.location.href);
+
       if (url.searchParams.get("email_verification") !== "complete") return;
 
       const { data, error: sessionError } = await supabase.auth.getSession();
+
       if (!mounted) return;
 
       if (sessionError) {
+
         console.error("Could not restore session after email confirmation:", sessionError);
+
         setVerificationNotice("Your confirmation link returned to Sahaba Quest, but your session is still loading. Please wait and select “I've confirmed my email”.");
+
         setShowVerificationModal(true);
+
         return;
+
       }
 
       if (data.session?.user?.email_confirmed_at) {
+
         await completeVerificationReturn(data.session);
+
       } else {
+
         setVerificationNotice("If you've just clicked the confirmation link, your session may still be loading. Select “I've confirmed my email” to check again.");
+
         setShowVerificationModal(true);
+
       }
+
     };
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+
       void completeVerificationReturn(session);
+
     });
 
     void resumeFromUrl();
 
     const url = new URL(window.location.href);
+
     const querySchoolId = url.searchParams.get("school_id");
+
     const storedSchoolId = window.localStorage.getItem("sahabaQuestPendingSchoolId");
+
     if (querySchoolId || storedSchoolId) {
+
       setSchoolId(querySchoolId || storedSchoolId);
+
     }
 
     return () => {
+
       mounted = false;
+
       authListener.subscription.unsubscribe();
+
     };
+
   }, []);
 
   async function handleRegistration(event: FormEvent) {
+
     event.preventDefault();
+
     if (loading) return;
 
     setError("");
+
     setSuccessMessage("");
+
     setLoading(true);
 
     try {
+
       const pendingSchoolId =
+
         schoolId || window.localStorage.getItem("sahabaQuestPendingSchoolId");
+
       if (!pendingSchoolId) {
+
         throw new Error("Your pending school registration could not be found. Please contact support rather than registering again.");
+
       }
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
       if (sessionError || !sessionData.session) {
+
         throw new Error("Please confirm your email and sign in before proceeding to payment.");
+
       }
 
       const { data: userData, error: userError } = await supabase.auth.getUser(
+
         sessionData.session.access_token
+
       );
+
       if (userError || !userData.user?.email_confirmed_at) {
+
         throw new Error("Please verify your administrator email address before proceeding to payment.");
+
       }
 
       const paymentResponse = await fetch("/api/schools/payment/initialize", {
+
         method: "POST",
+
         headers: {
+
           "Content-Type": "application/json",
+
           Authorization: `Bearer ${sessionData.session.access_token}`,
+
         },
+
         body: JSON.stringify({
+
           school_id: pendingSchoolId,
+
           student_seat_limit: studentSeats,
+
           billing_interval: billingInterval,
+
           currency,
+
         }),
+
       });
+
       const paymentData = await paymentResponse.json();
 
       if (!paymentResponse.ok || !paymentData.success) {
+
         throw new Error(paymentData.error || "Unable to initialize payment.");
+
       }
+
       if (!paymentData.checkout_url) {
+
         throw new Error("Flutterwave did not return a checkout URL.");
+
       }
 
       window.location.href = paymentData.checkout_url;
+
     } catch (err) {
+
       console.error("School payment initialization error:", err);
+
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+
     } finally {
+
       setLoading(false);
+
     }
+
   }
 
   async function checkVerificationAndContinue() {
+
     setError("");
+
     const { data, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError) {
+
       setError("We couldn't check your verification status. Please try again.");
+
       return;
+
     }
+
     if (!data.session?.user?.email_confirmed_at) {
+
       setVerificationNotice("We haven't detected a verified session yet. Please click the confirmation link in your email first. If you've already confirmed, refresh this page and try again.");
+
       return;
+
     }
 
     const url = new URL(window.location.href);
+
     const pendingId = url.searchParams.get("school_id") ||
+
       schoolId ||
+
       window.localStorage.getItem("sahabaQuestPendingSchoolId");
 
     if (!pendingId) {
+
       setError("Your email is verified, but the pending school registration could not be found. Please contact support rather than registering again.");
+
       return;
+
     }
 
     setSchoolId(pendingId);
+
     window.localStorage.setItem("sahabaQuestPendingSchoolId", pendingId);
+
     setShowVerificationModal(false);
+
     setVerificationNotice("");
+
     setSuccessMessage("Email verified successfully. You can now choose your school plan.");
+
     setStep(3);
 
     if (url.searchParams.has("email_verification")) {
+
       url.searchParams.delete("email_verification");
+
       url.searchParams.delete("school_id");
+
       window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+
     }
+
   }
 
   return (
@@ -711,8 +780,6 @@ export default function SchoolsPage() {
 
         </Link>
 
-
-
         <Link
 
           href="/login"
@@ -737,8 +804,6 @@ export default function SchoolsPage() {
 
       </header>
 
-
-
       <section className="sq-page">
 
         <div
@@ -754,8 +819,6 @@ export default function SchoolsPage() {
         >
 
           {/* HERO */}
-
-
 
           <div
 
@@ -774,8 +837,6 @@ export default function SchoolsPage() {
               Schools & Madrasas
 
             </span>
-
-
 
             <h1
 
@@ -798,8 +859,6 @@ export default function SchoolsPage() {
               to Your Students
 
             </h1>
-
-
 
             <p
 
@@ -827,11 +886,91 @@ export default function SchoolsPage() {
 
           </div>
 
+          {/* QUICK ACCESS: students and school administrators */}
+          <section
+            aria-label="School and student access"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "16px",
+              margin: "0 auto 34px",
+              maxWidth: "1000px",
+            }}
+          >
+            <div
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: "16px",
+                padding: "22px",
+                background: "var(--background)",
+              }}
+            >
+              <div style={{ fontSize: "24px", marginBottom: "10px" }} aria-hidden="true">🎓</div>
+              <h2 style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: 800 }}>
+                Already a student?
+              </h2>
+              <p style={{ margin: "0 0 16px", color: "var(--muted)", fontSize: "13px", lineHeight: 1.6 }}>
+                Sign in with the Student ID and PIN provided by your school.
+              </p>
+              <Link
+                href="/schools/student-login"
+                className="sq-button-secondary"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: "42px", padding: "0 14px", textDecoration: "none" }}
+              >
+                Student Login →
+              </Link>
+            </div>
 
+            <div
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: "16px",
+                padding: "22px",
+                background: "var(--background)",
+              }}
+            >
+              <div style={{ fontSize: "24px", marginBottom: "10px" }} aria-hidden="true">🏫</div>
+              <h2 style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: 800 }}>
+                New school or madrasa?
+              </h2>
+              <p style={{ margin: "0 0 16px", color: "var(--muted)", fontSize: "13px", lineHeight: 1.6 }}>
+                Create your institution’s account, verify the administrator email, and choose a plan.
+              </p>
+              <a
+                href="#school-registration"
+                className="sq-button-primary"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: "42px", padding: "0 14px", textDecoration: "none" }}
+              >
+                Register School →
+              </a>
+            </div>
+
+            <div
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: "16px",
+                padding: "22px",
+                background: "var(--background)",
+              }}
+            >
+              <div style={{ fontSize: "24px", marginBottom: "10px" }} aria-hidden="true">🔐</div>
+              <h2 style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: 800 }}>
+                Already registered?
+              </h2>
+              <p style={{ margin: "0 0 16px", color: "var(--muted)", fontSize: "13px", lineHeight: 1.6 }}>
+                School and madrasa administrators can sign in with their account email and password.
+              </p>
+              <Link
+                href="/login"
+                className="sq-button-secondary"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: "42px", padding: "0 14px", textDecoration: "none" }}
+              >
+                Administrator Sign In →
+              </Link>
+            </div>
+          </section>
 
           {/* STEP INDICATOR */}
-
-
 
           <div
 
@@ -866,8 +1005,6 @@ export default function SchoolsPage() {
               const active = step === index + 1;
 
               const completed = step > index + 1;
-
-
 
               return (
 
@@ -931,8 +1068,6 @@ export default function SchoolsPage() {
 
                   </div>
 
-
-
                   <span
 
                     style={{
@@ -956,8 +1091,6 @@ export default function SchoolsPage() {
                     {label}
 
                   </span>
-
-
 
                   {index < 2 && (
 
@@ -987,10 +1120,8 @@ export default function SchoolsPage() {
 
           </div>
 
-
-
           <form
-
+            id="school-registration"
             onSubmit={handleRegistration}
 
             className="sq-card"
@@ -1008,8 +1139,6 @@ export default function SchoolsPage() {
           >
 
             {/* ERROR */}
-
-
 
             {error && (
 
@@ -1043,11 +1172,7 @@ export default function SchoolsPage() {
 
             )}
 
-
-
             {/* SUCCESS */}
-
-
 
             {successMessage && (
 
@@ -1079,15 +1204,11 @@ export default function SchoolsPage() {
 
             )}
 
-
-
             {/* =================================================
 
                 STEP 1 — SCHOOL INFORMATION
 
             ================================================= */}
-
-
 
             {step === 1 && (
 
@@ -1115,8 +1236,6 @@ export default function SchoolsPage() {
 
                   </h2>
 
-
-
                   <p
 
                     style={{
@@ -1140,8 +1259,6 @@ export default function SchoolsPage() {
                   </p>
 
                 </div>
-
-
 
                 <div
 
@@ -1184,8 +1301,6 @@ export default function SchoolsPage() {
                     />
 
                   </Field>
-
-
 
                   <Field label="Type" required>
 
@@ -1235,8 +1350,6 @@ export default function SchoolsPage() {
 
                   </Field>
 
-
-
                   <Field label="Country" required>
 
                     <select
@@ -1277,8 +1390,6 @@ export default function SchoolsPage() {
 
                   </Field>
 
-
-
                   <Field label="State" required>
 
                     <input
@@ -1299,8 +1410,6 @@ export default function SchoolsPage() {
 
                   </Field>
 
-
-
                   <Field label="City" required>
 
                     <input
@@ -1320,8 +1429,6 @@ export default function SchoolsPage() {
                     />
 
                   </Field>
-
-
 
                   <Field
 
@@ -1347,11 +1454,9 @@ export default function SchoolsPage() {
 
                         const value = e.target.value;
 
-
-
                         if (
 
-                          /^[0-9+\-().\s]*$/.test(
+                          /^[0-9+().\s-]*$/.test(
 
                             value
 
@@ -1382,8 +1487,6 @@ export default function SchoolsPage() {
                     />
 
                   </Field>
-
-
 
                   <div
 
@@ -1427,8 +1530,6 @@ export default function SchoolsPage() {
 
                 </div>
 
-
-
                 <div
 
                   style={{
@@ -1463,15 +1564,11 @@ export default function SchoolsPage() {
 
             )}
 
-
-
             {/* =================================================
 
                 STEP 2 — ADMINISTRATOR
 
             ================================================= */}
-
-
 
             {step === 2 && (
 
@@ -1499,8 +1596,6 @@ export default function SchoolsPage() {
 
                   </h2>
 
-
-
                   <p
 
                     style={{
@@ -1524,8 +1619,6 @@ export default function SchoolsPage() {
                   </p>
 
                 </div>
-
-
 
                 <div
 
@@ -1565,8 +1658,6 @@ export default function SchoolsPage() {
 
                   </Field>
 
-
-
                   <Field
 
                     label="Administrator Email"
@@ -1596,8 +1687,6 @@ export default function SchoolsPage() {
                     />
 
                   </Field>
-
-
 
                   <Field
 
@@ -1631,8 +1720,6 @@ export default function SchoolsPage() {
 
                   </Field>
 
-
-
                   <Field
 
                     label="Confirm Password"
@@ -1664,8 +1751,6 @@ export default function SchoolsPage() {
                   </Field>
 
                 </div>
-
-
 
                 <div
 
@@ -1703,8 +1788,6 @@ export default function SchoolsPage() {
 
                   </button>
 
-
-
                   <button
 
                     type="button"
@@ -1712,9 +1795,13 @@ export default function SchoolsPage() {
                     className="sq-button-primary"
 
                     onClick={handleAdminRegistration}
+
                     disabled={loading}
+
                   >
+
                     {loading ? "Creating account..." : "Create account & verify email →"}
+
                   </button>
 
                 </div>
@@ -1723,15 +1810,11 @@ export default function SchoolsPage() {
 
             )}
 
-
-
             {/* =================================================
 
                 STEP 3 — PLAN
 
             ================================================= */}
-
-
 
             {step === 3 && (
 
@@ -1759,8 +1842,6 @@ export default function SchoolsPage() {
 
                   </h2>
 
-
-
                   <p
 
                     style={{
@@ -1784,8 +1865,6 @@ export default function SchoolsPage() {
                   </p>
 
                 </div>
-
-
 
                 <div
 
@@ -1818,8 +1897,6 @@ export default function SchoolsPage() {
                         const value =
 
                           Number(e.target.value);
-
-
 
                         if (
 
@@ -1856,8 +1933,6 @@ export default function SchoolsPage() {
                     />
 
                   </Field>
-
-
 
                   <Field
 
@@ -1903,8 +1978,6 @@ export default function SchoolsPage() {
 
                       </option>
 
-
-
                       <option value="termly">
 
                         Termly —{" "}
@@ -1924,8 +1997,6 @@ export default function SchoolsPage() {
                     </select>
 
                   </Field>
-
-
 
                   <Field label="Currency" required>
 
@@ -1953,23 +2024,17 @@ export default function SchoolsPage() {
 
                       </option>
 
-
-
                       <option value="USD">
 
                         $ US Dollar
 
                       </option>
 
-
-
                       <option value="GBP">
 
                         £ British Pound
 
                       </option>
-
-
 
                       <option value="EUR">
 
@@ -1980,8 +2045,6 @@ export default function SchoolsPage() {
                     </select>
 
                   </Field>
-
-
 
                   <div
 
@@ -2045,8 +2108,6 @@ export default function SchoolsPage() {
 
                         </div>
 
-
-
                         <div
 
                           style={{
@@ -2074,8 +2135,6 @@ export default function SchoolsPage() {
                         </div>
 
                       </div>
-
-
 
                       <div
 
@@ -2131,8 +2190,6 @@ export default function SchoolsPage() {
 
                 </div>
 
-
-
                 <div
 
                   style={{
@@ -2170,8 +2227,6 @@ export default function SchoolsPage() {
                     ← Back
 
                   </button>
-
-
 
                   <button
 
@@ -2213,91 +2268,163 @@ export default function SchoolsPage() {
 
       </section>
 
-    
-
       {showVerificationModal && (
+
         <div
+
           role="dialog"
+
           aria-modal="true"
+
           aria-labelledby="school-email-verification-title"
+
           style={{
+
             position: "fixed",
+
             inset: 0,
+
             zIndex: 1000,
+
             display: "flex",
+
             alignItems: "center",
+
             justifyContent: "center",
+
             padding: "20px",
+
             background: "rgba(15, 23, 42, 0.62)",
+
           }}
+
         >
+
           <div
+
             className="sq-card"
+
             style={{
+
               width: "100%",
+
               maxWidth: "520px",
+
               padding: "30px",
+
               background: "var(--background)",
+
               boxShadow: "0 24px 80px rgba(0,0,0,0.25)",
+
             }}
+
           >
+
             <div
+
               aria-hidden="true"
+
               style={{
+
                 width: "54px",
+
                 height: "54px",
+
                 display: "grid",
+
                 placeItems: "center",
+
                 marginBottom: "18px",
+
                 borderRadius: "50%",
+
                 background: "rgba(13, 148, 136, 0.12)",
+
                 color: "var(--primary-dark)",
+
                 fontSize: "26px",
+
               }}
+
             >
+
               ✉
+
             </div>
+
             <h2
+
               id="school-email-verification-title"
+
               style={{ margin: "0 0 12px", fontSize: "24px", fontWeight: 850 }}
+
             >
+
               Verify your email address
+
             </h2>
+
             <p style={{ margin: "0 0 12px", lineHeight: 1.7, color: "var(--muted)" }}>
+
               {verificationNotice || `We've sent a confirmation email to ${adminEmail.trim().toLowerCase()}. Please open the email and click the confirmation link before choosing a plan.`}
+
             </p>
+
             <p style={{ margin: "0 0 22px", lineHeight: 1.7, color: "var(--muted)", fontSize: "13px" }}>
+
               Check your spam or junk folder if you don't see it. After confirmation, Sahaba Quest will return you to Step 3. Your school registration will not be submitted again.
+
             </p>
+
             <button
+
               type="button"
+
               className="sq-button-primary"
+
               onClick={checkVerificationAndContinue}
+
               style={{ width: "100%", marginBottom: "12px" }}
+
             >
+
               I've confirmed my email
+
             </button>
+
             <button
+
               type="button"
+
               className="sq-button-secondary"
+
               onClick={() => {
+
                 setShowVerificationModal(false);
+
                 setSuccessMessage("Your school registration is saved. Use the confirmation link in your email to return and continue.");
+
               }}
+
               style={{ width: "100%" }}
+
             >
+
               I'll verify later
+
             </button>
+
           </div>
+
         </div>
+
       )}
+
 </main>
 
   );
 
 }
-
-
 
 function Field({
 
@@ -2351,8 +2478,6 @@ function Field({
 
         {label}
 
-
-
         {required && (
 
           <span
@@ -2375,11 +2500,7 @@ function Field({
 
       </label>
 
-
-
       {children}
-
-
 
       {hint && (
 
