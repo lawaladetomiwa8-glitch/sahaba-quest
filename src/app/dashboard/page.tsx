@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
@@ -10,11 +8,7 @@ import { supabase } from "../../lib/supabase";
 
 import { AppNavbar } from "../../components/ui";
 
-
-
 type AccountType = "free" | "individual" | "family";
-
-
 
 type Profile = {
 
@@ -25,8 +19,6 @@ type Profile = {
   account_type: AccountType;
 
 };
-
-
 
 type Progress = {
 
@@ -43,8 +35,6 @@ type Progress = {
   best_streak: number;
 
 };
-
-
 
 type DailyQuestStatus = {
 
@@ -76,8 +66,6 @@ type DailyQuestStatus = {
 
 };
 
-
-
 type SubscriptionPlan = {
 
   plan_type: "plus" | "family" | "school";
@@ -85,8 +73,6 @@ type SubscriptionPlan = {
   display_name: string;
 
 };
-
-
 
 type Subscription = {
 
@@ -97,8 +83,6 @@ type Subscription = {
   plan: SubscriptionPlan | null;
 
 };
-
-
 
 type SubscriptionQueryResult = {
 
@@ -116,215 +100,25 @@ type SubscriptionQueryResult = {
 
 };
 
-
-
-/*
-
- * SAHABA QUEST SOCIAL LINKS
-
- *
-
- * Facebook and Instagram are placeholders for now.
-
- * Replace "#" with the real links when they are available.
-
- */
-
-const SOCIAL_LINKS = {
-
-  instagram: "#",
-
-  facebook: "#",
-
-
-
-  brothersWhatsApp:
-
-    "https://chat.whatsapp.com/HvS4ao1IsipHW44EbRZjjw?s=cl&p=a&mlu=4&ilr=4",
-
-
-
-  sistersWhatsApp:
-
-    "https://chat.whatsapp.com/GdfMHlXEeP16x95g454o0e?s=cl&p=a&mlu=4&ilr=4",
-
-};
-
-
-
-/*
-
- * SOCIAL MEDIA ICONS
-
- */
-
-
-
-function InstagramIcon() {
-
-  return (
-
-    <svg
-
-      width="24"
-
-      height="24"
-
-      viewBox="0 0 24 24"
-
-      fill="none"
-
-      xmlns="http://www.w3.org/2000/svg"
-
-      aria-hidden="true"
-
-    >
-
-      <rect
-
-        x="3"
-
-        y="3"
-
-        width="18"
-
-        height="18"
-
-        rx="5"
-
-        stroke="currentColor"
-
-        strokeWidth="2"
-
-      />
-
-
-
-      <circle
-
-        cx="12"
-
-        cy="12"
-
-        r="4"
-
-        stroke="currentColor"
-
-        strokeWidth="2"
-
-      />
-
-
-
-      <circle
-
-        cx="17.5"
-
-        cy="6.5"
-
-        r="1.2"
-
-        fill="currentColor"
-
-      />
-
-    </svg>
-
-  );
-
-}
-
-
-
-function FacebookIcon() {
-
-  return (
-
-    <svg
-
-      width="24"
-
-      height="24"
-
-      viewBox="0 0 24 24"
-
-      fill="currentColor"
-
-      xmlns="http://www.w3.org/2000/svg"
-
-      aria-hidden="true"
-
-    >
-
-      <path d="M14 8h3V4.5c-.5-.1-2-.2-3.7-.2-3.7 0-6.2 2.2-6.2 6.3V14H4v4h3.1v6h3.8v-6h3.2l.5-4h-3.7v-2.9c0-1.2.3-2.1 2.1-2.1Z" />
-
-    </svg>
-
-  );
-
-}
-
-
-
-function WhatsAppIcon() {
-
-  return (
-
-    <svg
-
-      width="24"
-
-      height="24"
-
-      viewBox="0 0 24 24"
-
-      fill="currentColor"
-
-      xmlns="http://www.w3.org/2000/svg"
-
-      aria-hidden="true"
-
-    >
-
-      <path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.5 0 .2 5.3.2 11.9c0 2.1.6 4.1 1.6 5.9L0 24l6.4-1.7a11.8 11.8 0 0 0 5.7 1.5h.1c6.6 0 11.8-5.3 11.8-11.9 0-3.2-1.2-6.2-3.5-8.4Zm-8.4 18.2h-.1c-1.8 0-3.6-.5-5.1-1.4l-.4-.2-3.8 1 1-3.7-.2-.4a9.7 9.7 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.9-9.8 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.3 2.9 7 0 5.4-4.4 9.8-9.7 9.8Zm5.4-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.6-.8-2.7-1.5-3.8-3.3-.3-.5.3-.5.8-1.7.1-.2 0-.4 0-.5 0-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.1 3c.1.2 2 3.1 4.8 4.3 1.8.8 2.5.9 3.4.8.5-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.4Z" />
-
-    </svg>
-
-  );
-
-}
-
-
-
 export default function DashboardPage() {
 
   const router = useRouter();
-
-
 
   const [profile, setProfile] =
 
     useState<Profile | null>(null);
 
-
-
   const [progress, setProgress] =
 
     useState<Progress | null>(null);
-
-
 
   const [subscription, setSubscription] =
 
     useState<Subscription | null>(null);
 
-
-
   const [dailyQuest, setDailyQuest] =
 
     useState<DailyQuestStatus | null>(null);
-
-
 
   // The quest prompt stays hidden if its status cannot be verified.
 
@@ -346,8 +140,6 @@ export default function DashboardPage() {
 
   }
 
-
-
   // Refresh when the player returns and when the Lagos calendar day changes.
 
   useEffect(() => {
@@ -357,8 +149,6 @@ export default function DashboardPage() {
       timeZone: "Africa/Lagos", year: "numeric", month: "2-digit", day: "2-digit",
 
     }).format(new Date());
-
-
 
     const checkDate = () => {
 
@@ -404,23 +194,17 @@ export default function DashboardPage() {
 
   }, [profile]);
 
-
-
   const [message, setMessage] = useState(
 
     "Loading your dashboard..."
 
   );
 
-
-
   useEffect(() => {
 
     loadDashboard();
 
   }, []);
-
-
 
   async function loadDashboard() {
 
@@ -434,8 +218,6 @@ export default function DashboardPage() {
 
       } = await supabase.auth.getUser();
 
-
-
       if (userError) {
 
         console.error(
@@ -446,21 +228,15 @@ export default function DashboardPage() {
 
         );
 
-
-
         setMessage(
 
           "We could not load your account."
 
         );
 
-
-
         return;
 
       }
-
-
 
       if (!user) {
 
@@ -470,16 +246,20 @@ export default function DashboardPage() {
 
       }
 
-
-
       /*
 
        * SCHOOL ADMIN ROUTING
+
        *
+
        * School Admins use a completely separate account space.
+
        * Their identity is determined by the school_admins table,
+
        * not profiles.account_type. This check happens before
+
        * the Individual/Family profile logic below.
+
        */
 
       const {
@@ -500,8 +280,6 @@ export default function DashboardPage() {
 
         .maybeSingle();
 
-
-
       if (schoolAdminError) {
 
         console.error(
@@ -512,21 +290,15 @@ export default function DashboardPage() {
 
         );
 
-
-
         setMessage(
 
           "We could not verify your school administrator account."
 
         );
 
-
-
         return;
 
       }
-
-
 
       if (schoolAdmin) {
 
@@ -535,8 +307,6 @@ export default function DashboardPage() {
         return;
 
       }
-
-
 
       /*
 
@@ -570,8 +340,6 @@ export default function DashboardPage() {
 
         .single();
 
-
-
       if (profileError) {
 
         console.error(
@@ -582,27 +350,19 @@ export default function DashboardPage() {
 
         );
 
-
-
         setMessage(
 
           "We could not load your profile."
 
         );
 
-
-
         return;
 
       }
 
-
-
       const accountType =
 
         profileData.account_type;
-
-
 
       /*
 
@@ -630,21 +390,15 @@ export default function DashboardPage() {
 
         );
 
-
-
         setMessage(
 
           "Your account type could not be verified."
 
         );
 
-
-
         return;
 
       }
-
-
 
       /*
 
@@ -673,8 +427,6 @@ export default function DashboardPage() {
         return;
 
       }
-
-
 
       /*
 
@@ -716,8 +468,6 @@ export default function DashboardPage() {
 
         .single();
 
-
-
       if (progressError) {
 
         console.error(
@@ -728,21 +478,15 @@ export default function DashboardPage() {
 
         );
 
-
-
         setMessage(
 
           "We could not load your game progress."
 
         );
 
-
-
         return;
 
       }
-
-
 
       /*
 
@@ -800,8 +544,6 @@ export default function DashboardPage() {
 
         .maybeSingle();
 
-
-
       if (subscriptionError) {
 
         console.error(
@@ -812,8 +554,6 @@ export default function DashboardPage() {
 
         );
 
-
-
         setSubscription(null);
 
       } else if (subscriptionData) {
@@ -822,13 +562,9 @@ export default function DashboardPage() {
 
           subscriptionData as unknown as SubscriptionQueryResult;
 
-
-
         let plan: SubscriptionPlan | null =
 
           null;
-
-
 
         if (
 
@@ -856,21 +592,15 @@ export default function DashboardPage() {
 
         }
 
-
-
         setSubscription({
 
           status:
 
             subscriptionResult.status,
 
-
-
           current_period_end:
 
             subscriptionResult.current_period_end,
-
-
 
           plan,
 
@@ -882,8 +612,6 @@ export default function DashboardPage() {
 
       }
 
-
-
       setProfile({
 
         username: profileData.username,
@@ -893,8 +621,6 @@ export default function DashboardPage() {
         account_type: accountType,
 
       });
-
-
 
       setProgress(progressData);
 
@@ -912,8 +638,6 @@ export default function DashboardPage() {
 
       );
 
-
-
       setMessage(
 
         "Something went wrong while loading your dashboard."
@@ -923,8 +647,6 @@ export default function DashboardPage() {
     }
 
   }
-
-
 
   /*
 
@@ -1010,15 +732,11 @@ export default function DashboardPage() {
 
             </div>
 
-
-
             <h1 className="sq-title">
 
               Sahaba Quest
 
             </h1>
-
-
 
             <p
 
@@ -1046,8 +764,6 @@ export default function DashboardPage() {
 
   }
 
-
-
   /*
 
    * PLAYER NAME
@@ -1061,8 +777,6 @@ export default function DashboardPage() {
     profile.username ||
 
     "Player";
-
-
 
   /*
 
@@ -1086,8 +800,6 @@ export default function DashboardPage() {
 
   };
 
-
-
   const accountDescriptions: Record<
 
     AccountType,
@@ -1110,19 +822,13 @@ export default function DashboardPage() {
 
   };
 
-
-
   const accountLabel =
 
     accountLabels[profile.account_type];
 
-
-
   const accountDescription =
 
     accountDescriptions[profile.account_type];
-
-
 
   /*
 
@@ -1146,8 +852,6 @@ export default function DashboardPage() {
 
       : 0;
 
-
-
   /*
 
    * CURRENT LEVEL QUESTION PROGRESS
@@ -1158,13 +862,9 @@ export default function DashboardPage() {
 
     progress.questions_answered % 50;
 
-
-
   const correctInCurrentLevel =
 
     progress.correct_answers % 50;
-
-
 
   /*
 
@@ -1190,8 +890,6 @@ export default function DashboardPage() {
 
         );
 
-
-
   /*
 
    * REQUIRED CORRECT ANSWERS TO PASS
@@ -1205,8 +903,6 @@ export default function DashboardPage() {
     100
 
   );
-
-
 
   /*
 
@@ -1234,8 +930,6 @@ export default function DashboardPage() {
 
       : "";
 
-
-
   return (
 
     <main
@@ -1256,8 +950,6 @@ export default function DashboardPage() {
 
       <div className="sq-container">
 
-
-
         {/* NAVIGATION */}
 
         <div
@@ -1275,8 +967,6 @@ export default function DashboardPage() {
           <AppNavbar />
 
         </div>
-
-
 
         {/* WELCOME HERO */}
 
@@ -1326,8 +1016,6 @@ export default function DashboardPage() {
 
           />
 
-
-
           <div
 
             style={{
@@ -1361,8 +1049,6 @@ export default function DashboardPage() {
                 Level {progress.current_level}
 
               </span>
-
-
 
               <span
 
@@ -1412,8 +1098,6 @@ export default function DashboardPage() {
 
             </div>
 
-
-
             <h1
 
               style={{
@@ -1454,8 +1138,6 @@ export default function DashboardPage() {
 
             </h1>
 
-
-
             <p
 
               style={{
@@ -1483,8 +1165,6 @@ export default function DashboardPage() {
               something valuable today.
 
             </p>
-
-
 
             <div
 
@@ -1514,8 +1194,6 @@ export default function DashboardPage() {
 
               </a>
 
-
-
               <a
 
                 href="/progress"
@@ -1533,8 +1211,6 @@ export default function DashboardPage() {
           </div>
 
         </section>
-
-
 
         {/* DAILY QUEST: show only when today's quest is unfinished */}
 
@@ -1684,8 +1360,6 @@ export default function DashboardPage() {
 
         )}
 
-
-
         {/* ACCOUNT TYPE */}
 
         <section
@@ -1732,8 +1406,6 @@ export default function DashboardPage() {
 
               </div>
 
-
-
               <h2
 
                 style={{
@@ -1751,8 +1423,6 @@ export default function DashboardPage() {
                 {accountLabel}
 
               </h2>
-
-
 
               <p
 
@@ -1775,8 +1445,6 @@ export default function DashboardPage() {
               </p>
 
             </div>
-
-
 
             {profile.account_type ===
 
@@ -1818,8 +1486,6 @@ export default function DashboardPage() {
 
         </section>
 
-
-
         {/* STATS */}
 
         <section
@@ -1848,15 +1514,11 @@ export default function DashboardPage() {
 
             </div>
 
-
-
             <div className="sq-stat-value">
 
               {progress.current_level}
 
             </div>
-
-
 
             <div
 
@@ -1880,8 +1542,6 @@ export default function DashboardPage() {
 
           </div>
 
-
-
           <div className="sq-stat">
 
             <div className="sq-stat-label">
@@ -1890,15 +1550,11 @@ export default function DashboardPage() {
 
             </div>
 
-
-
             <div className="sq-stat-value">
 
               {progress.total_xp.toLocaleString()}
 
             </div>
-
-
 
             <div
 
@@ -1920,8 +1576,6 @@ export default function DashboardPage() {
 
           </div>
 
-
-
           <div className="sq-stat">
 
             <div className="sq-stat-label">
@@ -1929,8 +1583,6 @@ export default function DashboardPage() {
               Current Streak
 
             </div>
-
-
 
             <div
 
@@ -1952,8 +1604,6 @@ export default function DashboardPage() {
 
             </div>
 
-
-
             <div
 
               style={{
@@ -1974,8 +1624,6 @@ export default function DashboardPage() {
 
           </div>
 
-
-
           <div className="sq-stat">
 
             <div className="sq-stat-label">
@@ -1984,15 +1632,11 @@ export default function DashboardPage() {
 
             </div>
 
-
-
             <div className="sq-stat-value">
 
               {accuracy}%
 
             </div>
-
-
 
             <div
 
@@ -2015,8 +1659,6 @@ export default function DashboardPage() {
           </div>
 
         </section>
-
-
 
         {/* SUBSCRIPTION */}
 
@@ -2108,8 +1750,6 @@ export default function DashboardPage() {
 
               </div>
 
-
-
               <div>
 
                 <div className="sq-badge">
@@ -2117,8 +1757,6 @@ export default function DashboardPage() {
                   Your Subscription
 
                 </div>
-
-
 
                 <h2
 
@@ -2141,8 +1779,6 @@ export default function DashboardPage() {
                     "Sahaba Quest Free"}
 
                 </h2>
-
-
 
                 <p
 
@@ -2167,8 +1803,6 @@ export default function DashboardPage() {
                     : "You are currently on the free plan. Continue your journey or unlock more levels."}
 
                 </p>
-
-
 
                 {subscription &&
 
@@ -2201,8 +1835,6 @@ export default function DashboardPage() {
               </div>
 
             </div>
-
-
 
             {!subscription && (
 
@@ -2241,8 +1873,6 @@ export default function DashboardPage() {
           </div>
 
         </section>
-
-
 
         {/* MAIN CONTENT GRID */}
 
@@ -2304,8 +1934,6 @@ export default function DashboardPage() {
 
                 </div>
 
-
-
                 <h2
 
                   style={{
@@ -2325,8 +1953,6 @@ export default function DashboardPage() {
                   {progress.current_level}
 
                 </h2>
-
-
 
                 <p
 
@@ -2354,8 +1980,6 @@ export default function DashboardPage() {
 
               </div>
 
-
-
               <div
 
                 style={{
@@ -2375,8 +1999,6 @@ export default function DashboardPage() {
               </div>
 
             </div>
-
-
 
             {/* QUESTIONS PROGRESS */}
 
@@ -2422,8 +2044,6 @@ export default function DashboardPage() {
 
                 </span>
 
-
-
                 <span
 
                   style={{
@@ -2446,8 +2066,6 @@ export default function DashboardPage() {
 
               </div>
 
-
-
               <div className="sq-progress">
 
                 <div
@@ -2465,8 +2083,6 @@ export default function DashboardPage() {
               </div>
 
             </div>
-
-
 
             {/* PASS PROGRESS */}
 
@@ -2512,8 +2128,6 @@ export default function DashboardPage() {
 
                 </span>
 
-
-
                 <span
 
                   style={{
@@ -2536,8 +2150,6 @@ export default function DashboardPage() {
 
               </div>
 
-
-
               <div className="sq-progress">
 
                 <div
@@ -2555,8 +2167,6 @@ export default function DashboardPage() {
               </div>
 
             </div>
-
-
 
             {/* SMALL PROGRESS STATS */}
 
@@ -2614,8 +2224,6 @@ export default function DashboardPage() {
 
                 </div>
 
-
-
                 <div
 
                   style={{
@@ -2635,8 +2243,6 @@ export default function DashboardPage() {
                 </div>
 
               </div>
-
-
 
               <div
 
@@ -2674,8 +2280,6 @@ export default function DashboardPage() {
 
                 </div>
 
-
-
                 <div
 
                   style={{
@@ -2700,8 +2304,6 @@ export default function DashboardPage() {
 
           </div>
 
-
-
           {/* QUICK ACTIONS */}
 
           <div
@@ -2722,8 +2324,6 @@ export default function DashboardPage() {
 
             </div>
 
-
-
             <h2
 
               style={{
@@ -2743,8 +2343,6 @@ export default function DashboardPage() {
               do?
 
             </h2>
-
-
 
             <div
 
@@ -2794,13 +2392,9 @@ export default function DashboardPage() {
 
                 </span>
 
-
-
                 <span>→</span>
 
               </a>
-
-
 
               <a
 
@@ -2838,13 +2432,9 @@ export default function DashboardPage() {
 
                 </span>
 
-
-
                 <span>→</span>
 
               </a>
-
-
 
               <a
 
@@ -2880,13 +2470,9 @@ export default function DashboardPage() {
 
                 </span>
 
-
-
                 <span>→</span>
 
               </a>
-
-
 
               <a
 
@@ -2922,8 +2508,6 @@ export default function DashboardPage() {
 
                 </span>
 
-
-
                 <span>→</span>
 
               </a>
@@ -2933,8 +2517,6 @@ export default function DashboardPage() {
           </div>
 
         </section>
-
-
 
         {/* LEARNING MOTIVATION */}
 
@@ -3010,8 +2592,6 @@ export default function DashboardPage() {
 
               </div>
 
-
-
               <h2
 
                 style={{
@@ -3033,8 +2613,6 @@ export default function DashboardPage() {
                 Prophet ﷺ.
 
               </h2>
-
-
 
               <p
 
@@ -3065,8 +2643,6 @@ export default function DashboardPage() {
               </p>
 
             </div>
-
-
 
             <a
 
@@ -3106,750 +2682,6 @@ export default function DashboardPage() {
 
         </section>
 
-
-
-        {/* STAY CONNECTED */}
-
-        <section
-
-          className="sq-card social-connect-card"
-
-          style={{
-
-            marginTop: "20px",
-
-            padding: "32px",
-
-            background:
-
-              "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
-
-            overflow: "hidden",
-
-            position: "relative",
-
-          }}
-
-        >
-
-          {/* DECORATIVE CIRCLE */}
-
-          <div
-
-            style={{
-
-              position: "absolute",
-
-              right: "-70px",
-
-              top: "-80px",
-
-              width: "220px",
-
-              height: "220px",
-
-              borderRadius: "50%",
-
-              background:
-
-                "var(--primary-light)",
-
-              opacity: 0.45,
-
-              pointerEvents: "none",
-
-            }}
-
-          />
-
-
-
-          <div
-
-            style={{
-
-              position: "relative",
-
-              zIndex: 1,
-
-            }}
-
-          >
-
-            <div className="sq-badge">
-
-              Stay Connected
-
-            </div>
-
-
-
-            <h2
-
-              style={{
-
-                margin: "14px 0 8px",
-
-                fontSize:
-
-                  "clamp(24px, 4vw, 30px)",
-
-                fontWeight: 900,
-
-              }}
-
-            >
-
-              Don't miss the next
-
-              Sahaba episode.
-
-            </h2>
-
-
-
-            <p
-
-              style={{
-
-                margin: 0,
-
-                maxWidth: "720px",
-
-                color: "var(--muted)",
-
-                lineHeight: 1.7,
-
-                fontSize: "15px",
-
-              }}
-
-            >
-
-              Follow Sahaba Quest and join
-
-              our WhatsApp communities to
-
-              receive weekly{" "}
-
-              <strong>
-
-                Walking with the Sahaba
-
-              </strong>{" "}
-
-              episodes, platform updates,
-
-              new challenges and other
-
-              important announcements.
-
-            </p>
-
-
-
-            {/* SOCIAL LINKS */}
-
-            <div
-
-              className="social-connect-grid"
-
-              style={{
-
-                display: "grid",
-
-                gridTemplateColumns:
-
-                  "repeat(4, minmax(0, 1fr))",
-
-                gap: "14px",
-
-                marginTop: "24px",
-
-              }}
-
-            >
-
-              {/* INSTAGRAM */}
-
-              <a
-
-                href={SOCIAL_LINKS.instagram}
-
-                onClick={(event) => {
-
-                  if (
-
-                    SOCIAL_LINKS.instagram ===
-
-                    "#"
-
-                  ) {
-
-                    event.preventDefault();
-
-                  }
-
-                }}
-
-                target="\_blank"
-
-                rel="noopener noreferrer"
-
-                className="social-connect-item"
-
-                style={{
-
-                  textDecoration: "none",
-
-                  color: "var(--foreground)",
-
-                  padding: "20px",
-
-                  borderRadius: "18px",
-
-                  border:
-
-                    "1px solid var(--border)",
-
-                  background: "white",
-
-                  display: "flex",
-
-                  flexDirection: "column",
-
-                  minHeight: "145px",
-
-                  transition:
-
-                    "transform 0.2s ease, box-shadow 0.2s ease",
-
-                  cursor:
-
-                    SOCIAL_LINKS.instagram ===
-
-                    "#"
-
-                      ? "default"
-
-                      : "pointer",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    width: "46px",
-
-                    height: "46px",
-
-                    borderRadius: "14px",
-
-                    background:
-
-                      "var(--primary-light)",
-
-                    color: "#E1306C",
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    justifyContent: "center",
-
-                    marginBottom: "14px",
-
-                  }}
-
-                >
-
-                  <InstagramIcon />
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    fontWeight: 900,
-
-                    fontSize: "16px",
-
-                  }}
-
-                >
-
-                  Instagram
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    marginTop: "5px",
-
-                    color: "var(--muted)",
-
-                    fontSize: "12px",
-
-                    lineHeight: 1.5,
-
-                  }}
-
-                >
-
-                  Coming soon
-
-                </div>
-
-              </a>
-
-
-
-              {/* FACEBOOK */}
-
-              <a
-
-                href={SOCIAL_LINKS.facebook}
-
-                onClick={(event) => {
-
-                  if (
-
-                    SOCIAL_LINKS.facebook ===
-
-                    "#"
-
-                  ) {
-
-                    event.preventDefault();
-
-                  }
-
-                }}
-
-                target="\_blank"
-
-                rel="noopener noreferrer"
-
-                className="social-connect-item"
-
-                style={{
-
-                  textDecoration: "none",
-
-                  color: "var(--foreground)",
-
-                  padding: "20px",
-
-                  borderRadius: "18px",
-
-                  border:
-
-                    "1px solid var(--border)",
-
-                  background: "white",
-
-                  display: "flex",
-
-                  flexDirection: "column",
-
-                  minHeight: "145px",
-
-                  transition:
-
-                    "transform 0.2s ease, box-shadow 0.2s ease",
-
-                  cursor:
-
-                    SOCIAL_LINKS.facebook ===
-
-                    "#"
-
-                      ? "default"
-
-                      : "pointer",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    width: "46px",
-
-                    height: "46px",
-
-                    borderRadius: "14px",
-
-                    background:
-
-                      "var(--primary-light)",
-
-                    color: "#1877F2",
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    justifyContent: "center",
-
-                    marginBottom: "14px",
-
-                  }}
-
-                >
-
-                  <FacebookIcon />
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    fontWeight: 900,
-
-                    fontSize: "16px",
-
-                  }}
-
-                >
-
-                  Facebook
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    marginTop: "5px",
-
-                    color: "var(--muted)",
-
-                    fontSize: "12px",
-
-                    lineHeight: 1.5,
-
-                  }}
-
-                >
-
-                  Coming soon
-
-                </div>
-
-              </a>
-
-
-
-              {/* BROTHERS WHATSAPP */}
-
-              <a
-
-                href={
-
-                  SOCIAL_LINKS.brothersWhatsApp
-
-                }
-
-                target="\_blank"
-
-                rel="noopener noreferrer"
-
-                className="social-connect-item"
-
-                style={{
-
-                  textDecoration: "none",
-
-                  color: "var(--foreground)",
-
-                  padding: "20px",
-
-                  borderRadius: "18px",
-
-                  border:
-
-                    "1px solid var(--border)",
-
-                  background: "white",
-
-                  display: "flex",
-
-                  flexDirection: "column",
-
-                  minHeight: "145px",
-
-                  transition:
-
-                    "transform 0.2s ease, box-shadow 0.2s ease",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    width: "46px",
-
-                    height: "46px",
-
-                    borderRadius: "14px",
-
-                    background:
-
-                      "var(--primary-light)",
-
-                    color: "#25D366",
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    justifyContent: "center",
-
-                    marginBottom: "14px",
-
-                  }}
-
-                >
-
-                  <WhatsAppIcon />
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    fontWeight: 900,
-
-                    fontSize: "16px",
-
-                  }}
-
-                >
-
-                  Brothers' Group
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    marginTop: "5px",
-
-                    color: "var(--muted)",
-
-                    fontSize: "12px",
-
-                    lineHeight: 1.5,
-
-                  }}
-
-                >
-
-                  Join for weekly
-
-                  episodes & updates →
-
-                </div>
-
-              </a>
-
-
-
-              {/* SISTERS WHATSAPP */}
-
-              <a
-
-                href={
-
-                  SOCIAL_LINKS.sistersWhatsApp
-
-                }
-
-                target="\_blank"
-
-                rel="noopener noreferrer"
-
-                className="social-connect-item"
-
-                style={{
-
-                  textDecoration: "none",
-
-                  color: "var(--foreground)",
-
-                  padding: "20px",
-
-                  borderRadius: "18px",
-
-                  border:
-
-                    "1px solid var(--border)",
-
-                  background: "white",
-
-                  display: "flex",
-
-                  flexDirection: "column",
-
-                  minHeight: "145px",
-
-                  transition:
-
-                    "transform 0.2s ease, box-shadow 0.2s ease",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    width: "46px",
-
-                    height: "46px",
-
-                    borderRadius: "14px",
-
-                    background:
-
-                      "var(--primary-light)",
-
-                    color: "#25D366",
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    justifyContent: "center",
-
-                    marginBottom: "14px",
-
-                  }}
-
-                >
-
-                  <WhatsAppIcon />
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    fontWeight: 900,
-
-                    fontSize: "16px",
-
-                  }}
-
-                >
-
-                  Sisters' Group
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    marginTop: "5px",
-
-                    color: "var(--muted)",
-
-                    fontSize: "12px",
-
-                    lineHeight: 1.5,
-
-                  }}
-
-                >
-
-                  Join for weekly
-
-                  episodes & updates →
-
-                </div>
-
-              </a>
-
-            </div>
-
-
-
-            {/* WEEKLY EPISODE MESSAGE */}
-
-            <div
-
-              style={{
-
-                marginTop: "18px",
-
-                padding: "15px 18px",
-
-                borderRadius: "15px",
-
-                background:
-
-                  "var(--primary-light)",
-
-                color: "var(--primary-dark)",
-
-                fontSize: "13px",
-
-                lineHeight: 1.6,
-
-                fontWeight: 700,
-
-              }}
-
-            >
-
-              📖 New Sahaba episode every
-
-              week — stay connected so you
-
-              don't miss it.
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-
         {/* FOOTER */}
 
         <footer
@@ -3876,37 +2708,11 @@ export default function DashboardPage() {
 
       </div>
 
-
-
       {/* RESPONSIVE DASHBOARD FIX */}
 
       <style jsx>{`
 
-        .social-connect-item:hover {
-
-          transform: translateY(-3px);
-
-          box-shadow: 0 10px 25px
-
-            rgba(15, 118, 110, 0.08);
-
-        }
-
-
-
-        @media (max-width: 1000px) {
-
-          .social-connect-grid {
-
-            grid-template-columns:
-
-              repeat(2, minmax(0, 1fr)) !important;
-
-          }
-
-        }
-
-
+        
 
         @media (max-width: 800px) {
 
@@ -3920,8 +2726,6 @@ export default function DashboardPage() {
 
           }
 
-
-
           .dashboard-main-grid > * {
 
             width: 100% !important;
@@ -3931,8 +2735,6 @@ export default function DashboardPage() {
           }
 
         }
-
-
 
         @media (max-width: 600px) {
 
@@ -3952,23 +2754,17 @@ export default function DashboardPage() {
 
           }
 
-
-
           .dashboard-main-grid {
 
             gap: 16px !important;
 
           }
 
-
-
           .dashboard-main-grid .sq-card {
 
             padding: 22px !important;
 
           }
-
-
 
           .dashboard-main-grid
 
@@ -3980,8 +2776,6 @@ export default function DashboardPage() {
 
           }
 
-
-
           .dashboard-main-grid
 
             .sq-card
@@ -3992,8 +2786,6 @@ export default function DashboardPage() {
 
           }
 
-
-
           .dashboard-main-grid
 
             .sq-card
@@ -4001,32 +2793,6 @@ export default function DashboardPage() {
             p {
 
             max-width: 100% !important;
-
-          }
-
-
-
-          .social-connect-card {
-
-            padding: 22px !important;
-
-          }
-
-
-
-          .social-connect-grid {
-
-            grid-template-columns:
-
-              1fr !important;
-
-          }
-
-
-
-          .social-connect-item {
-
-            min-height: 120px !important;
 
           }
 
