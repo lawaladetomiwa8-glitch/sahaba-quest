@@ -1,777 +1,1687 @@
 @import "tailwindcss";
 
+
+
 /* =========================================================
+
    SAHABA QUEST — GLOBAL DESIGN SYSTEM
+
    ========================================================= */
+
+
 
 :root {
+
   --background: #f7f9f8;
+
   --foreground: #17221d;
 
+
+
   --primary: #0f766e;
+
   --primary-dark: #115e59;
+
   --primary-light: #ccfbf1;
 
+
+
   --secondary: #d4a72c;
+
   --secondary-light: #fef3c7;
 
+
+
   --success: #16a34a;
+
   --success-light: #dcfce7;
 
+
+
   --danger: #dc2626;
+
   --danger-light: #fee2e2;
 
+
+
   --white: #ffffff;
+
   --border: #e2e8e5;
+
   --muted: #64748b;
+
   --muted-light: #94a3b8;
 
+
+
   --card-shadow:
+
     0 10px 30px rgba(15, 118, 110, 0.08);
 
+
+
   --card-shadow-hover:
+
     0 18px 40px rgba(15, 118, 110, 0.14);
 
+
+
   --radius-sm: 10px;
+
   --radius-md: 16px;
+
   --radius-lg: 24px;
+
   --radius-xl: 32px;
+
 }
 
+
+
 /* =========================================================
+
    RESET
+
    ========================================================= */
+
+
 
 * {
+
   box-sizing: border-box;
+
 }
+
+
 
 html {
+
   scroll-behavior: smooth;
+
 }
+
+
 
 body {
+
   margin: 0;
+
   background: var(--background);
+
   color: var(--foreground);
+
   font-family:
+
     Arial,
+
     Helvetica,
+
     sans-serif;
+
   -webkit-font-smoothing: antialiased;
+
 }
 
+
+
 /* =========================================================
+
    LINKS
+
    ========================================================= */
+
+
 
 a {
+
   color: inherit;
+
   text-decoration: none;
+
 }
 
+
+
 /* =========================================================
+
    BUTTONS
+
    ========================================================= */
+
+
 
 button {
+
   font: inherit;
+
   cursor: pointer;
+
 }
+
+
 
 button:disabled {
+
   cursor: not-allowed;
+
   opacity: 0.6;
+
 }
 
+
+
 /* =========================================================
+
    INPUTS
+
    ========================================================= */
+
+
 
 input,
+
 textarea,
+
 select {
+
   font: inherit;
+
 }
 
+
+
 /* =========================================================
+
    SHARED LAYOUT
+
    ========================================================= */
+
+
 
 .sq-page {
+
   min-height: 100vh;
+
   padding: 32px;
+
 }
+
+
 
 .sq-container {
+
   width: 100%;
+
   max-width: 1200px;
+
   margin: 0 auto;
+
 }
 
+
+
 /* =========================================================
+
    PREMIUM CARD
+
    ========================================================= */
+
+
 
 .sq-card {
+
   background: var(--white);
+
   border: 1px solid var(--border);
+
   border-radius: var(--radius-lg);
+
   box-shadow: var(--card-shadow);
+
 }
 
+
+
 /* =========================================================
+
    PRIMARY BUTTON
+
    ========================================================= */
+
+
 
 .sq-button-primary {
+
   display: inline-flex;
+
   align-items: center;
+
   justify-content: center;
+
   gap: 8px;
 
+
+
   min-height: 48px;
+
   padding: 0 22px;
+
+
 
   border: none;
+
   border-radius: 14px;
+
+
 
   background: var(--primary);
+
   color: var(--white);
 
+
+
   font-weight: 700;
 
+
+
   transition:
+
     transform 0.2s ease,
+
     box-shadow 0.2s ease,
-    background 0.2s ease;
+
+    *background* 0.2s ease;
+
 }
+
+
 
 .sq-button-primary:hover {
+
   background: var(--primary-dark);
+
   transform: translateY(-2px);
+
   box-shadow: 0 10px 24px rgba(15, 118, 110, 0.2);
+
 }
 
+
+
 /* =========================================================
+
    SECONDARY BUTTON
+
    ========================================================= */
 
+
+
 .sq-button-secondary {
+
   display: inline-flex;
+
   align-items: center;
+
   justify-content: center;
 
+
+
   min-height: 48px;
+
   padding: 0 22px;
 
+
+
   border: 1px solid var(--border);
+
   border-radius: 14px;
 
+
+
   background: var(--white);
+
   color: var(--foreground);
+
+
 
   font-weight: 700;
 
+
+
   transition:
+
     transform 0.2s ease,
+
     box-shadow 0.2s ease,
-    background 0.2s ease;
+
+    *background* 0.2s ease;
+
 }
+
+
 
 .sq-button-secondary:hover {
+
   background: #f8faf9;
+
   transform: translateY(-2px);
+
   box-shadow: var(--card-shadow);
+
 }
 
+
+
 /* =========================================================
+
    PAGE TITLE
+
    ========================================================= */
+
+
 
 .sq-title {
+
   margin: 0;
+
   font-size: 32px;
+
   line-height: 1.15;
+
   font-weight: 800;
+
   letter-spacing: -0.8px;
+
 }
+
+
 
 .sq-subtitle {
+
   margin: 8px 0 0;
+
   color: var(--muted);
+
   font-size: 16px;
+
   line-height: 1.6;
+
 }
 
+
+
 /* =========================================================
+
    STAT CARD
+
    ========================================================= */
+
+
 
 .sq-stat {
+
   padding: 22px;
+
   border-radius: var(--radius-md);
+
   background: var(--white);
+
   border: 1px solid var(--border);
+
   box-shadow: var(--card-shadow);
+
 }
+
+
 
 .sq-stat-label {
+
   color: var(--muted);
+
   font-size: 13px;
+
   font-weight: 600;
+
 }
+
+
 
 .sq-stat-value {
+
   margin-top: 6px;
+
   font-size: 28px;
+
   font-weight: 800;
+
 }
 
+
+
 /* =========================================================
+
    BADGE
+
    ========================================================= */
 
+
+
 .sq-badge {
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 6px;
+
+
 
   padding: 7px 12px;
 
+
+
   border-radius: 999px;
 
+
+
   background: var(--primary-light);
+
   color: var(--primary-dark);
 
+
+
   font-size: 13px;
+
   font-weight: 700;
+
 }
 
+
+
 /* =========================================================
+
    PROGRESS BAR
+
    ========================================================= */
 
+
+
 .sq-progress {
+
   width: 100%;
+
   height: 10px;
+
+
 
   overflow: hidden;
 
+
+
   border-radius: 999px;
+
   background: #e2e8e5;
+
 }
 
+
+
 .sq-progress-bar {
+
   height: 100%;
+
+
 
   border-radius: inherit;
 
+
+
   background: var(--primary);
 
+
+
   transition: width 0.4s ease;
+
 }
+
+
 
 /* =========================================================
+
    FORM ELEMENTS
+
    ========================================================= */
 
+
+
 .sq-label {
+
   display: block;
+
   margin-bottom: 8px;
 
+
+
   font-size: 14px;
+
   font-weight: 700;
+
 }
 
+
+
 .sq-input {
+
   width: 100%;
+
   height: 50px;
+
+
 
   padding: 0 15px;
 
+
+
   border: 1px solid var(--border);
+
   border-radius: 14px;
 
+
+
   background: var(--white);
+
   color: var(--foreground);
+
+
 
   outline: none;
 
+
+
   transition:
+
     border-color 0.2s ease,
+
     box-shadow 0.2s ease;
+
 }
+
+
 
 .sq-input:focus {
+
   border-color: var(--primary);
 
+
+
   box-shadow:
+
     0 0 0 4px rgba(15, 118, 110, 0.1);
+
 }
 
+
+
 /* =========================================================
+
    QUIZ ANSWER CARD
+
    ========================================================= */
 
+
+
 .sq-answer {
+
   width: 100%;
+
+
 
   padding: 18px 20px;
 
+
+
   display: flex;
+
   align-items: center;
+
   gap: 14px;
 
+
+
   border: 1px solid var(--border);
+
   border-radius: 16px;
 
+
+
   background: var(--white);
+
   color: var(--foreground);
+
+
 
   text-align: left;
 
+
+
   transition:
+
     transform 0.2s ease,
+
     border-color 0.2s ease,
-    background 0.2s ease,
+
+    *background* 0.2s ease,
+
     box-shadow 0.2s ease;
+
 }
+
+
 
 .sq-answer:hover {
+
   border-color: var(--primary);
+
   background: #f0fdfa;
+
   transform: translateY(-2px);
+
   box-shadow: var(--card-shadow);
+
 }
 
+
+
 .sq-answer-letter {
+
   width: 38px;
+
   height: 38px;
+
+
 
   flex-shrink: 0;
 
+
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
+
 
   border-radius: 11px;
 
+
+
   background: #f1f5f3;
+
   color: var(--primary);
 
+
+
   font-weight: 800;
+
 }
 
+
+
 /* =========================================================
+
    QUIZ FEEDBACK
+
    ========================================================= */
+
+
 
 .sq-correct {
+
   border-color: var(--success);
+
   background: var(--success-light);
+
 }
+
+
 
 .sq-wrong {
+
   border-color: var(--danger);
+
   background: var(--danger-light);
+
 }
 
+
+
 /* =========================================================
+
    TIMER
+
    ========================================================= */
 
+
+
 .sq-timer {
+
   width: 72px;
+
   height: 72px;
 
+
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
+
 
   border-radius: 50%;
 
+
+
   background: var(--primary-light);
+
   color: var(--primary-dark);
 
+
+
   font-size: 22px;
+
   font-weight: 800;
 
+
+
   border: 5px solid var(--primary);
+
 }
 
+
+
 /* =========================================================
+
    NAVIGATION
+
    ========================================================= */
 
+
+
 .sq-nav {
+
   min-height: 72px;
 
+
+
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
+
+
 
   padding: 0 28px;
 
+
+
   background: var(--white);
 
+
+
   border-bottom: 1px solid var(--border);
+
 }
+
+
 
 .sq-logo {
+
   font-size: 22px;
+
   font-weight: 900;
+
   color: var(--primary);
+
 }
+
+
 
 .sq-nav-links {
+
   display: flex;
+
   align-items: center;
+
   gap: 8px;
+
 }
 
+
+
 .sq-nav-link {
+
   padding: 10px 14px;
+
+
 
   border-radius: 10px;
 
+
+
   color: var(--muted);
 
+
+
   font-size: 14px;
+
   font-weight: 700;
 
+
+
   transition:
-    background 0.2s ease,
+
+    *background* 0.2s ease,
+
     color 0.2s ease;
+
 }
+
+
 
 .sq-nav-link:hover {
+
   background: var(--primary-light);
+
   color: var(--primary-dark);
+
 }
+
+
 
 /* =========================================================
+
    RESPONSIVE DESIGN
+
    ========================================================= */
 
+
+
 @media (max-width: 768px) {
+
   .sq-page {
+
     padding: 20px 16px;
+
   }
+
+
 
   .sq-title {
+
     font-size: 26px;
+
   }
+
+
 
   .sq-nav {
+
     padding: 0 16px;
+
   }
+
+
 
   .sq-nav-links {
+
     display: none;
+
   }
+
+
 
   .sq-card {
+
     border-radius: 20px;
+
   }
+
+
 
   .sq-stat {
+
     padding: 18px;
+
   }
+
 }
 
+
+
 /* ---------------------------------------------------------
+
    Mobile Navigation — Global Header System
---------------------------------------------------------- */
+
+\--------------------------------------------------------- */
+
+
 
 .sq-mobile-nav {
+
+  display: none;
+
+}
+
+
+
+@media (max-width: 768px) {
+
+  /* Hide the desktop navigation on mobile. */
+
+  .sq-nav {
+
+    display: none !important;
+
+  }
+
+
+
+  /*
+
+   * ONE mobile header for the entire application.
+
+   * It stays at the very top on every page.
+
+   */
+
+  .sq-mobile-nav {
+
+    position: fixed !important;
+
+    top: 0 !important;
+
+    left: 0 !important;
+
+    right: 0 !important;
+
+    z-index: 1000 !important;
+
+
+
+    display: block !important;
+
+
+
+    width: 100% !important;
+
+    margin: 0 !important;
+
+
+
+    background: rgba(255, 255, 255, 0.97) !important;
+
+    border-bottom: 1px solid var(--border) !important;
+
+
+
+    box-shadow:
+
+      0 4px 18px rgba(15, 118, 110, 0.08) !important;
+
+
+
+    backdrop-filter: blur(12px);
+
+    -webkit-backdrop-filter: blur(12px);
+
+  }
+
+
+
+  .sq-mobile-header {
+
+    min-height: 68px;
+
+
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+
+
+    width: 100%;
+
+    padding: 0 16px;
+
+  }
+
+
+
+  .sq-mobile-logo {
+
+    color: var(--primary);
+
+
+
+    font-size: 20px;
+
+    font-weight: 900;
+
+    letter-spacing: -0.3px;
+
+  }
+
+
+
+  .sq-mobile-menu-button {
+
+    width: 44px;
+
+    height: 44px;
+
+
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+
+
+    flex-shrink: 0;
+
+    padding: 0;
+
+
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+
+
+    background: var(--white);
+
+    color: var(--primary-dark);
+
+
+
+    font-size: 22px;
+
+    font-weight: 800;
+
+
+
+    transition:
+
+      background 0.2s ease,
+
+      transform 0.2s ease,
+
+      border-color 0.2s ease;
+
+  }
+
+
+
+  .sq-mobile-menu-button:hover {
+
+    background: var(--primary-light);
+
+    border-color: var(--primary);
+
+  }
+
+
+
+  .sq-mobile-menu-button:active {
+
+    transform: scale(0.94);
+
+  }
+
+
+
+  /*
+
+   * Dropdown overlays the page.
+
+   * Opening the hamburger must NOT push page content down.
+
+   */
+
+  .sq-mobile-menu {
+
+    position: absolute !important;
+
+    top: 100% !important;
+
+    left: 0 !important;
+
+    right: 0 !important;
+
+    z-index: 1001 !important;
+
+
+
+    display: flex;
+
+    flex-direction: column;
+
+
+
+    width: 100% !important;
+
+    max-height: calc(100vh - 68px);
+
+    overflow-y: auto;
+
+
+
+    padding: 6px 12px 14px;
+
+
+
+    background: var(--white) !important;
+
+    border-top: 1px solid #f1f5f3;
+
+    border-bottom: 1px solid var(--border);
+
+
+
+    box-shadow:
+
+      0 12px 28px rgba(6, 63, 59, 0.14);
+
+  }
+
+
+
+  .sq-mobile-menu-item {
+
+    min-height: 48px;
+
+
+
+    display: flex;
+
+    align-items: center;
+
+
+
+    gap: 12px;
+
+
+
+    padding: 10px 12px;
+
+
+
+    border-radius: 12px;
+
+
+
+    color: var(--muted);
+
+
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+
+
+    transition:
+
+      background 0.2s ease,
+
+      color 0.2s ease,
+
+      transform 0.2s ease;
+
+  }
+
+
+
+  .sq-mobile-menu-item:hover {
+
+    background: var(--primary-light);
+
+    color: var(--primary-dark);
+
+  }
+
+
+
+  .sq-mobile-menu-item:active {
+
+    transform: scale(0.98);
+
+  }
+
+
+
+  .sq-mobile-menu-item-active {
+
+    background: var(--primary-light);
+
+    color: var(--primary-dark);
+
+  }
+
+
+
+  .sq-mobile-menu-icon {
+
+    width: 34px;
+
+    height: 34px;
+
+
+
+    flex-shrink: 0;
+
+
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+
+
+    border-radius: 10px;
+
+
+
+    background: #f1f5f3;
+
+    color: var(--primary);
+
+
+
+    font-size: 16px;
+
+    font-weight: 900;
+
+  }
+
+
+
+  .sq-mobile-menu-item-active .sq-mobile-menu-icon {
+
+    background: rgba(15, 118, 110, 0.12);
+
+    color: var(--primary-dark);
+
+  }
+
+
+
+  /*
+
+   * Reserve exactly the header height in the page content.
+
+   * This removes the inconsistent gaps caused by different
+
+   * pages positioning the navbar differently.
+
+   */
+
+  .sq-page {
+
+    padding-top: 84px !important;
+
+  }
+
+}
+
+
+
+/* ---------------------------------------------------------
+
+   Mobile Landing Page Fix
+
+\--------------------------------------------------------- */
+
+
+
+@media (max-width: 768px) {
+
+  .landing-hero {
+
+    display: grid !important;
+
+    grid-template-columns: 1fr !important;
+
+    width: 100% !important;
+
+  }
+
+
+
+  .landing-hero > section {
+
+    width: 100% !important;
+
+    min-width: 0 !important;
+
+    max-width: 100% !important;
+
+  }
+
+
+
+  .landing-hero > section:first-child {
+
+    padding: 36px 24px !important;
+
+  }
+
+
+
+  .landing-hero > section:nth-child(2) {
+
+    padding: 30px 22px !important;
+
+  }
+
+
+
+  .landing-hero h1 {
+
+    font-size: 44px !important;
+
+    line-height: 1.05 !important;
+
+    letter-spacing: -1.5px !important;
+
+  }
+
+
+
+  .landing-hero p {
+
+    max-width: 100% !important;
+
+  }
+
+
+
+  .landing-hero form {
+
+    width: 100% !important;
+
+  }
+
+
+
+  .landing-hero input {
+
+    width: 100% !important;
+
+    min-width: 0 !important;
+
+  }
+
+
+
+  .landing-hero .sq-button-primary {
+
+    width: 100% !important;
+
+  }
+
+
+
+  .landing-features {
+
+    grid-template-columns: 1fr !important;
+
+  }
+
+}
+
+
+
+@media (max-width: 500px) {
+
+  .sq-nav {
+
+    min-height: 68px;
+
+    padding: 0 14px !important;
+
+  }
+
+
+
+  .sq-logo {
+
+    font-size: 20px !important;
+
+  }
+
+
+
+  .landing-nav-text {
+
+    display: none !important;
+
+  }
+
+
+
+  .landing-hero > section:first-child {
+
+    padding: 32px 22px !important;
+
+  }
+
+
+
+  .landing-hero > section:nth-child(2) {
+
+    padding: 28px 20px !important;
+
+  }
+
+
+
+  .landing-hero h1 {
+
+    font-size: 40px !important;
+
+  }
+
+
+
+  .sq-page {
+
+    padding-top: 84px !important;
+
+    padding-left: 14px !important;
+
+    padding-right: 14px !important;
+
+  }
+
+}
+
+
+
+/* ---------------------------------------------------------
+
+   Dashboard Mobile Layout Fix
+
+\--------------------------------------------------------- */
+
+
+
+@media (max-width: 800px) {
+
+  .dashboard-main-grid {
+
+    display: grid !important;
+
+    grid-template-columns: 1fr !important;
+
+    gap: 20px !important;
+
+  }
+
+
+
+  .dashboard-main-grid > * {
+
+    width: 100% !important;
+
+    min-width: 0 !important;
+
+  }
+
+}
+
+/* Homepage mobile entry points */
+.sq-home-mobile-nav {
   display: none;
 }
 
 @media (max-width: 768px) {
-  /* Hide the desktop navigation on mobile. */
-  .sq-nav {
-    display: none !important;
+  .sq-home-mobile-nav {
+    display: block;
+    position: relative;
+    z-index: 1002;
+    padding: 10px 14px 12px;
+    background: rgba(255, 255, 255, 0.98);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 5px 18px rgba(15, 118, 110, 0.07);
   }
 
-  /*
-   * ONE mobile header for the entire application.
-   * It stays at the very top on every page.
-   */
-  .sq-mobile-nav {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    z-index: 1000 !important;
-
-    display: block !important;
-
-    width: 100% !important;
-    margin: 0 !important;
-
-    background: rgba(255, 255, 255, 0.97) !important;
-    border-bottom: 1px solid var(--border) !important;
-
-    box-shadow:
-      0 4px 18px rgba(15, 118, 110, 0.08) !important;
-
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .sq-mobile-header {
-    min-height: 68px;
-
+  .sq-home-mobile-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    width: 100%;
-    padding: 0 16px;
+    gap: 10px;
+    min-height: 42px;
   }
 
-  .sq-mobile-logo {
+  .sq-home-mobile-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
     color: var(--primary);
-
-    font-size: 20px;
     font-weight: 900;
-    letter-spacing: -0.3px;
+    font-size: 17px;
+    letter-spacing: -0.35px;
+    white-space: nowrap;
   }
 
-  .sq-mobile-menu-button {
-    width: 44px;
-    height: 44px;
+  .sq-home-mobile-brand img {
+    display: block;
+    width: 29px;
+    height: 29px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
 
+  .sq-home-mobile-auth {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .sq-home-mobile-auth a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 11px;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .sq-home-mobile-signin {
+    color: var(--primary-dark);
+    border: 1px solid var(--border);
+    background: white;
+  }
+
+  .sq-home-mobile-signup {
+    color: white;
+    background: var(--primary);
+  }
+
+  .sq-home-mobile-shortcuts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .sq-home-mobile-shortcuts a {
     display: flex;
     align-items: center;
     justify-content: center;
-
-    flex-shrink: 0;
-    padding: 0;
-
-    border: 1px solid var(--border);
-    border-radius: 12px;
-
-    background: var(--white);
+    min-height: 40px;
+    padding: 8px 7px;
+    border: 1px solid rgba(15, 118, 110, 0.16);
+    border-radius: 11px;
+    background: #f0fdfa;
     color: var(--primary-dark);
-
-    font-size: 22px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.25;
     font-weight: 800;
-
-    transition:
-      background 0.2s ease,
-      transform 0.2s ease,
-      border-color 0.2s ease;
   }
 
-  .sq-mobile-menu-button:hover {
-    background: var(--primary-light);
-    border-color: var(--primary);
-  }
-
-  .sq-mobile-menu-button:active {
-    transform: scale(0.94);
-  }
-
-  /*
-   * Dropdown overlays the page.
-   * Opening the hamburger must NOT push page content down.
-   */
-  .sq-mobile-menu {
-    position: absolute !important;
-    top: 100% !important;
-    left: 0 !important;
-    right: 0 !important;
-    z-index: 1001 !important;
-
-    display: flex;
-    flex-direction: column;
-
-    width: 100% !important;
-    max-height: calc(100vh - 68px);
-    overflow-y: auto;
-
-    padding: 6px 12px 14px;
-
-    background: var(--white) !important;
-    border-top: 1px solid #f1f5f3;
-    border-bottom: 1px solid var(--border);
-
-    box-shadow:
-      0 12px 28px rgba(6, 63, 59, 0.14);
-  }
-
-  .sq-mobile-menu-item {
-    min-height: 48px;
-
-    display: flex;
-    align-items: center;
-
-    gap: 12px;
-
-    padding: 10px 12px;
-
-    border-radius: 12px;
-
-    color: var(--muted);
-
-    font-size: 14px;
-    font-weight: 700;
-
-    transition:
-      background 0.2s ease,
-      color 0.2s ease,
-      transform 0.2s ease;
-  }
-
-  .sq-mobile-menu-item:hover {
-    background: var(--primary-light);
-    color: var(--primary-dark);
-  }
-
-  .sq-mobile-menu-item:active {
+  .sq-home-mobile-shortcuts a:active,
+  .sq-home-mobile-auth a:active {
     transform: scale(0.98);
   }
 
-  .sq-mobile-menu-item-active {
-    background: var(--primary-light);
-    color: var(--primary-dark);
-  }
-
-  .sq-mobile-menu-icon {
-    width: 34px;
-    height: 34px;
-
-    flex-shrink: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 10px;
-
-    background: #f1f5f3;
-    color: var(--primary);
-
-    font-size: 16px;
-    font-weight: 900;
-  }
-
-  .sq-mobile-menu-item-active .sq-mobile-menu-icon {
-    background: rgba(15, 118, 110, 0.12);
-    color: var(--primary-dark);
-  }
-
-  /*
-   * Reserve exactly the header height in the page content.
-   * This removes the inconsistent gaps caused by different
-   * pages positioning the navbar differently.
-   */
-  .sq-page {
-    padding-top: 84px !important;
-  }
-}
-
-/* ---------------------------------------------------------
-   Mobile Landing Page Fix
---------------------------------------------------------- */
-
-@media (max-width: 768px) {
-  .landing-hero {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    width: 100% !important;
-  }
-
-  .landing-hero > section {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-  }
-
+  /* Avoid wasting the first screen on oversized hero padding. */
   .landing-hero > section:first-child {
-    padding: 36px 24px !important;
-  }
-
-  .landing-hero > section:nth-child(2) {
     padding: 30px 22px !important;
   }
 
+  .landing-hero > section:nth-child(2) {
+    padding: 25px 20px !important;
+  }
+
   .landing-hero h1 {
-    font-size: 44px !important;
-    line-height: 1.05 !important;
-    letter-spacing: -1.5px !important;
+    font-size: clamp(36px, 10vw, 44px) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -1.2px !important;
   }
 
   .landing-hero p {
-    max-width: 100% !important;
+    font-size: 15px !important;
+    line-height: 1.65 !important;
   }
 
-  .landing-hero form {
-    width: 100% !important;
-  }
-
-  .landing-hero input {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  .landing-hero .sq-button-primary {
-    width: 100% !important;
-  }
-
-  .landing-features {
-    grid-template-columns: 1fr !important;
+  .landing-hero > section:first-child > div:last-child a {
+    min-height: 46px !important;
   }
 }
 
-@media (max-width: 500px) {
-  .sq-nav {
-    min-height: 68px;
-    padding: 0 14px !important;
-  }
-
-  .sq-logo {
-    font-size: 20px !important;
-  }
-
-  .landing-nav-text {
-    display: none !important;
-  }
-
-  .landing-hero > section:first-child {
-    padding: 32px 22px !important;
-  }
-
-  .landing-hero > section:nth-child(2) {
-    padding: 28px 20px !important;
-  }
-
-  .landing-hero h1 {
-    font-size: 40px !important;
-  }
-
-  .sq-page {
-    padding-top: 84px !important;
-    padding-left: 14px !important;
-    padding-right: 14px !important;
-  }
-}
-
-/* ---------------------------------------------------------
-   Dashboard Mobile Layout Fix
---------------------------------------------------------- */
-
-@media (max-width: 800px) {
-  .dashboard-main-grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
-  }
-
-  .dashboard-main-grid > * {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
+@media (max-width: 380px) {
+  .sq-home-mobile-brand { font-size: 15px; gap: 5px; }
+  .sq-home-mobile-brand img { width: 25px; height: 25px; }
+  .sq-home-mobile-auth { gap: 5px; }
+  .sq-home-mobile-auth a { padding: 0 8px; font-size: 11px; }
+  .sq-home-mobile-shortcuts a { font-size: 11px; }
 }
