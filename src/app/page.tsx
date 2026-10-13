@@ -374,10 +374,9 @@ export default function Home() {
 
       <header className="sq-nav">
 
-        <Link href="/" className="sq-logo">
-
-          Sahaba Quest
-
+        <Link href="/" className="sq-logo" style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
+          <img src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png" alt="Sahaba Quest logo" width={38} height={38} style={{ width: 38, height: 38, objectFit: "contain", flexShrink: 0 }} />
+          <span>Sahaba Quest</span>
         </Link>
 
 
@@ -540,7 +539,7 @@ export default function Home() {
       <nav className="sq-home-mobile-nav" aria-label="Main navigation">
         <div className="sq-home-mobile-top">
           <Link href="/" className="sq-home-mobile-brand" aria-label="Sahaba Quest home">
-            <img src="/favicon.ico" alt="" aria-hidden="true" />
+            <img src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png" alt="Sahaba Quest logo" width={42} height={42} />
             <span>Sahaba Quest</span>
           </Link>
           <div className="sq-home-mobile-auth">
@@ -604,7 +603,10 @@ export default function Home() {
 
                 background:
 
-                  "linear-gradient(145deg, #115e59 0%, #0f766e 60%, #149e93 100%)",
+                  "linear-gradient(115deg, rgba(7, 73, 67, 0.68) 0%, rgba(9, 105, 96, 0.54) 58%, rgba(20, 130, 120, 0.38) 100%), url(https://cdn.phototourl.com/member/2026-10-11-4bca1072-226b-4673-a309-7bafb2819d9d.png)",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
 
                 color: "white",
 
