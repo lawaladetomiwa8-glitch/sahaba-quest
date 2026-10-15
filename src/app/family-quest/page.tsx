@@ -3121,7 +3121,7 @@ export default function FamilyQuestPage() {
 
 
 
-      <main className="min-h-screen bg-slate-50 px-4 py-6">
+      <main className="min-h-screen bg-slate-50 px-2 py-2 sm:px-4 sm:py-4 md:py-6">
 
         <div className="max-w-3xl mx-auto">
 
@@ -3131,11 +3131,11 @@ export default function FamilyQuestPage() {
 
 
 
-          <div className="flex items-center justify-between gap-4 mb-5">
+          <div className="flex items-center justify-between gap-3 mb-2 md:mb-5">
 
             <div>
 
-              <p className="text-sm font-semibold text-emerald-600">
+              <p className="text-xs md:text-sm font-semibold text-emerald-600">
 
                 FAMILY QUEST
 
@@ -3143,7 +3143,7 @@ export default function FamilyQuestPage() {
 
 
 
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-lg md:text-2xl font-bold text-slate-900">
 
                 Level{" "}
 
@@ -3155,7 +3155,7 @@ export default function FamilyQuestPage() {
 
               {session && session.questions_answered > 0 && (
 
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="hidden sm:block text-xs text-slate-500 mt-1">
 
                   Resuming your Family Quest — {session.questions_answered} of {TOTAL_QUESTIONS} answered
 
@@ -3167,9 +3167,9 @@ export default function FamilyQuestPage() {
 
 
 
-            <div className="text-right">
+            <div className="text-right shrink-0">
 
-              <div className="text-xs text-slate-500">
+              <div className="hidden sm:block text-xs text-slate-500">
 
                 Family XP
 
@@ -3177,7 +3177,7 @@ export default function FamilyQuestPage() {
 
 
 
-              <div className="font-bold text-slate-900">
+              <div className="text-sm md:text-base font-bold text-slate-900">
 
                 {
 
@@ -3201,9 +3201,9 @@ export default function FamilyQuestPage() {
 
 
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-5">
+          <div className="bg-white border border-slate-200 rounded-xl md:rounded-2xl p-2.5 md:p-4 mb-2 md:mb-5">
 
-            <div className="flex items-center justify-between text-sm mb-2">
+            <div className="flex items-center justify-between text-xs md:text-sm mb-1.5 md:mb-2">
 
               <span className="font-medium text-slate-700">
 
@@ -3241,7 +3241,7 @@ export default function FamilyQuestPage() {
 
 
 
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1.5 md:h-2 bg-slate-100 rounded-full overflow-hidden">
 
               <div
 
@@ -3275,11 +3275,11 @@ export default function FamilyQuestPage() {
 
 
 
-          <div className="flex justify-center mb-5">
+          <div className="flex justify-center mb-2 md:mb-5">
 
             <div
 
-              className={`px-5 py-2 rounded-full font-bold ${
+              className={`px-4 py-1 md:px-5 md:py-2 rounded-full text-sm md:text-base font-bold ${
 
                 timedOut
 
@@ -3309,11 +3309,11 @@ export default function FamilyQuestPage() {
 
           {question && (
 
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8">
+            <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm p-3 sm:p-4 md:p-8">
 
 
 
-              <div className="text-sm font-semibold text-slate-400 mb-3">
+              <div className="hidden md:block text-sm font-semibold text-slate-400 mb-3">
 
                 FAMILY QUEST
 
@@ -3321,7 +3321,7 @@ export default function FamilyQuestPage() {
 
 
 
-              <h2 className="text-xl md:text-2xl font-bold text-slate-900 leading-relaxed">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 leading-snug md:leading-relaxed">
 
                 {
 
@@ -3339,7 +3339,7 @@ export default function FamilyQuestPage() {
 
               {isFillBlankQuestion(question) ? (
 
-                <div className="mt-7 space-y-3">
+                <div className="mt-3 md:mt-7 space-y-2 md:space-y-3">
 
                   <input
 
@@ -3367,7 +3367,7 @@ export default function FamilyQuestPage() {
 
                     placeholder="Type your answer"
 
-                    className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                    className="w-full rounded-xl md:rounded-2xl border border-slate-200 bg-white p-3 md:p-4 text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 
                   />
 
@@ -3397,7 +3397,7 @@ export default function FamilyQuestPage() {
 
                     }
 
-                    className="w-full rounded-2xl bg-slate-900 py-4 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl md:rounded-2xl bg-slate-900 py-3 md:py-4 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
 
                   >
 
@@ -3415,7 +3415,7 @@ export default function FamilyQuestPage() {
 
 
 
-                  <div className="grid gap-3 mt-7">
+                  <div className="grid grid-cols-2 gap-2 mt-3 md:mt-7 md:gap-3">
 
                 {displayOptions.map(
 
@@ -3507,7 +3507,7 @@ export default function FamilyQuestPage() {
 
                         }
 
-                        className={`w-full text-left rounded-2xl border p-4 transition ${
+                        className={`w-full min-w-0 text-left rounded-xl md:rounded-2xl border p-2 md:p-4 transition ${
 
                           isCorrect
 
@@ -3533,7 +3533,7 @@ export default function FamilyQuestPage() {
 
                           <span
 
-                            className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                            className={`flex-shrink-0 w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl flex items-center justify-center text-xs md:text-base font-bold ${
 
                               isCorrect
 
@@ -3559,7 +3559,7 @@ export default function FamilyQuestPage() {
 
 
 
-                          <span className="pt-1 text-slate-800 font-medium">
+                          <span className="min-w-0 break-words text-xs sm:text-sm md:text-base leading-snug text-slate-800 font-medium md:pt-1">
 
                             {
 
@@ -3597,7 +3597,7 @@ export default function FamilyQuestPage() {
 
                 <div
 
-                  className={`mt-6 rounded-2xl border p-5 ${
+                  className={`mt-3 md:mt-6 rounded-xl md:rounded-2xl border p-3 md:p-5 ${
 
                     timedOut
 
@@ -3765,7 +3765,7 @@ export default function FamilyQuestPage() {
 
 
 
-          <div className="flex justify-center mt-6">
+          <div className="flex justify-center mt-3 md:mt-6">
 
             <button
 
@@ -3781,7 +3781,7 @@ export default function FamilyQuestPage() {
 
               }
 
-              className="text-sm text-slate-500 hover:text-red-600"
+              className="text-xs md:text-sm text-slate-500 hover:text-red-600"
 
             >
 

@@ -1475,12 +1475,13 @@ export default function QuizPage() {
     >
       <div className="sq-container">
 
-        <div style={{ marginBottom: "28px" }}>
+        <div className="sq-quiz-navbar" style={{ marginBottom: "28px" }}>
           <AppNavbar />
         </div>
 
         {/* GAME HEADER */}
         <div
+          className="sq-quiz-header"
           style={{
             maxWidth: "820px",
             margin: "0 auto",
@@ -1567,7 +1568,7 @@ export default function QuizPage() {
 
         {/* QUESTION CARD */}
         <section
-          className="sq-card"
+          className="sq-card sq-quiz-card"
           style={{
             maxWidth: "820px",
             margin: "28px auto 0",
@@ -1575,7 +1576,7 @@ export default function QuizPage() {
           }}
         >
           {/* PROGRESS */}
-          <div style={{ marginBottom: "28px" }}>
+          <div className="sq-quiz-progress" style={{ marginBottom: "28px" }}>
             <div
               style={{
                 display: "flex",
@@ -1676,7 +1677,7 @@ export default function QuizPage() {
           </div>
 
           {/* QUESTION */}
-          <div style={{ marginBottom: "30px" }}>
+          <div className="sq-quiz-question" style={{ marginBottom: "30px" }}>
             <h2
               style={{
                 margin: 0,
@@ -1726,7 +1727,7 @@ export default function QuizPage() {
               </button>
             </div>
           ) : (
-            <div
+            <div className="sq-quiz-answers"
               style={{
                 display: "grid",
                 gap: "14px",
@@ -1765,7 +1766,7 @@ export default function QuizPage() {
                 return (
                   <button
                     key={`${question.id}-${option.value}`}
-                    className={answerClass}
+                    className={`${answerClass} sq-quiz-answer`}
                     onClick={() =>
                       void handleAnswer(option.value)
                     }
@@ -2065,6 +2066,149 @@ export default function QuizPage() {
           </div>
         </div>
       </div>
+      <style jsx global>{`
+        /* Mobile-first refinements for the timed individual quiz.
+           Desktop styling remains unchanged. */
+        @media (max-width: 640px) {
+          .sq-page:has(.sq-quiz-card) {
+            min-height: 100svh !important;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+          }
+
+          .sq-container:has(.sq-quiz-card) {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+
+          .sq-quiz-navbar {
+            margin-bottom: 12px !important;
+          }
+
+          .sq-quiz-header {
+            grid-template-columns: minmax(0, 1fr) auto !important;
+            gap: 8px !important;
+            align-items: center !important;
+          }
+
+          .sq-quiz-header h1.sq-title {
+            font-size: clamp(20px, 5.5vw, 26px) !important;
+            line-height: 1.12 !important;
+            margin: 0 !important;
+          }
+
+          .sq-quiz-header .sq-subtitle {
+            display: none !important;
+          }
+
+          .sq-quiz-header .sq-timer {
+            width: 52px !important;
+            height: 52px !important;
+            min-width: 52px !important;
+            font-size: 20px !important;
+          }
+
+          .sq-quiz-card {
+            margin-top: 12px !important;
+            padding: 14px !important;
+            border-radius: 20px !important;
+          }
+
+          .sq-quiz-progress {
+            margin-bottom: 12px !important;
+          }
+
+          .sq-quiz-progress > div:first-child {
+            gap: 6px !important;
+            margin-bottom: 7px !important;
+          }
+
+          .sq-quiz-progress > div:first-child span {
+            font-size: 11px !important;
+          }
+
+          .sq-quiz-question {
+            margin-bottom: 14px !important;
+          }
+
+          .sq-quiz-question h2 {
+            font-size: clamp(18px, 4.8vw, 23px) !important;
+            line-height: 1.24 !important;
+            letter-spacing: -0.25px !important;
+            overflow-wrap: anywhere;
+          }
+
+          .sq-quiz-answers {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+
+          .sq-quiz-answer {
+            min-width: 0 !important;
+            min-height: 66px !important;
+            padding: 10px !important;
+            gap: 8px !important;
+            border-radius: 13px !important;
+            align-items: flex-start !important;
+          }
+
+          .sq-quiz-answer .sq-answer-letter {
+            flex: 0 0 28px !important;
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            font-size: 13px !important;
+            border-radius: 9px !important;
+          }
+
+          .sq-quiz-answer > span:not(.sq-answer-letter) {
+            min-width: 0 !important;
+            font-size: 13px !important;
+            line-height: 1.3 !important;
+            overflow-wrap: anywhere;
+          }
+
+          .sq-quiz-card input[type="text"] {
+            padding: 12px !important;
+          }
+
+          .sq-quiz-card .sq-primary-button,
+          .sq-quiz-card .sq-button-primary {
+            min-height: 46px !important;
+            padding: 10px 14px !important;
+          }
+
+          .sq-quiz-card [style*="marginTop: 28px"],
+          .sq-quiz-card [style*="marginTop: 22px"] {
+            margin-top: 14px !important;
+          }
+
+          .sq-quiz-card [style*="padding: 24px"] {
+            padding: 14px !important;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .sq-quiz-card {
+            padding: 11px !important;
+          }
+
+          .sq-quiz-answers {
+            gap: 6px !important;
+          }
+
+          .sq-quiz-answer {
+            padding: 8px !important;
+            gap: 6px !important;
+          }
+
+          .sq-quiz-answer .sq-answer-letter {
+            flex-basis: 24px !important;
+            width: 24px !important;
+            height: 24px !important;
+            min-width: 24px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }
