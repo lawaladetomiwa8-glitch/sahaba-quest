@@ -543,61 +543,80 @@ export default function SchoolDashboardPage() {
 
 
   if (loading) {
-
     return (
-
-      <div className="min-h-screen bg-gray-50">
-
-        <header className="border-b border-gray-200 bg-white">
-
-          <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-
-            <Link
-
-              href="/"
-
-              className="text-lg font-bold text-gray-900"
-
-            >
-
-              Sahaba Quest
-
-            </Link>
-
+      <div className="min-h-screen bg-slate-50">
+        <header className="border-b border-slate-200 bg-white">
+          <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-700 text-sm font-extrabold text-white">
+              SQ
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">Sahaba Quest</p>
+              <p className="text-xs text-slate-500">Schools &amp; Madrasas</p>
+            </div>
           </div>
-
         </header>
 
-
-
-        <main className="mx-auto flex min-h-[70vh] max-w-7xl items-center justify-center px-4">
-
-          <div className="text-center">
-
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-green-700" />
-
-
-
-            <p className="text-sm text-gray-600">
-
-              Loading your school dashboard...
-
+        <main
+          className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <section className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-green-800 via-green-700 to-emerald-600 p-6 text-white shadow-sm sm:p-8">
+            <p className="text-sm font-medium text-green-100">
+              Assalamu Alaikum wa Rahmatullahi wa Barakatuh
             </p>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+              Preparing your dashboard
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-green-50">
+              Please wait while we securely retrieve your school information and learning overview.
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-white" />
+              </span>
+              <span className="text-sm font-semibold">Loading securely...</span>
+            </div>
+          </section>
 
-          </div>
+          <section
+            className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            aria-label="Loading dashboard statistics"
+          >
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                <div className="mb-5 h-3 w-28 animate-pulse rounded-full bg-slate-200" />
+                <div className="h-8 w-20 animate-pulse rounded-lg bg-slate-200" />
+                <div className="mt-4 h-3 w-36 max-w-full animate-pulse rounded-full bg-slate-100" />
+              </div>
+            ))}
+          </section>
 
+          <section
+            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+            aria-label="Loading dashboard sections"
+          >
+            {[1, 2].map((item) => (
+              <div key={item} className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                <div className="h-5 w-44 animate-pulse rounded-full bg-slate-200" />
+                <div className="mt-4 h-3 w-full animate-pulse rounded-full bg-slate-100" />
+                <div className="mt-3 h-3 w-4/5 animate-pulse rounded-full bg-slate-100" />
+                <div className="mt-3 h-3 w-3/5 animate-pulse rounded-full bg-slate-100" />
+              </div>
+            ))}
+          </section>
+
+          <p className="mt-8 text-center text-xs text-slate-500">
+            May Allah place barakah in your school&apos;s learning journey.
+          </p>
         </main>
-
       </div>
-
     );
-
   }
 
-
-
   /* =====================================================
-
      ERROR
 
   ===================================================== */
@@ -958,7 +977,7 @@ export default function SchoolDashboardPage() {
 
         <section className="mb-8">
 
-          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-4 lg:grid-cols-8">
+          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-3 lg:grid-cols-9">
 
             <Link
 
@@ -1013,6 +1032,13 @@ export default function SchoolDashboardPage() {
               School Questions
 
             </Link>
+            <Link
+              href="/schools/results"
+              className="rounded-xl bg-emerald-50 px-3 py-3 text-center text-xs font-semibold text-green-800 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+            >
+              Activity Results
+            </Link>
+
 
 
 
@@ -1739,6 +1765,22 @@ export default function SchoolDashboardPage() {
               </p>
 
             </Link>
+            <Link
+              href="/schools/results"
+              className="group rounded-2xl border border-green-100 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-green-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl transition group-hover:bg-green-100">
+                📊
+              </div>
+              <h3 className="font-bold text-gray-900">Activity Results</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Review student submissions, scores, percentages and answers for school activities.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-green-700">
+                View results <span aria-hidden="true">→</span>
+              </span>
+            </Link>
+
 
 
 
