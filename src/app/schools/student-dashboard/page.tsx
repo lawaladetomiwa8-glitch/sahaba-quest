@@ -68,6 +68,15 @@ type Progress = {
 
 
 
+type StudentActivity = {
+  id: string;
+  title: string;
+  instructions: string | null;
+  activity_type: "classwork" | "test" | "assignment";
+  due_at: string | null;
+  question_count: number;
+};
+
 type DashboardData = {
 
   student: Student;
@@ -345,6 +354,9 @@ export default function SchoolStudentDashboardPage() {
   const [signingOut, setSigningOut] = useState(false);
 
   const [message, setMessage] = useState("");
+  const [schoolActivities, setSchoolActivities] = useState<StudentActivity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [activitiesMessage, setActivitiesMessage] = useState("");
 
 
 
@@ -666,11 +678,36 @@ export default function SchoolStudentDashboardPage() {
 
 
 
+  const loadSchoolActivities = useCallback(async () => {
+    const currentToken = sessionStorage.getItem("school_student_session_token");
+    if (!currentToken) return;
+    setActivitiesLoading(true);
+    setActivitiesMessage("");
+    try {
+      const response = await fetch("/api/schools/student-activities", {
+        headers: { Authorization: `Bearer ${currentToken}` },
+        cache: "no-store",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        sessionStorage.removeItem("school_student_session_token");
+        sessionStorage.removeItem("school_student_expires_at");
+        router.replace("/schools/student-login");
+        return;
+      }
+      if (!response.ok) throw new Error(result.message || "Could not load your school activities.");
+      setSchoolActivities(Array.isArray(result.activities) ? result.activities : []);
+    } catch (error) {
+      setActivitiesMessage(error instanceof Error ? error.message : "Could not load your school activities.");
+    } finally {
+      setActivitiesLoading(false);
+    }
+  }, [router]);
+
   useEffect(() => {
-
-    loadDashboard();
-
-  }, [loadDashboard]);
+    void loadDashboard();
+    void loadSchoolActivities();
+  }, [loadDashboard, loadSchoolActivities]);
 
 
 
@@ -1101,6 +1138,42 @@ export default function SchoolStudentDashboardPage() {
         <section className="sq-main-grid">
 
           <div className="sq-primary-column">
+
+            <article className="sq-learning-card sq-school-activities-card">
+              <div className="sq-card-heading compact">
+                <div>
+                  <span className="sq-section-eyebrow">Assigned by your school</span>
+                  <h2>My School Activities</h2>
+                  <p>Classwork, tests, and assignments your teacher has published for your class.</p>
+                </div>
+                <div className="sq-quest-symbol"><Icon name="book" size={24} /></div>
+              </div>
+              {activitiesLoading ? (
+                <p role="status">Loading your activities...</p>
+              ) : activitiesMessage ? (
+                <div role="alert">
+                  <p>{activitiesMessage}</p>
+                  <button type="button" className="sq-secondary-button" onClick={() => void loadSchoolActivities()}>Try again</button>
+                </div>
+              ) : schoolActivities.length === 0 ? (
+                <p className="sq-activities-empty">You have no published school activities at the moment. Check back when your teacher assigns one.</p>
+              ) : (
+                <div className="sq-school-activity-list">
+                  {schoolActivities.map((activity) => (
+                    <div className="sq-school-activity-item" key={activity.id}>
+                      <div className="sq-school-activity-copy">
+                        <span className="sq-section-eyebrow">{activity.activity_type === "test" ? "TEST" : activity.activity_type === "assignment" ? "ASSIGNMENT" : "CLASSWORK"}</span>
+                        <h3>{activity.title}</h3>
+                        {activity.instructions && <p>{activity.instructions}</p>}
+                        <span>{activity.question_count} {activity.question_count === 1 ? "question" : "questions"}</span>
+                        {activity.due_at && <span>Due {new Date(activity.due_at).toLocaleString()}</span>}
+                      </div>
+                      <button type="button" className="sq-primary-button" onClick={() => router.push(`/schools/student-activities/${activity.id}`)}>View activity <Icon name="arrow" size={15} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
 
             <article className="sq-quest-card">
 
@@ -3777,6 +3850,16 @@ function StudentDashboardStyles() {
 
       }
 
+
+      .sq-school-activities-card { margin-bottom: 22px; }
+      .sq-school-activity-list { display: grid; gap: 12px; margin-top: 18px; }
+      .sq-school-activity-item { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px; border: 1px solid #dce6e2; border-radius: 16px; background: rgba(255,255,255,.55); }
+      .sq-school-activity-copy { display: grid; gap: 7px; min-width: 0; }
+      .sq-school-activity-copy h3 { margin: 0; font-size: 18px; font-weight: 750; }
+      .sq-school-activity-copy p { margin: 0; line-height: 1.6; }
+      .sq-school-activity-copy > span:not(.sq-section-eyebrow) { color: #66756f; font-size: 13px; }
+      .sq-activities-empty { margin: 16px 0 0; color: #66756f; line-height: 1.7; }
+      @media (max-width: 640px) { .sq-school-activity-item { align-items: stretch; flex-direction: column; } .sq-school-activity-item button { width: 100%; justify-content: center; } }
     `}</style>
 
   );

@@ -42,6 +42,7 @@ type Activity = {
   activity_type: ActivityType;
   status: ActivityStatus;
   due_at: string | null;
+  time_limit_minutes: number | null;
   created_at: string;
   class_ids: string[];
   question_ids: string[];
@@ -65,6 +66,7 @@ type ActivityForm = {
   instructions: string;
   activity_type: ActivityType;
   due_at: string;
+  time_limit_minutes: string;
   class_ids: string[];
   question_ids: string[];
 };
@@ -86,6 +88,7 @@ const emptyActivity: ActivityForm = {
   instructions: "",
   activity_type: "classwork",
   due_at: "",
+  time_limit_minutes: "",
   class_ids: [],
   question_ids: [],
 };
@@ -461,6 +464,9 @@ export default function SchoolQuestionsPage() {
         due_at: activityForm.due_at
           ? new Date(activityForm.due_at).toISOString()
           : null,
+        time_limit_minutes: activityForm.time_limit_minutes === ""
+          ? null
+          : Number(activityForm.time_limit_minutes),
         status,
       };
 
@@ -1031,6 +1037,14 @@ export default function SchoolQuestionsPage() {
                               {formatDate(activity.due_at)}
                             </p>
                           </div>
+                          <div className="rounded-xl bg-slate-50 p-3">
+                            <p className="text-xs text-slate-500">Time limit</p>
+                            <p className="mt-1 text-sm font-semibold">
+                              {activity.time_limit_minutes == null
+                                ? "No time limit"
+                                : `${activity.time_limit_minutes} minute${activity.time_limit_minutes === 1 ? "" : "s"}`}
+                            </p>
+                          </div>
                         </div>
 
                         <div className="mt-4">
@@ -1457,6 +1471,29 @@ export default function SchoolQuestionsPage() {
                     className={inputClass}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className={labelClass} htmlFor="activity-time-limit">
+                  Time limit <span className="font-normal text-slate-400">(optional)</span>
+                </label>
+                <select
+                  id="activity-time-limit"
+                  value={activityForm.time_limit_minutes}
+                  onChange={(event) => updateActivityField("time_limit_minutes", event.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">No time limit</option>
+                  <option value="1">1 minute</option>
+                  <option value="5">5 minutes</option>
+                  <option value="10">10 minutes</option>
+                  <option value="15">15 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">60 minutes</option>
+                </select>
+                <p className="mt-2 text-xs text-slate-500">The countdown should begin when a student starts the activity, not when they sign in.</p>
               </div>
 
               <div>

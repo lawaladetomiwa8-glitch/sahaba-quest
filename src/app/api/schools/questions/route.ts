@@ -22,6 +22,36 @@ type QuestionStatus = "draft" | "published" | "archived";
 type Difficulty = "easy" | "medium" | "hard";
 type CorrectOption = "A" | "B" | "C" | "D";
 
+const ALLOWED_TIME_LIMITS = [1, 5, 10, 15, 20, 30, 45, 60] as const;
+
+/**
+ * Returns a supported duration, null for an untimed activity, or undefined
+ * when a supplied value is invalid. An omitted value also returns undefined;
+ * callers distinguish omission from invalid input by checking the request body.
+ */
+function parseTimeLimit(value: unknown): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
+
+  const minutes =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : NaN;
+
+  if (
+    !Number.isInteger(minutes) ||
+    !ALLOWED_TIME_LIMITS.includes(
+      minutes as (typeof ALLOWED_TIME_LIMITS)[number]
+    )
+  ) {
+    return undefined;
+  }
+
+  return minutes;
+}
+
 const isRecord = (
   value: unknown
 ): value is Record<string, unknown> =>
@@ -391,6 +421,16 @@ export async function POST(request: NextRequest) {
       const activityType = body.activity_type;
       const status = body.status ?? "draft";
       const dueAt = body.due_at;
+      const timeLimitMinutes = parseTimeLimit(body.time_limit_minutes);
+
+      if (
+        body.time_limit_minutes !== undefined &&
+        timeLimitMinutes === undefined
+      ) {
+        return respondError(
+          "Choose no time limit or one of the supported durations: 1, 5, 10, 15, 20, 30, 45 or 60 minutes."
+        );
+      }
 
       const classIds = Array.isArray(body.class_ids)
         ? [...new Set(body.class_ids)]
@@ -511,6 +551,7 @@ export async function POST(request: NextRequest) {
             activity_type: activityType as ActivityType,
             status: status as ActivityStatus,
             due_at: normalizedDueAt,
+            time_limit_minutes: timeLimitMinutes ?? null,
           })
           .select("*")
           .single();
@@ -757,6 +798,18 @@ export async function PATCH(request: NextRequest) {
       const updates: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
+
+      if ("time_limit_minutes" in body) {
+        const timeLimitMinutes = parseTimeLimit(body.time_limit_minutes);
+
+        if (timeLimitMinutes === undefined) {
+          return respondError(
+            "Choose no time limit or one of the supported durations: 1, 5, 10, 15, 20, 30, 45 or 60 minutes."
+          );
+        }
+
+        updates.time_limit_minutes = timeLimitMinutes;
+      }
 
       if ("title" in body) {
         const title = cleanText(body.title);
