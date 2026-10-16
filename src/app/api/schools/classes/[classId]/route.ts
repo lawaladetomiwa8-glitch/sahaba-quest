@@ -27,7 +27,7 @@ async function getSchoolAdmin(request: NextRequest) {
     };
   }
 
-  const accessToken = authorization.replace("Bearer ", "").trim();
+  const accessToken = authorization.slice("Bearer ".length).trim();
 
   if (!accessToken) {
     return {
@@ -88,10 +88,9 @@ async function getSchoolAdmin(request: NextRequest) {
   };
 }
 
-/* =========================================================
-   PATCH — CHANGE CLASS STATUS
-   Existing behavior preserved.
-========================================================= */
+// =========================================================
+// PATCH — EDIT CLASS DETAILS OR CHANGE CLASS STATUS
+// =========================================================
 
 export async function PATCH(
   request: NextRequest,
@@ -129,6 +128,9 @@ export async function PATCH(
 
     let body: {
       status?: unknown;
+      class_name?: unknown;
+      academic_session?: unknown;
+      description?: unknown;
     };
 
     try {
@@ -143,22 +145,163 @@ export async function PATCH(
       );
     }
 
-    const newStatus =
-      body.status === "active"
-        ? "active"
-        : body.status === "archived"
-          ? "archived"
-          : null;
+    const hasStatus = Object.prototype.hasOwnProperty.call(
+      body,
+      "status"
+    );
 
-    if (!newStatus) {
+    const hasClassName = Object.prototype.hasOwnProperty.call(
+      body,
+      "class_name"
+    );
+
+    const hasAcademicSession = Object.prototype.hasOwnProperty.call(
+      body,
+      "academic_session"
+    );
+
+    const hasDescription = Object.prototype.hasOwnProperty.call(
+      body,
+      "description"
+    );
+
+    if (
+      !hasStatus &&
+      !hasClassName &&
+      !hasAcademicSession &&
+      !hasDescription
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Status must be either active or archived.",
+          error: "No class changes were requested.",
         },
         { status: 400 }
       );
     }
+
+    // ---------------------------------------------------------
+    // VALIDATE CLASS DETAILS
+    // ---------------------------------------------------------
+
+    let nextClassName: string | undefined;
+    let nextAcademicSession: string | undefined;
+    let nextDescription: string | null | undefined;
+
+    if (hasClassName) {
+      if (typeof body.class_name !== "string") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Class name must be a string.",
+          },
+          { status: 400 }
+        );
+      }
+
+      nextClassName = body.class_name.trim();
+
+      if (!nextClassName || nextClassName.length > 100) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Class name is required and must be 100 characters or fewer.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (hasAcademicSession) {
+      if (typeof body.academic_session !== "string") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Academic session must be a string.",
+          },
+          { status: 400 }
+        );
+      }
+
+      nextAcademicSession = body.academic_session.trim();
+
+      if (
+        !nextAcademicSession ||
+        nextAcademicSession.length > 100
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Academic session is required and must be 100 characters or fewer.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (hasDescription) {
+      if (
+        body.description !== null &&
+        typeof body.description !== "string"
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Description must be text or null.",
+          },
+          { status: 400 }
+        );
+      }
+
+      nextDescription =
+        typeof body.description === "string"
+          ? body.description.trim() || null
+          : null;
+
+      if (
+        nextDescription !== null &&
+        nextDescription.length > 1000
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Description must be 1,000 characters or fewer.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ---------------------------------------------------------
+    // VALIDATE STATUS
+    // ---------------------------------------------------------
+
+    let newStatus: "active" | "archived" | undefined;
+
+    if (hasStatus) {
+      if (
+        body.status !== "active" &&
+        body.status !== "archived"
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Status must be either active or archived.",
+          },
+          { status: 400 }
+        );
+      }
+
+      newStatus = body.status;
+    }
+
+    // ---------------------------------------------------------
+    // VERIFY CLASS OWNERSHIP
+    // ---------------------------------------------------------
 
     const {
       data: existingClass,
@@ -170,6 +313,8 @@ export async function PATCH(
           id,
           school_id,
           class_name,
+          description,
+          academic_session,
           status
         `
       )
@@ -199,15 +344,36 @@ export async function PATCH(
       );
     }
 
+    // ---------------------------------------------------------
+    // UPDATE ONLY THE REQUESTED FIELDS
+    // ---------------------------------------------------------
+
+    const updatePayload: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (hasClassName) {
+      updatePayload.class_name = nextClassName;
+    }
+
+    if (hasAcademicSession) {
+      updatePayload.academic_session = nextAcademicSession;
+    }
+
+    if (hasDescription) {
+      updatePayload.description = nextDescription;
+    }
+
+    if (newStatus) {
+      updatePayload.status = newStatus;
+    }
+
     const {
       data: updatedClass,
       error: updateError,
     } = await supabaseServer
       .from("school_classes")
-      .update({
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", classId)
       .eq("school_id", schoolAdmin.school_id)
       .select(
@@ -224,8 +390,8 @@ export async function PATCH(
       )
       .single();
 
-    if (updateError) {
-      console.error("Class status update error:", updateError);
+    if (updateError || !updatedClass) {
+      console.error("Class update error:", updateError);
 
       return NextResponse.json(
         {
@@ -236,12 +402,17 @@ export async function PATCH(
       );
     }
 
+    let message = "Class updated successfully.";
+
+    if (newStatus === "archived") {
+      message = "Class archived successfully.";
+    } else if (newStatus === "active") {
+      message = "Class reactivated successfully.";
+    }
+
     return NextResponse.json({
       success: true,
-      message:
-        newStatus === "archived"
-          ? "Class archived successfully."
-          : "Class reactivated successfully.",
+      message,
       class: updatedClass,
     });
   } catch (error) {
@@ -258,12 +429,12 @@ export async function PATCH(
   }
 }
 
-/* =========================================================
-   DELETE — PERMANENTLY DELETE A CLASS
-
-   Students are retained. The confirmed foreign key
-   ON DELETE SET NULL clears their class_id.
-========================================================= */
+// =========================================================
+// DELETE — PERMANENTLY DELETE A CLASS
+//
+// Students are retained. The existing foreign-key
+// ON DELETE SET NULL constraint clears their class_id.
+// =========================================================
 
 export async function DELETE(
   request: NextRequest,
@@ -311,7 +482,10 @@ export async function DELETE(
       .maybeSingle();
 
     if (lookupError) {
-      console.error("Class deletion lookup error:", lookupError);
+      console.error(
+        "Class deletion lookup error:",
+        lookupError
+      );
 
       return NextResponse.json(
         {
@@ -332,7 +506,7 @@ export async function DELETE(
       );
     }
 
-    // The database SET NULL constraint keeps the students
+    // The existing SET NULL constraint retains students
     // and removes their association with this class.
     const {
       data: deletedClass,
@@ -361,7 +535,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "The class could not be deleted. Please try again.",
+          error:
+            "The class could not be deleted. Please try again.",
         },
         { status: 409 }
       );

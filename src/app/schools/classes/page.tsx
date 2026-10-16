@@ -95,6 +95,8 @@ export default function SchoolClassesPage() {
 
     useState(false);
 
+  const [editingClass, setEditingClass] = useState<SchoolClass | null>(null);
+
 
 
   const [className, setClassName] =
@@ -309,6 +311,24 @@ export default function SchoolClassesPage() {
 
 
 
+  function beginEditClass(schoolClass: SchoolClass) {
+    setEditingClass(schoolClass);
+    setClassName(schoolClass.class_name);
+    setAcademicSession(schoolClass.academic_session);
+    setDescription(schoolClass.description || "");
+    setShowForm(true);
+    setError("");
+    setSuccess("");
+  }
+
+  function cancelClassForm() {
+    setShowForm(false);
+    setEditingClass(null);
+    setClassName("");
+    setAcademicSession("");
+    setDescription("");
+  }
+
   async function handleCreateClass(
 
     event: FormEvent<HTMLFormElement>
@@ -377,11 +397,11 @@ export default function SchoolClassesPage() {
 
         await fetch(
 
-          "/api/schools/classes",
+          editingClass ? `/api/schools/classes/${editingClass.id}` : "/api/schools/classes",
 
           {
 
-            method: "POST",
+            method: editingClass ? "PATCH" : "POST",
 
             headers: {
 
@@ -439,7 +459,7 @@ export default function SchoolClassesPage() {
 
       setSuccess(
 
-        "Class created successfully."
+        editingClass ? "Class details updated successfully." : "Class created successfully."
 
       );
 
@@ -450,6 +470,8 @@ export default function SchoolClassesPage() {
       setAcademicSession("");
 
       setDescription("");
+
+      setEditingClass(null);
 
       setShowForm(false);
 
@@ -870,17 +892,10 @@ export default function SchoolClassesPage() {
               type="button"
 
               onClick={() => {
-
-                setShowForm(
-
-                  (current) => !current
-
-                );
-
+                if (showForm) { cancelClassForm(); }
+                else { setEditingClass(null); setClassName(""); setAcademicSession(""); setDescription(""); setShowForm(true); }
                 setError("");
-
                 setSuccess("");
-
               }}
 
               className="rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-800"
@@ -949,7 +964,7 @@ export default function SchoolClassesPage() {
 
               <h2 className="text-lg font-bold text-gray-900">
 
-                Create a New Class
+                {editingClass ? "Edit Class Details" : "Create a New Class"}
 
               </h2>
 
@@ -957,9 +972,7 @@ export default function SchoolClassesPage() {
 
               <p className="mt-1 text-sm text-gray-500">
 
-                Add a class that students can be
-
-                assigned to.
+                {editingClass ? "Update the class name, academic session, or description. Existing student assignments will be preserved." : "Add a class that students can be assigned to."}
 
               </p>
 
@@ -1143,9 +1156,9 @@ export default function SchoolClassesPage() {
 
                   {submitting
 
-                    ? "Creating..."
+                    ? (editingClass ? "Saving..." : "Creating...")
 
-                    : "Create Class"}
+                    : (editingClass ? "Save Changes" : "Create Class")}
 
                 </button>
 
@@ -1427,6 +1440,8 @@ export default function SchoolClassesPage() {
 
                           <td className="px-6 py-5 text-right">
 
+                            <button type="button" onClick={() => beginEditClass(schoolClass)} disabled={submitting || deletingId === schoolClass.id} className="mr-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-800 transition hover:bg-green-100 disabled:opacity-50">Edit</button>
+
                             <button
 
                               type="button"
@@ -1610,6 +1625,8 @@ export default function SchoolClassesPage() {
                       </div>
 
 
+
+                      <button type="button" onClick={() => beginEditClass(schoolClass)} disabled={submitting || deletingId === schoolClass.id} className="mt-4 w-full rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800 transition hover:bg-green-100 disabled:opacity-50">Edit Class Details</button>
 
                       <button
 

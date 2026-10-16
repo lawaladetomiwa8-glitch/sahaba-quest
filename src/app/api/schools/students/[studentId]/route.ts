@@ -74,10 +74,7 @@ async function getSchoolAdmin(request: Request) {
     };
   }
 
-  return {
-    user,
-    admin,
-  };
+  return { user, admin };
 }
 
 async function getSeatSummary(schoolId: string) {
@@ -155,6 +152,8 @@ export async function PATCH(
     let body: {
       status?: "active" | "inactive";
       class_id?: string | null;
+      first_name?: unknown;
+      last_name?: unknown;
       reset_pin?: boolean;
     };
 
@@ -168,6 +167,26 @@ export async function PATCH(
     }
 
     const requestedStatus = body?.status;
+
+    const hasFirstNameChange = Object.prototype.hasOwnProperty.call(
+      body,
+      "first_name"
+    );
+
+    const hasLastNameChange = Object.prototype.hasOwnProperty.call(
+      body,
+      "last_name"
+    );
+
+    const nextFirstName =
+      typeof body.first_name === "string"
+        ? body.first_name.trim()
+        : "";
+
+    const nextLastName =
+      typeof body.last_name === "string"
+        ? body.last_name.trim()
+        : "";
 
     const hasClassChange = Object.prototype.hasOwnProperty.call(
       body,
@@ -187,7 +206,13 @@ export async function PATCH(
       );
     }
 
-    if (!requestedStatus && !hasClassChange && !resetPin) {
+    if (
+      !requestedStatus &&
+      !hasClassChange &&
+      !resetPin &&
+      !hasFirstNameChange &&
+      !hasLastNameChange
+    ) {
       return NextResponse.json(
         { success: false, message: "No student changes were requested." },
         { status: 400 }
@@ -217,6 +242,37 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, message: "Student not found." },
         { status: 404 }
+      );
+    }
+
+    // ---------------------------------------------------------
+    // STUDENT NAME VALIDATION
+    // ---------------------------------------------------------
+    if (
+      hasFirstNameChange &&
+      (!nextFirstName || nextFirstName.length > 100)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "First name is required and must be 100 characters or fewer.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      hasLastNameChange &&
+      (!nextLastName || nextLastName.length > 100)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Last name is required and must be 100 characters or fewer.",
+        },
+        { status: 400 }
       );
     }
 
@@ -263,7 +319,8 @@ export async function PATCH(
           return NextResponse.json(
             {
               success: false,
-              message: "Students can only be assigned to active classes.",
+              message:
+                "Students can only be assigned to active classes.",
             },
             { status: 400 }
           );
@@ -280,11 +337,12 @@ export async function PATCH(
       requestedStatus === "active" &&
       existingStudent.status !== "active"
     ) {
-      const { data: school, error: schoolError } = await supabaseServer
-        .from("schools")
-        .select("id, status")
-        .eq("id", admin.school_id)
-        .maybeSingle();
+      const { data: school, error: schoolError } =
+        await supabaseServer
+          .from("schools")
+          .select("id, status")
+          .eq("id", admin.school_id)
+          .maybeSingle();
 
       if (schoolError) {
         console.error("School lookup failed:", schoolError);
@@ -343,6 +401,14 @@ export async function PATCH(
       updatePayload.status = requestedStatus;
     }
 
+    if (hasFirstNameChange) {
+      updatePayload.first_name = nextFirstName;
+    }
+
+    if (hasLastNameChange) {
+      updatePayload.last_name = nextLastName;
+    }
+
     if (hasClassChange) {
       updatePayload.class_id = nextClassId;
     }
@@ -394,7 +460,9 @@ export async function PATCH(
         success: true,
         message: resetPin
           ? "A new student PIN has been generated."
-          : "Student updated successfully.",
+          : hasFirstNameChange || hasLastNameChange
+            ? "Student details updated successfully."
+            : "Student updated successfully.",
         student: updatedStudent,
         credentials: newPin
           ? {
@@ -434,7 +502,6 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
-    // Verify the authenticated school administrator.
     const auth = await getSchoolAdmin(request);
 
     if ("error" in auth) {
@@ -451,7 +518,6 @@ export async function DELETE(
       );
     }
 
-    // Confirm that the student belongs to this administrator's school.
     const { data: student, error: studentLookupError } =
       await supabaseServer
         .from("school_students")
@@ -461,7 +527,10 @@ export async function DELETE(
         .maybeSingle();
 
     if (studentLookupError) {
-      console.error("Student lookup failed during deletion:", studentLookupError);
+      console.error(
+        "Student lookup failed during deletion:",
+        studentLookupError
+      );
 
       return NextResponse.json(
         {
@@ -482,8 +551,6 @@ export async function DELETE(
       );
     }
 
-    // Permanently delete only this school's student record.
-    // Related records with ON DELETE CASCADE are removed by the database.
     const { data: deletedStudent, error: deleteError } =
       await supabaseServer
         .from("school_students")

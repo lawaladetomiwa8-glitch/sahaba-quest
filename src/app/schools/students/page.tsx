@@ -178,6 +178,11 @@ export default function SchoolStudentsPage() {
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [savingStudentEdit, setSavingStudentEdit] = useState(false);
+
   const [resettingId, setResettingId] = useState<string | null>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -588,6 +593,41 @@ export default function SchoolStudentsPage() {
 
     }
 
+  }
+
+  function beginEditStudent(student: Student) {
+    setEditingStudent(student);
+    setEditFirstName(student.first_name);
+    setEditLastName(student.last_name);
+    setPageError("");
+    setSuccessMessage("");
+  }
+
+  async function saveStudentEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingStudent) return;
+    const first = editFirstName.trim();
+    const last = editLastName.trim();
+    if (!first || !last) { setPageError("First name and last name are required."); return; }
+    setSavingStudentEdit(true);
+    setPageError("");
+    setSuccessMessage("");
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      const response = await fetch(`/api/schools/students/${editingStudent.id}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ first_name: first, last_name: last }),
+      });
+      const data = await readJsonResponse<{ success: boolean; message?: string; student?: Student }>(response);
+      if (!response.ok || !data.success || !data.student) throw new Error(data.message || "Unable to update student details.");
+      setStudents((current) => current.map((item) => item.id === editingStudent.id ? { ...item, ...data.student } : item));
+      setEditingStudent(null);
+      setSuccessMessage("Student name updated successfully. Student ID and PIN remain unchanged.");
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : "Unable to update student details.");
+    } finally { setSavingStudentEdit(false); }
   }
 
   async function handleDeleteStudent(student: Student) {
@@ -1492,6 +1532,21 @@ export default function SchoolStudentsPage() {
 
             <>
 
+              {editingStudent && (
+                <form onSubmit={saveStudentEdit} style={{ margin: "0 16px 18px", padding: 16, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff" }}>
+                  <h3 style={{ margin: "0 0 4px", fontWeight: 800, fontSize: 16 }}>Edit student name</h3>
+                  <p style={{ margin: "0 0 14px", color: "#6b7280", fontSize: 12 }}>Student ID: {editingStudent.student_id}. Existing account and learning history will be preserved.</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700 }}>First name<input value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} maxLength={100} required disabled={savingStudentEdit} style={{ ...inputStyle, marginTop: 6 }} /></label>
+                    <label style={{ fontSize: 12, fontWeight: 700 }}>Last name<input value={editLastName} onChange={(e) => setEditLastName(e.target.value)} maxLength={100} required disabled={savingStudentEdit} style={{ ...inputStyle, marginTop: 6 }} /></label>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+                    <button type="button" onClick={() => setEditingStudent(null)} disabled={savingStudentEdit} style={{ ...primaryButton, background: "#fff", color: "#374151", border: "1px solid #d1d5db" }}>Cancel</button>
+                    <button type="submit" disabled={savingStudentEdit} style={primaryButton}>{savingStudentEdit ? "Saving..." : "Save name"}</button>
+                  </div>
+                </form>
+              )}
+
               <div style={{ overflowX: "auto" }}>
 
                 <table
@@ -1713,6 +1768,8 @@ export default function SchoolStudentsPage() {
                             }}
 
                           >
+
+                            <button type="button" onClick={() => beginEditStudent(student)} disabled={savingStudentEdit || deletingId === student.id} style={{ border: "1px solid #d1d5db", borderRadius: 8, background: "#fff", padding: "8px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Edit name</button>
 
                             <select
 
