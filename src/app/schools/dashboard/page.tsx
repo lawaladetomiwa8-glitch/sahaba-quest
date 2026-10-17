@@ -547,9 +547,7 @@ export default function SchoolDashboardPage() {
       <div className="min-h-screen bg-slate-50">
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-700 text-sm font-extrabold text-white">
-              SQ
-            </div>
+            <img src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png" alt="Sahaba Quest logo" width={40} height={40} className="h-10 w-10 rounded-xl object-contain" />
             <div>
               <p className="text-sm font-bold text-slate-900">Sahaba Quest</p>
               <p className="text-xs text-slate-500">Schools &amp; Madrasas</p>
@@ -562,14 +560,14 @@ export default function SchoolDashboardPage() {
           aria-busy="true"
           aria-live="polite"
         >
-          <section className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-green-800 via-green-700 to-emerald-600 p-6 text-white shadow-sm sm:p-8">
-            <p className="text-sm font-medium text-green-100">
+          <section className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-[#073d32] via-[#08745b] to-[#0d9488] p-6 text-white shadow-sm sm:p-8">
+            <p className="text-sm font-medium text-emerald-100">
               Assalamu Alaikum wa Rahmatullahi wa Barakatuh
             </p>
             <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
               Preparing your dashboard
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-green-50">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-emerald-50">
               Please wait while we securely retrieve your school information and learning overview.
             </p>
             <div className="mt-5 flex items-center gap-3">
@@ -687,7 +685,7 @@ export default function SchoolDashboardPage() {
 
               onClick={loadDashboard}
 
-              className="mt-6 rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-800"
+              className="mt-6 rounded-xl bg-[#08745b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#073d32]"
 
             >
 
@@ -777,11 +775,13 @@ export default function SchoolDashboardPage() {
 
           >
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-700 text-sm font-bold text-white">
-
-              SQ
-
-            </div>
+            <img
+              src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+              alt="Sahaba Quest logo"
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-xl object-contain"
+            />
 
 
 
@@ -887,7 +887,7 @@ export default function SchoolDashboardPage() {
 
                   <div className="mb-3 flex flex-wrap items-center gap-2">
 
-                    <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                    <span className="rounded-full bg-[#edf7f3] px-3 py-1 text-xs font-semibold text-[#08745b]">
 
                       {formatSchoolType(
 
@@ -899,7 +899,7 @@ export default function SchoolDashboardPage() {
 
 
 
-                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                    <span className="rounded-full bg-[#dcefe8] px-3 py-1 text-xs font-semibold text-[#08745b]">
 
                       {school.status ===
 
@@ -983,7 +983,7 @@ export default function SchoolDashboardPage() {
 
               href="/schools/dashboard"
 
-              className="rounded-xl bg-green-700 px-3 py-3 text-center text-xs font-semibold text-white"
+              className="rounded-xl bg-[#08745b] px-3 py-3 text-center text-xs font-semibold text-white"
 
             >
 
@@ -1034,7 +1034,7 @@ export default function SchoolDashboardPage() {
             </Link>
             <Link
               href="/schools/results"
-              className="rounded-xl bg-emerald-50 px-3 py-3 text-center text-xs font-semibold text-green-800 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+              className="rounded-xl px-3 py-3 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
             >
               Activity Results
             </Link>
@@ -1136,7 +1136,7 @@ export default function SchoolDashboardPage() {
 
 
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-xl">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf7f3] text-xl">
 
                 👨‍🎓
 
@@ -1182,7 +1182,7 @@ export default function SchoolDashboardPage() {
 
 
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-xl">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf7f3] text-xl">
 
                 🎟️
 
@@ -1228,7 +1228,7 @@ export default function SchoolDashboardPage() {
 
 
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-xl">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf7f3] text-xl">
 
                 🏫
 
@@ -1280,7 +1280,7 @@ export default function SchoolDashboardPage() {
 
 
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-xl">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf7f3] text-xl">
 
                 ✓
 
@@ -1362,7 +1362,7 @@ export default function SchoolDashboardPage() {
 
               <div
 
-                className="h-full rounded-full bg-green-600 transition-all"
+                className="h-full rounded-full bg-[#08745b] transition-all"
 
                 style={{
 
@@ -1462,7 +1462,7 @@ export default function SchoolDashboardPage() {
 
 
 
-              <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+              <span className="rounded-full bg-[#dcefe8] px-3 py-1 text-xs font-semibold text-[#08745b]">
 
                 {subscription?.status ===
 
@@ -1580,7 +1580,7 @@ export default function SchoolDashboardPage() {
 
                   href="/schools/subscription"
 
-                  className="block rounded-xl border border-green-700 px-4 py-3 text-center text-sm font-semibold text-green-700 transition hover:bg-green-50"
+                  className="block rounded-xl border border-[#08745b] px-4 py-3 text-center text-sm font-semibold text-[#08745b] transition hover:bg-[#edf7f3]"
 
                 >
 
@@ -1608,7 +1608,7 @@ export default function SchoolDashboardPage() {
 
                   href="/schools"
 
-                  className="mt-4 inline-block rounded-xl bg-green-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-800"
+                  className="mt-4 inline-block rounded-xl bg-[#08745b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#073d32]"
 
                 >
 
@@ -1668,7 +1668,7 @@ export default function SchoolDashboardPage() {
 
             >
 
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf7f3] text-xl">
 
                 👨‍🎓
 
@@ -1704,7 +1704,7 @@ export default function SchoolDashboardPage() {
 
             >
 
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf7f3] text-xl">
 
                 🏫
 
@@ -1740,7 +1740,7 @@ export default function SchoolDashboardPage() {
 
             >
 
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf7f3] text-xl">
 
                 ✍️
 
@@ -1767,16 +1767,16 @@ export default function SchoolDashboardPage() {
             </Link>
             <Link
               href="/schools/results"
-              className="group rounded-2xl border border-green-100 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-green-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+              className="group rounded-2xl border border-[#d1e9e2] bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#8bc8b7] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#08745b] focus:ring-offset-2"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl transition group-hover:bg-green-100">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf7f3] text-xl transition group-hover:bg-[#dcefe8]">
                 📊
               </div>
               <h3 className="font-bold text-gray-900">Activity Results</h3>
               <p className="mt-2 text-sm leading-6 text-gray-600">
                 Review student submissions, scores, percentages and answers for school activities.
               </p>
-              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-green-700">
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#08745b]">
                 View results <span aria-hidden="true">→</span>
               </span>
             </Link>
@@ -1792,7 +1792,7 @@ export default function SchoolDashboardPage() {
 
             >
 
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf7f3] text-xl">
 
                 🏆
 

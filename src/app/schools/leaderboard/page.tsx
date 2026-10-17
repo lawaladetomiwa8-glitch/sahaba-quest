@@ -149,9 +149,9 @@ export default function SchoolLeaderboardPage() {
 
   if (loading && !data) {
     return (
-      <main className="min-h-screen bg-slate-50 p-6">
+      <main className="min-h-screen bg-[#f1f7f4] p-6">
         <div className="mx-auto max-w-7xl animate-pulse space-y-5">
-          <div className="h-8 w-64 rounded bg-slate-200" />
+          <div className="h-8 w-64 rounded bg-emerald-100" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((item) => (
               <div
@@ -167,28 +167,28 @@ export default function SchoolLeaderboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#f1f7f4] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-7">
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <Link
               href="/schools/dashboard"
-              className="text-sm font-medium text-slate-500 hover:text-slate-900"
+              className="text-sm font-medium text-[#477166] hover:text-[#073d32]"
             >
               ← Back to school dashboard
             </Link>
 
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#073d32]">
               School Leaderboard
             </h1>
 
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-[#45665d]">
               Track student progress across your school and individual classes.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <label htmlFor="leaderboard-month" className="text-sm font-medium text-slate-700">
+            <label htmlFor="leaderboard-month" className="text-sm font-medium text-[#244f43]">
               Monthly activity
             </label>
             <input
@@ -196,13 +196,13 @@ export default function SchoolLeaderboardPage() {
               type="month"
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none focus:border-[#08745b] focus:ring-2 focus:ring-emerald-100"
             />
 
             <button
               type="button"
               onClick={() => void loadLeaderboard()}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+              className="rounded-xl bg-[#073d32] px-4 py-2 text-sm font-semibold text-white hover:bg-[#062e27]"
             >
               Refresh
             </button>
@@ -250,26 +250,26 @@ export default function SchoolLeaderboardPage() {
               />
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center">
+            <section className="overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm">
+              <div className="flex flex-col justify-between gap-4 border-b border-emerald-100 p-5 sm:flex-row sm:items-center">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">
+                  <h2 className="text-lg font-bold text-[#073d32]">
                     Rankings
                   </h2>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-[#557168]">
                     Overall rankings use cumulative XP. Monthly XP shows activity
                     for {monthLabel(data.month)}.
                   </p>
                 </div>
 
-                <div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
+                <div className="inline-flex w-fit rounded-xl bg-[#e3eee8] p-1">
                   <button
                     type="button"
                     onClick={() => setActiveView("school")}
                     className={`rounded-lg px-4 py-2 text-sm font-semibold ${
                       activeView === "school"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-[#073d32] text-white shadow-sm"
+                        : "text-[#557168] hover:text-[#073d32]"
                     }`}
                   >
                     Whole school
@@ -279,8 +279,8 @@ export default function SchoolLeaderboardPage() {
                     onClick={() => setActiveView("classes")}
                     className={`rounded-lg px-4 py-2 text-sm font-semibold ${
                       activeView === "classes"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-[#073d32] text-white shadow-sm"
+                        : "text-[#557168] hover:text-[#073d32]"
                     }`}
                   >
                     By class
@@ -306,8 +306,8 @@ export default function SchoolLeaderboardPage() {
                             }
                             className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
                               selectedClassId === schoolClass.class_id
-                                ? "border-indigo-600 bg-indigo-600 text-white"
-                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                ? "border-[#073d32] bg-[#073d32] text-white"
+                                : "border-emerald-100 bg-white text-[#244f43] hover:bg-emerald-50"
                             }`}
                           >
                             {schoolClass.class_name}
@@ -368,12 +368,12 @@ function SummaryCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-3 break-words text-3xl font-bold tracking-tight text-slate-900">
+    <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+      <p className="text-sm font-medium text-[#557168]">{label}</p>
+      <p className="mt-3 break-words text-3xl font-bold tracking-tight text-[#073d32]">
         {value}
       </p>
-      <p className="mt-2 text-xs text-slate-500">{detail}</p>
+      <p className="mt-2 text-xs text-[#557168]">{detail}</p>
     </div>
   );
 }
@@ -386,9 +386,9 @@ function MiniStat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-xl border border-emerald-100 bg-[#f1f7f4] p-4">
       <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-2 break-words text-lg font-bold text-slate-900">
+      <p className="mt-2 break-words text-lg font-bold text-[#073d32]">
         {value}
       </p>
     </div>
@@ -403,7 +403,7 @@ function StudentTable({ students }: { students: StudentRow[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-[760px] w-full text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <thead className="bg-[#e7f1ec] text-xs uppercase tracking-wide text-[#42675b]">
           <tr>
             <th className="px-5 py-4 font-semibold">Rank</th>
             <th className="px-5 py-4 font-semibold">Student</th>
@@ -414,9 +414,9 @@ function StudentTable({ students }: { students: StudentRow[] }) {
             <th className="px-5 py-4 text-right font-semibold">Correct</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-emerald-100">
           {students.map((student) => (
-            <tr key={student.student_id} className="hover:bg-slate-50">
+            <tr key={student.student_id} className="hover:bg-emerald-50">
               <td className="px-5 py-4">
                 <RankBadge rank={student.rank} />
               </td>
@@ -424,7 +424,7 @@ function StudentTable({ students }: { students: StudentRow[] }) {
                 <p className="font-semibold text-slate-900">
                   {student.student_name || "Unnamed student"}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-[#557168]">
                   {student.student_code || "No student code"}
                 </p>
               </td>
@@ -434,7 +434,7 @@ function StudentTable({ students }: { students: StudentRow[] }) {
               <td className="px-5 py-4 text-right font-bold text-slate-900">
                 {formatNumber(student.total_xp)}
               </td>
-              <td className="px-5 py-4 text-right text-indigo-700">
+              <td className="px-5 py-4 text-right text-[#08745b]">
                 {formatNumber(student.monthly_xp)}
               </td>
               <td className="px-5 py-4 text-right text-slate-600">
@@ -472,7 +472,7 @@ function RankBadge({ rank }: { rank: number }) {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 px-5 py-12 text-center text-sm text-slate-500">
+    <div className="rounded-xl border border-dashed border-emerald-200 px-5 py-12 text-center text-sm text-[#557168]">
       {message}
     </div>
   );

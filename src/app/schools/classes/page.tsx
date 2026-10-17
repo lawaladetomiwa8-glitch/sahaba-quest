@@ -716,23 +716,14 @@ export default function SchoolClassesPage() {
       <div className="min-h-screen bg-gray-50">
 
         <header className="border-b border-gray-200 bg-white">
-
-          <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-end px-4 sm:px-6 lg:px-8">
             <Link
-
               href="/schools/dashboard"
-
-              className="text-lg font-bold text-gray-900"
-
+              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             >
-
-              Sahaba Quest
-
+              ← Dashboard
             </Link>
-
           </div>
-
         </header>
 
 
@@ -784,61 +775,14 @@ export default function SchoolClassesPage() {
 
 
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
-
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-end px-4 sm:px-6 lg:px-8">
           <Link
-
             href="/schools/dashboard"
-
-            className="flex items-center gap-2"
-
-          >
-
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-700 text-sm font-bold text-white">
-
-              SQ
-
-            </div>
-
-
-
-            <div>
-
-              <p className="text-sm font-bold text-gray-900">
-
-                Sahaba Quest
-
-              </p>
-
-
-
-              <p className="text-[11px] text-gray-500">
-
-                Schools & Madrasas
-
-              </p>
-
-            </div>
-
-          </Link>
-
-
-
-          <Link
-
-            href="/schools/dashboard"
-
             className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-
           >
-
-            Dashboard
-
+            ← Dashboard
           </Link>
-
         </div>
-
       </header>
 
 
