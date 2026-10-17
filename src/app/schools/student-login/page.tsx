@@ -96,10 +96,6 @@ export default function SchoolStudentLoginPage() {
           <div className="sq-brand-glow sq-brand-glow-two" />
 
           <div className="sq-student-brand-content">
-            <Link href="/" className="sq-student-brand-logo">
-              Sahaba Quest
-            </Link>
-
             <div className="sq-student-brand-kicker">
               LEARN • REMEMBER • COMPETE
             </div>
@@ -375,7 +371,7 @@ export default function SchoolStudentLoginPage() {
         }
 
         .sq-student-brand-kicker {
-          margin-top: 58px;
+          margin-top: 0;
           color: rgba(255, 255, 255, 0.72);
           font-size: 11px;
           font-weight: 900;

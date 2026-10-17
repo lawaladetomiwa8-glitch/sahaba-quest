@@ -1715,6 +1715,8 @@ export default function SchoolStudentsPage() {
 
                             borderBottom: "1px solid #f0f1f3",
 
+                            whiteSpace: "nowrap",
+
                           }}
 
                         >
@@ -1735,6 +1737,8 @@ export default function SchoolStudentsPage() {
 
                             fontSize: 13,
 
+                            whiteSpace: "nowrap",
+
                           }}
 
                         >
@@ -1751,6 +1755,8 @@ export default function SchoolStudentsPage() {
 
                             borderBottom: "1px solid #f0f1f3",
 
+                            whiteSpace: "nowrap",
+
                           }}
 
                         >
@@ -1761,9 +1767,11 @@ export default function SchoolStudentsPage() {
 
                               display: "flex",
 
-                              flexWrap: "wrap",
+                              flexWrap: "nowrap",
 
                               gap: 7,
+
+                              width: "max-content",
 
                             }}
 

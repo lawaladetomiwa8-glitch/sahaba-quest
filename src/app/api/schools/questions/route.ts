@@ -22,36 +22,6 @@ type QuestionStatus = "draft" | "published" | "archived";
 type Difficulty = "easy" | "medium" | "hard";
 type CorrectOption = "A" | "B" | "C" | "D";
 
-const ALLOWED_TIME_LIMITS = [1, 5, 10, 15, 20, 30, 45, 60] as const;
-
-/**
- * Returns a supported duration, null for an untimed activity, or undefined
- * when a supplied value is invalid. An omitted value also returns undefined;
- * callers distinguish omission from invalid input by checking the request body.
- */
-function parseTimeLimit(value: unknown): number | null | undefined {
-  if (value === undefined) return undefined;
-  if (value === null || value === "") return null;
-
-  const minutes =
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && value.trim() !== ""
-        ? Number(value)
-        : NaN;
-
-  if (
-    !Number.isInteger(minutes) ||
-    !ALLOWED_TIME_LIMITS.includes(
-      minutes as (typeof ALLOWED_TIME_LIMITS)[number]
-    )
-  ) {
-    return undefined;
-  }
-
-  return minutes;
-}
-
 const isRecord = (
   value: unknown
 ): value is Record<string, unknown> =>
@@ -421,16 +391,6 @@ export async function POST(request: NextRequest) {
       const activityType = body.activity_type;
       const status = body.status ?? "draft";
       const dueAt = body.due_at;
-      const timeLimitMinutes = parseTimeLimit(body.time_limit_minutes);
-
-      if (
-        body.time_limit_minutes !== undefined &&
-        timeLimitMinutes === undefined
-      ) {
-        return respondError(
-          "Choose no time limit or one of the supported durations: 1, 5, 10, 15, 20, 30, 45 or 60 minutes."
-        );
-      }
 
       const classIds = Array.isArray(body.class_ids)
         ? [...new Set(body.class_ids)]
@@ -551,7 +511,6 @@ export async function POST(request: NextRequest) {
             activity_type: activityType as ActivityType,
             status: status as ActivityStatus,
             due_at: normalizedDueAt,
-            time_limit_minutes: timeLimitMinutes ?? null,
           })
           .select("*")
           .single();
@@ -799,18 +758,6 @@ export async function PATCH(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
-      if ("time_limit_minutes" in body) {
-        const timeLimitMinutes = parseTimeLimit(body.time_limit_minutes);
-
-        if (timeLimitMinutes === undefined) {
-          return respondError(
-            "Choose no time limit or one of the supported durations: 1, 5, 10, 15, 20, 30, 45 or 60 minutes."
-          );
-        }
-
-        updates.time_limit_minutes = timeLimitMinutes;
-      }
-
       if ("title" in body) {
         const title = cleanText(body.title);
 
@@ -915,6 +862,81 @@ export async function DELETE(request: NextRequest) {
 
     if ("error" in auth) {
       return respondError(String(auth.error ?? "Authentication required."), Number(auth.status ?? 401));
+    }
+
+    // Activities use a JSON body; questions keep the existing ?id=... archive flow.
+    let deleteBody: Record<string, unknown> = {};
+    try {
+      const rawBody = await request.text();
+      if (rawBody.trim()) {
+        const parsed: unknown = JSON.parse(rawBody);
+        if (isRecord(parsed)) deleteBody = parsed;
+      }
+    } catch {
+      return respondError("Invalid delete request.");
+    }
+
+    if (deleteBody.action === "activity") {
+      const activityId = deleteBody.id;
+      if (!isUuid(activityId)) {
+        return respondError("A valid activity ID is required.");
+      }
+
+      const { data: activity, error: activityLookupError } = await supabaseServer
+        .from("school_question_activities")
+        .select("id, status")
+        .eq("id", activityId)
+        .eq("school_id", auth.schoolAdmin.school_id)
+        .maybeSingle();
+
+      if (activityLookupError) {
+        console.error("Find school activity for deletion error:", activityLookupError);
+        return respondError("We could not verify this activity.", 500);
+      }
+      if (!activity) {
+        return respondError("Activity not found in your school.", 404);
+      }
+
+      // Remove only this activity's assignment rows before removing the activity.
+      // If historical student results reference it, the database may reject the
+      // final delete; that error is surfaced without claiming the activity was deleted.
+      const { error: questionLinksError } = await supabaseServer
+        .from("school_question_activity_questions")
+        .delete()
+        .eq("activity_id", activityId);
+      if (questionLinksError) {
+        console.error("Delete activity question assignments error:", questionLinksError);
+        return respondError("We could not remove this activity's question assignments.", 500);
+      }
+
+      const { error: classLinksError } = await supabaseServer
+        .from("school_question_activity_classes")
+        .delete()
+        .eq("activity_id", activityId);
+      if (classLinksError) {
+        console.error("Delete activity class assignments error:", classLinksError);
+        return respondError("We could not remove this activity's class assignments.", 500);
+      }
+
+      const { error: activityDeleteError } = await supabaseServer
+        .from("school_question_activities")
+        .delete()
+        .eq("id", activityId)
+        .eq("school_id", auth.schoolAdmin.school_id);
+
+      if (activityDeleteError) {
+        console.error("Delete school activity error:", activityDeleteError);
+        return respondError(
+          "This activity could not be deleted. It may have student results or records linked to it. Close the activity instead if you need to preserve its history.",
+          409
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Activity deleted successfully.",
+        activityId,
+      });
     }
 
     const { searchParams } = new URL(request.url);

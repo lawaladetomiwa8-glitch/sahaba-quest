@@ -1,730 +1,1372 @@
 "use client";
 
-import { useEffect, useState } from "react";
+
+
+import {
+
+  useCallback,
+
+  useEffect,
+
+  useState,
+
+} from "react";
 
 import { useRouter } from "next/navigation";
 
-import { supabase } from "../../lib/supabase";
+import Link from "next/link";
 
-import { AppNavbar } from "../../components/ui";
+import { supabase } from "@/lib/supabase";
 
-type AccountType = "free" | "individual" | "family";
 
-type Profile = {
 
-  username: string | null;
+type DashboardData = {
 
-  display_name: string | null;
+  success: boolean;
 
-  account_type: AccountType;
+
+
+  admin: {
+
+    id: string;
+
+    user_id: string;
+
+    email: string | null;
+
+    role: string;
+
+  };
+
+
+
+  school: {
+
+    id: string;
+
+    school_name: string;
+
+    school_type: string;
+
+    country: string;
+
+    state: string | null;
+
+    city: string | null;
+
+    address: string | null;
+
+    contact_phone: string | null;
+
+    school_code: string;
+
+    status: string;
+
+    created_at: string;
+
+  };
+
+
+
+  subscription: {
+
+    id: string;
+
+    currency: string;
+
+    billing_interval: string;
+
+    student_seat_limit: number;
+
+    price_per_student: number;
+
+    total_amount: number;
+
+    status: string;
+
+    current_period_start: string | null;
+
+    current_period_end: string | null;
+
+    created_at: string;
+
+  } | null;
+
+
+
+  statistics: {
+
+    total_students: number;
+
+    active_students: number;
+
+    total_classes: number;
+
+    seat_limit: number;
+
+    used_seats: number;
+
+    remaining_seats: number;
+
+  };
 
 };
 
-type Progress = {
 
-  current_level: number;
 
-  total_xp: number;
+function formatCurrency(
 
-  questions_answered: number;
+  amount: number,
 
-  correct_answers: number;
+  currency: string
 
-  current_streak: number;
+) {
 
-  best_streak: number;
+  const currencyMap: Record<string, string> = {
 
-};
+    NGN: "₦",
 
-type DailyQuestStatus = {
+    USD: "$",
 
-  quest_id: string;
+    GBP: "£",
 
-  quest_date: string;
+    EUR: "€",
 
-  title: string;
+  };
 
-  description: string;
 
-  question_count: number;
 
-  time_per_question: number;
+  const symbol = currencyMap[currency] ?? currency;
 
-  status: "not_started" | "in_progress" | "completed";
 
-  attempt_id: string | null;
 
-  questions_answered: number;
+  /*
 
-  correct_answers: number;
+   * Stored school prices are integer minor units:
 
-  score: number;
+   * NGN 800 = ₦800
 
-  daily_streak: number;
+   * USD 100 = $1.00
 
-  best_daily_streak: number;
+   * GBP 100 = £1.00
 
-};
+   * EUR 100 = €1.00
 
-type SubscriptionPlan = {
+   */
 
-  plan_type: "plus" | "family" | "school";
 
-  display_name: string;
 
-};
+  const majorAmount =
 
-type Subscription = {
+    currency === "NGN"
 
-  status: string;
+      ? amount
 
-  current_period_end: string;
+      : amount / 100;
 
-  plan: SubscriptionPlan | null;
 
-};
 
-type SubscriptionQueryResult = {
+  return `${symbol}${majorAmount.toLocaleString(
 
-  status: string;
+    undefined,
 
-  current_period_end: string;
+    {
 
-  subscription_plans:
+      minimumFractionDigits:
 
-    | SubscriptionPlan
+        currency === "NGN" ? 0 : 2,
 
-    | SubscriptionPlan[]
+      maximumFractionDigits:
 
-    | null;
-
-};
-
-export default function DashboardPage() {
-
-  const router = useRouter();
-
-  const [profile, setProfile] =
-
-    useState<Profile | null>(null);
-
-  const [progress, setProgress] =
-
-    useState<Progress | null>(null);
-
-  const [subscription, setSubscription] =
-
-    useState<Subscription | null>(null);
-
-  const [dailyQuest, setDailyQuest] =
-
-    useState<DailyQuestStatus | null>(null);
-
-  // The quest prompt stays hidden if its status cannot be verified.
-
-  async function refreshDailyQuest() {
-
-    const { data, error } = await supabase.rpc("get_daily_quest_status");
-
-    if (error) {
-
-      console.error("Daily Quest status error:", error);
-
-      setDailyQuest(null);
-
-      return;
+        currency === "NGN" ? 0 : 2,
 
     }
 
-    setDailyQuest(data as DailyQuestStatus);
+  )}`;
+
+}
+
+
+
+function formatDate(
+
+  value: string | null | undefined
+
+) {
+
+  if (!value) {
+
+    return "—";
 
   }
 
-  // Refresh when the player returns and when the Lagos calendar day changes.
 
-  useEffect(() => {
 
-    let lastLagosDate = new Intl.DateTimeFormat("en-CA", {
+  return new Date(value).toLocaleDateString(
 
-      timeZone: "Africa/Lagos", year: "numeric", month: "2-digit", day: "2-digit",
+    undefined,
 
-    }).format(new Date());
+    {
 
-    const checkDate = () => {
+      day: "numeric",
 
-      const currentLagosDate = new Intl.DateTimeFormat("en-CA", {
+      month: "short",
 
-        timeZone: "Africa/Lagos", year: "numeric", month: "2-digit", day: "2-digit",
+      year: "numeric",
 
-      }).format(new Date());
+    }
 
-      if (currentLagosDate !== lastLagosDate) {
+  );
 
-        lastLagosDate = currentLagosDate;
+}
 
-        if (profile) void refreshDailyQuest();
+
+
+function formatBillingInterval(
+
+  value: string
+
+) {
+
+  if (value === "monthly") {
+
+    return "Monthly";
+
+  }
+
+
+
+  if (value === "termly") {
+
+    return "Termly";
+
+  }
+
+
+
+  return value;
+
+}
+
+
+
+function formatSchoolType(
+
+  value: string
+
+) {
+
+  const labels: Record<string, string> = {
+
+    school: "School",
+
+    madrasa: "Madrasa",
+
+    islamic_centre: "Islamic Centre",
+
+    other: "Other",
+
+  };
+
+
+
+  return (
+
+    labels[value] ??
+
+    value
+
+      .replace(/_/g, " ")
+
+      .replace(/\b\w/g, (char) =>
+
+        char.toUpperCase()
+
+      )
+
+  );
+
+}
+
+
+
+export default function SchoolDashboardPage() {
+
+  const router = useRouter();
+
+
+
+  const [data, setData] =
+
+    useState<DashboardData | null>(null);
+
+
+
+  const [loading, setLoading] =
+
+    useState(true);
+
+
+
+  const [error, setError] =
+
+    useState("");
+
+
+
+  const [signingOut, setSigningOut] =
+
+    useState(false);
+
+
+
+  /* =====================================================
+
+     LOAD DASHBOARD
+
+  ===================================================== */
+
+
+
+  const loadDashboard =
+
+    useCallback(async () => {
+
+      try {
+
+        setLoading(true);
+
+        setError("");
+
+
+
+        const {
+
+          data: {
+
+            session,
+
+          },
+
+          error: sessionError,
+
+        } =
+
+          await supabase.auth.getSession();
+
+
+
+        if (
+
+          sessionError ||
+
+          !session?.access_token
+
+        ) {
+
+          router.replace("/login");
+
+          return;
+
+        }
+
+
+
+        const response =
+
+          await fetch(
+
+            "/api/schools/dashboard",
+
+            {
+
+              method: "GET",
+
+              headers: {
+
+                Authorization: `Bearer ${session.access_token}`,
+
+              },
+
+              cache: "no-store",
+
+            }
+
+          );
+
+
+
+        const result =
+
+          await response.json();
+
+
+
+        if (!response.ok || !result.success) {
+
+          if (
+
+            response.status === 401
+
+          ) {
+
+            router.replace("/login");
+
+            return;
+
+          }
+
+
+
+          if (
+
+            response.status === 403
+
+          ) {
+
+            setError(
+
+              result.error ||
+
+                "You do not have access to this school dashboard."
+
+            );
+
+            return;
+
+          }
+
+
+
+          throw new Error(
+
+            result.error ||
+
+              "Unable to load the school dashboard."
+
+          );
+
+        }
+
+
+
+        setData(result);
+
+      } catch (err) {
+
+        console.error(
+
+          "School dashboard error:",
+
+          err
+
+        );
+
+
+
+        setError(
+
+          err instanceof Error
+
+            ? err.message
+
+            : "Unable to load your school dashboard."
+
+        );
+
+      } finally {
+
+        setLoading(false);
 
       }
 
-    };
+    }, [router]);
 
-    const onFocus = () => { if (profile) void refreshDailyQuest(); };
 
-    const onVisible = () => {
-
-      if (document.visibilityState === "visible") onFocus();
-
-    };
-
-    window.addEventListener("focus", onFocus);
-
-    document.addEventListener("visibilitychange", onVisible);
-
-    const interval = window.setInterval(checkDate, 60_000);
-
-    return () => {
-
-      window.removeEventListener("focus", onFocus);
-
-      document.removeEventListener("visibilitychange", onVisible);
-
-      window.clearInterval(interval);
-
-    };
-
-  }, [profile]);
-
-  const [message, setMessage] = useState(
-
-    "Loading your dashboard..."
-
-  );
 
   useEffect(() => {
 
     loadDashboard();
 
-  }, []);
+  }, [loadDashboard]);
 
-  async function loadDashboard() {
+
+
+  /* =====================================================
+
+     SIGN OUT
+
+  ===================================================== */
+
+
+
+  async function handleSignOut() {
 
     try {
 
-      const {
+      setSigningOut(true);
 
-        data: { user },
 
-        error: userError,
 
-      } = await supabase.auth.getUser();
+      await supabase.auth.signOut();
 
-      if (userError) {
 
-        console.error(
 
-          "User lookup error:",
+      router.replace("/login");
 
-          userError
-
-        );
-
-        setMessage(
-
-          "We could not load your account."
-
-        );
-
-        return;
-
-      }
-
-      if (!user) {
-
-        setMessage("You are not logged in.");
-
-        return;
-
-      }
-
-      /*
-
-       * SCHOOL ADMIN ROUTING
-
-       *
-
-       * School Admins use a completely separate account space.
-
-       * Their identity is determined by the school_admins table,
-
-       * not profiles.account_type. This check happens before
-
-       * the Individual/Family profile logic below.
-
-       */
-
-      const {
-
-        data: schoolAdmin,
-
-        error: schoolAdminError,
-
-      } = await supabase
-
-        .from("school_admins")
-
-        .select("school_id, role, status")
-
-        .eq("user_id", user.id)
-
-        .eq("status", "active")
-
-        .maybeSingle();
-
-      if (schoolAdminError) {
-
-        console.error(
-
-          "School Admin lookup error:",
-
-          schoolAdminError
-
-        );
-
-        setMessage(
-
-          "We could not verify your school administrator account."
-
-        );
-
-        return;
-
-      }
-
-      if (schoolAdmin) {
-
-        router.replace("/schools/dashboard");
-
-        return;
-
-      }
-
-      /*
-
-       * PROFILE
-
-       *
-
-       * account_type is now the source of truth
-
-       * for the user's account experience.
-
-       */
-
-      const {
-
-        data: profileData,
-
-        error: profileError,
-
-      } = await supabase
-
-        .from("profiles")
-
-        .select(
-
-          "username, display_name, account_type"
-
-        )
-
-        .eq("id", user.id)
-
-        .single();
-
-      if (profileError) {
-
-        console.error(
-
-          "Profile lookup error:",
-
-          profileError
-
-        );
-
-        setMessage(
-
-          "We could not load your profile."
-
-        );
-
-        return;
-
-      }
-
-      const accountType =
-
-        profileData.account_type;
-
-      /*
-
-       * Only the three active account types
-
-       * are allowed in V1.
-
-       */
-
-      if (
-
-        accountType !== "free" &&
-
-        accountType !== "individual" &&
-
-        accountType !== "family"
-
-      ) {
-
-        console.error(
-
-          "Invalid account type:",
-
-          accountType
-
-        );
-
-        setMessage(
-
-          "Your account type could not be verified."
-
-        );
-
-        return;
-
-      }
-
-      /*
-
-       * FAMILY ROUTING
-
-       *
-
-       * Family users have their own dashboard and should
-
-       * never remain on the Individual/standard dashboard.
-
-       *
-
-       * /family-dashboard already protects itself and only
-
-       * accepts Family accounts, so this does not create
-
-       * a redirect loop.
-
-       */
-
-      if (accountType === "family") {
-
-        router.replace("/family-dashboard");
-
-        return;
-
-      }
-
-      /*
-
-       * PLAYER PROGRESS
-
-       */
-
-      const {
-
-        data: progressData,
-
-        error: progressError,
-
-      } = await supabase
-
-        .from("player_progress")
-
-        .select(
-
-          `
-
-            current_level,
-
-            total_xp,
-
-            questions_answered,
-
-            correct_answers,
-
-            current_streak,
-
-            best_streak
-
-          `
-
-        )
-
-        .eq("user_id", user.id)
-
-        .single();
-
-      if (progressError) {
-
-        console.error(
-
-          "Progress lookup error:",
-
-          progressError
-
-        );
-
-        setMessage(
-
-          "We could not load your game progress."
-
-        );
-
-        return;
-
-      }
-
-      /*
-
-       * ACTIVE SUBSCRIPTION
-
-       *
-
-       * We only retrieve active subscriptions.
-
-       * The newest ending subscription is selected.
-
-       */
-
-      const {
-
-        data: subscriptionData,
-
-        error: subscriptionError,
-
-      } = await supabase
-
-        .from("subscriptions")
-
-        .select(
-
-          `
-
-            status,
-
-            current_period_end,
-
-            subscription_plans (
-
-              plan_type,
-
-              display_name
-
-            )
-
-          `
-
-        )
-
-        .eq("user_id", user.id)
-
-        .eq("status", "active")
-
-        .order("current_period_end", {
-
-          ascending: false,
-
-        })
-
-        .limit(1)
-
-        .maybeSingle();
-
-      if (subscriptionError) {
-
-        console.error(
-
-          "Subscription lookup error:",
-
-          subscriptionError
-
-        );
-
-        setSubscription(null);
-
-      } else if (subscriptionData) {
-
-        const subscriptionResult =
-
-          subscriptionData as unknown as SubscriptionQueryResult;
-
-        let plan: SubscriptionPlan | null =
-
-          null;
-
-        if (
-
-          Array.isArray(
-
-            subscriptionResult.subscription_plans
-
-          )
-
-        ) {
-
-          plan =
-
-            subscriptionResult.subscription_plans[0] ||
-
-            null;
-
-        } else {
-
-          plan =
-
-            subscriptionResult.subscription_plans ||
-
-            null;
-
-        }
-
-        setSubscription({
-
-          status:
-
-            subscriptionResult.status,
-
-          current_period_end:
-
-            subscriptionResult.current_period_end,
-
-          plan,
-
-        });
-
-      } else {
-
-        setSubscription(null);
-
-      }
-
-      setProfile({
-
-        username: profileData.username,
-
-        display_name: profileData.display_name,
-
-        account_type: accountType,
-
-      });
-
-      setProgress(progressData);
-
-      await refreshDailyQuest();
-
-      setMessage("");
-
-    } catch (error) {
+    } catch (err) {
 
       console.error(
 
-        "Dashboard loading error:",
+        "School admin sign out error:",
 
-        error
-
-      );
-
-      setMessage(
-
-        "Something went wrong while loading your dashboard."
+        err
 
       );
+
+
+
+      setSigningOut(false);
 
     }
 
   }
 
-  /*
 
-   * LOADING / ERROR STATE
 
-   */
+  /* =====================================================
 
-  if (!profile || !progress) {
+     LOADING
+
+  ===================================================== */
+
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <header className="border-b border-slate-200 bg-white">
+          <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm">
+              <img src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png" alt="Sahaba Quest logo" className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">Sahaba Quest</p>
+              <p className="text-xs text-slate-500">Schools &amp; Madrasas</p>
+            </div>
+          </div>
+        </header>
+
+        <main
+          className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <section className="mb-8 overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-6 text-slate-900 shadow-[0_12px_36px_rgba(15,118,110,0.08)] sm:p-8">
+            <p className="text-sm font-semibold text-emerald-800">
+              Assalamu Alaikum wa Rahmatullahi wa Barakatuh
+            </p>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+              Preparing your dashboard
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+              Please wait while we securely retrieve your school information and learning overview.
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-600" />
+              </span>
+              <span className="text-sm font-semibold text-emerald-800">Loading securely...</span>
+            </div>
+          </section>
+
+          <section
+            className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            aria-label="Loading dashboard statistics"
+          >
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                <div className="mb-5 h-3 w-28 animate-pulse rounded-full bg-slate-200" />
+                <div className="h-8 w-20 animate-pulse rounded-lg bg-slate-200" />
+                <div className="mt-4 h-3 w-36 max-w-full animate-pulse rounded-full bg-slate-100" />
+              </div>
+            ))}
+          </section>
+
+          <section
+            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+            aria-label="Loading dashboard sections"
+          >
+            {[1, 2].map((item) => (
+              <div key={item} className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                <div className="h-5 w-44 animate-pulse rounded-full bg-slate-200" />
+                <div className="mt-4 h-3 w-full animate-pulse rounded-full bg-slate-100" />
+                <div className="mt-3 h-3 w-4/5 animate-pulse rounded-full bg-slate-100" />
+                <div className="mt-3 h-3 w-3/5 animate-pulse rounded-full bg-slate-100" />
+              </div>
+            ))}
+          </section>
+
+          <p className="mt-8 text-center text-xs text-slate-500">
+            May Allah place barakah in your school&apos;s learning journey.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  /* =====================================================
+     ERROR
+
+  ===================================================== */
+
+
+
+  if (error || !data) {
 
     return (
 
-      <main className="sq-page">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(204,251,241,0.65),transparent_32%),#f8faf9]">
 
-        <div className="sq-container">
+        <header className="border-b border-emerald-100/80 bg-white/90 backdrop-blur-xl">
 
-          <div
+          <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
 
-            className="sq-card"
+            <Link
 
-            style={{
+              href="/"
 
-              maxWidth: "620px",
-
-              margin: "80px auto",
-
-              padding: "48px 32px",
-
-              textAlign: "center",
-
-            }}
-
-          >
-
-            <div
-
-              className="dashboard-loading-logo"
-
-              style={{
-
-                width: "64px",
-
-                height: "64px",
-
-                margin: "0 auto 20px",
-
-                borderRadius: "20px",
-
-                background: "white",
-
-                display: "flex",
-
-                alignItems: "center",
-
-                justifyContent: "center",
-
-                overflow: "hidden",
-
-                border: "1px solid var(--border)",
-
-              }}
+              className="text-lg font-bold text-gray-900"
 
             >
 
-              <img
+              Sahaba Quest
 
-                src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+            </Link>
 
-                alt="Sahaba Quest"
+          </div>
+
+        </header>
+
+
+
+        <main className="flex min-h-[70vh] items-center justify-center px-4">
+
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-xl font-bold text-red-600">
+
+              !
+
+            </div>
+
+
+
+            <h1 className="text-xl font-bold text-gray-900">
+
+              Unable to Load Dashboard
+
+            </h1>
+
+
+
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+
+              {error ||
+
+                "We could not load your school information."}
+
+            </p>
+
+
+
+            <button
+
+              type="button"
+
+              onClick={loadDashboard}
+
+              className="mt-6 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
+
+            >
+
+              Try Again
+
+            </button>
+
+          </div>
+
+        </main>
+
+      </div>
+
+    );
+
+  }
+
+
+
+  const {
+
+    admin,
+
+    school,
+
+    subscription,
+
+    statistics,
+
+  } = data;
+
+
+
+  const seatPercentage =
+
+    statistics.seat_limit > 0
+
+      ? Math.min(
+
+          Math.round(
+
+            (statistics.used_seats /
+
+              statistics.seat_limit) *
+
+              100
+
+          ),
+
+          100
+
+        )
+
+      : 0;
+
+
+
+  /* =====================================================
+
+     DASHBOARD
+
+  ===================================================== */
+
+
+
+  return (
+
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(204,251,241,0.65),transparent_32%),#f8faf9]">
+
+      {/* =================================================
+
+          HEADER
+
+      ================================================= */}
+
+
+
+      <header className="sticky top-0 z-40 border-b border-emerald-100/80 bg-white/90 backdrop-blur-xl">
+
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+
+          <Link
+
+            href="/"
+
+            className="flex items-center gap-2"
+
+          >
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm">
+              <img src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png" alt="Sahaba Quest logo" className="h-full w-full object-contain" />
+            </div>
+
+
+
+            <div>
+
+              <p className="text-sm font-bold leading-tight text-gray-900">
+
+                Sahaba Quest
+
+              </p>
+
+
+
+              <p className="text-[11px] font-medium text-gray-500">
+
+                Schools & Madrasas
+
+              </p>
+
+            </div>
+
+          </Link>
+
+
+
+          <div className="flex items-center gap-3">
+
+            <div className="hidden text-right sm:block">
+
+              <p className="text-sm font-semibold text-gray-900">
+
+                {school.school_name}
+
+              </p>
+
+
+
+              <p className="text-xs text-gray-500">
+
+                {admin.email}
+
+              </p>
+
+            </div>
+
+
+
+            <button
+
+              type="button"
+
+              onClick={handleSignOut}
+
+              disabled={signingOut}
+
+              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+
+            >
+
+              {signingOut
+
+                ? "Signing out..."
+
+                : "Sign out"}
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </header>
+
+
+
+      {/* =================================================
+
+          MAIN
+
+      ================================================= */}
+
+
+
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+        {/* =================================================
+
+            SCHOOL HEADER
+
+        ================================================= */}
+
+
+
+        <section className="mb-8">
+
+          <div className="overflow-hidden rounded-3xl bg-white shadow-sm">
+
+            <div className="p-6 sm:p-8">
+
+              <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+
+                <div>
+
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+
+                      {formatSchoolType(
+
+                        school.school_type
+
+                      )}
+
+                    </span>
+
+
+
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+
+                      {school.status ===
+
+                      "active"
+
+                        ? "Active"
+
+                        : school.status}
+
+                    </span>
+
+                  </div>
+
+
+
+                  <p className="mb-2 text-sm font-semibold text-emerald-800">Assalamu alaikum wa rahmatullahi wa barakatuh 👋</p>
+
+
+
+                  <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">
+                    {school.school_name}
+                  </h1>
+
+
+
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+
+                    Manage your school&apos;s
+
+                    students, classes, learning
+
+                    activities and progress from
+
+                    one place.
+
+                  </p>
+
+                </div>
+
+
+
+                <div className="rounded-2xl border border-emerald-100 bg-white/80 px-5 py-4 shadow-sm">
+
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+
+                    School Code
+
+                  </p>
+
+
+
+                  <p className="mt-1 font-mono text-lg font-bold tracking-wider text-gray-900">
+
+                    {school.school_code}
+
+                  </p>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+
+        {/* =================================================
+
+            NAVIGATION
+
+        ================================================= */}
+
+
+
+        <section className="mb-8">
+
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-emerald-100/70 bg-white/90 p-2 shadow-[0_8px_30px_rgba(15,118,110,0.045)] sm:grid-cols-3 lg:grid-cols-9">
+
+            <Link
+
+              href="/schools/dashboard"
+
+              className="rounded-xl bg-emerald-700 px-3 py-3 text-center text-xs font-semibold text-white"
+
+            >
+
+              Overview
+
+            </Link>
+
+
+
+            <Link
+
+              href="/schools/students"
+
+              className="rounded-xl px-3 py-3 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+
+            >
+
+              Students
+
+            </Link>
+
+
+
+            <Link
+
+              href="/schools/classes"
+
+              className="rounded-xl px-3 py-3 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+
+            >
+
+              Classes
+
+            </Link>
+
+
+
+            <Link
+
+              href="/schools/questions"
+
+              className="rounded-xl px-3 py-3 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+
+            >
+
+              School Questions
+
+            </Link>
+            <Link
+              href="/schools/results"
+              className="rounded-xl bg-emerald-50 px-3 py-3 text-center text-xs font-semibold text-emerald-900 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+            >
+              Activity Results
+            </Link>
+
+
+
+
+            <Link
+
+              href="/schools/leaderboard"
+
+              className="rounded-xl px-3 py-3 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+
+            >
+
+              Leaderboard
+
+            </Link>
+
+
+
+            <Link
+
+              href="/schools/reports"
+
+              className="rounded-xl px-3 py-3 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+
+            >
+
+              Reports
+
+            </Link>
+
+
+
+            <Link
+
+              href="/schools/subscription"
+
+              className="rounded-xl px-3 py-3 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+
+            >
+
+              Subscription
+
+            </Link>
+
+
+
+            <Link
+
+              href="/schools/settings"
+
+              className="rounded-xl px-3 py-3 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+
+            >
+
+              Settings
+
+            </Link>
+
+          </div>
+
+        </section>
+
+
+
+        {/* =================================================
+
+            OVERVIEW STATS
+
+        ================================================= */}
+
+
+
+        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+          <div className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)]">
+
+            <div className="flex items-start justify-between">
+
+              <div>
+
+                <p className="text-sm text-gray-500">
+
+                  Active Students
+
+                </p>
+
+
+
+                <p className="mt-2 text-3xl font-bold text-gray-900">
+
+                  {statistics.active_students.toLocaleString()}
+
+                </p>
+
+              </div>
+
+
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+
+                👨‍🎓
+
+              </div>
+
+            </div>
+
+
+
+            <p className="mt-3 text-xs text-gray-500">
+
+              {statistics.total_students} total
+
+              student records
+
+            </p>
+
+          </div>
+
+
+
+          <div className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)]">
+
+            <div className="flex items-start justify-between">
+
+              <div>
+
+                <p className="text-sm text-gray-500">
+
+                  Available Seats
+
+                </p>
+
+
+
+                <p className="mt-2 text-3xl font-bold text-gray-900">
+
+                  {statistics.remaining_seats.toLocaleString()}
+
+                </p>
+
+              </div>
+
+
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+
+                🎟️
+
+              </div>
+
+            </div>
+
+
+
+            <p className="mt-3 text-xs text-gray-500">
+
+              {statistics.used_seats} of{" "}
+
+              {statistics.seat_limit} seats used
+
+            </p>
+
+          </div>
+
+
+
+          <div className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)]">
+
+            <div className="flex items-start justify-between">
+
+              <div>
+
+                <p className="text-sm text-gray-500">
+
+                  Active Classes
+
+                </p>
+
+
+
+                <p className="mt-2 text-3xl font-bold text-gray-900">
+
+                  {statistics.total_classes.toLocaleString()}
+
+                </p>
+
+              </div>
+
+
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+
+                🏫
+
+              </div>
+
+            </div>
+
+
+
+            <p className="mt-3 text-xs text-gray-500">
+
+              Organize students by class
+
+            </p>
+
+          </div>
+
+
+
+          <div className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)]">
+
+            <div className="flex items-start justify-between">
+
+              <div>
+
+                <p className="text-sm text-gray-500">
+
+                  Subscription
+
+                </p>
+
+
+
+                <p className="mt-2 text-xl font-bold text-gray-900">
+
+                  {subscription
+
+                    ? formatBillingInterval(
+
+                        subscription.billing_interval
+
+                      )
+
+                    : "Inactive"}
+
+                </p>
+
+              </div>
+
+
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+
+                ✓
+
+              </div>
+
+            </div>
+
+
+
+            <p className="mt-3 text-xs text-gray-500">
+
+              {subscription
+
+                ? `Ends ${formatDate(
+
+                    subscription.current_period_end
+
+                  )}`
+
+                : "No active subscription"}
+
+            </p>
+
+          </div>
+
+        </section>
+
+
+
+        {/* =================================================
+
+            SEAT USAGE + SUBSCRIPTION
+
+        ================================================= */}
+
+
+
+        <section className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+          {/* SEAT USAGE */}
+
+
+
+          <div className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)]">
+
+            <div className="mb-5 flex items-start justify-between gap-4">
+
+              <div>
+
+                <h2 className="text-lg font-bold text-gray-900">
+
+                  Student Capacity
+
+                </h2>
+
+
+
+                <p className="mt-1 text-sm text-gray-500">
+
+                  Your current student seat usage.
+
+                </p>
+
+              </div>
+
+
+
+              <span className="text-sm font-bold text-gray-900">
+
+                {seatPercentage}%
+
+              </span>
+
+            </div>
+
+
+
+            <div className="mb-3 h-3 overflow-hidden rounded-full bg-gray-100">
+
+              <div
+
+                className="h-full rounded-full bg-emerald-600 transition-all"
 
                 style={{
 
-                  width: "100%",
-
-                  height: "100%",
-
-                  objectFit: "contain",
-
-                  display: "block",
+                  width: `${seatPercentage}%`,
 
                 }}
 
@@ -732,753 +1374,249 @@ export default function DashboardPage() {
 
             </div>
 
-            <h1 className="sq-title">
 
-              Sahaba Quest
 
-            </h1>
+            <div className="flex items-center justify-between text-sm">
 
-            <p
+              <span className="text-gray-500">
 
-              className="sq-subtitle"
-
-              style={{
-
-                marginTop: "12px",
-
-              }}
-
-            >
-
-              {message}
-
-            </p>
-
-          </div>
-
-        </div>
-
-      </main>
-
-    );
-
-  }
-
-  /*
-
-   * PLAYER NAME
-
-   */
-
-  const playerName =
-
-    profile.display_name ||
-
-    profile.username ||
-
-    "Player";
-
-  /*
-
-   * ACCOUNT DISPLAY
-
-   */
-
-  const accountLabels: Record<
-
-    AccountType,
-
-    string
-
-  > = {
-
-    free: "Free Account",
-
-    individual: "Individual Account",
-
-    family: "Family Account",
-
-  };
-
-  const accountDescriptions: Record<
-
-    AccountType,
-
-    string
-
-  > = {
-
-    free:
-
-      "You're currently using the free Sahaba Quest experience.",
-
-    individual:
-
-      "You're using the Individual Sahaba Quest experience.",
-
-    family:
-
-      "You're using the Family Sahaba Quest experience.",
-
-  };
-
-  const accountLabel =
-
-    accountLabels[profile.account_type];
-
-  const accountDescription =
-
-    accountDescriptions[profile.account_type];
-
-  /*
-
-   * ACCURACY
-
-   */
-
-  const accuracy =
-
-    progress.questions_answered > 0
-
-      ? Math.round(
-
-          (progress.correct_answers /
-
-            progress.questions_answered) *
-
-            100
-
-        )
-
-      : 0;
-
-  /*
-
-   * CURRENT LEVEL QUESTION PROGRESS
-
-   */
-
-  const questionsInCurrentLevel =
-
-    progress.questions_answered % 50;
-
-  const correctInCurrentLevel =
-
-    progress.correct_answers % 50;
-
-  /*
-
-   * If the player has completed exactly 50 questions,
-
-   * show 100% rather than 0%.
-
-   */
-
-  const levelQuestionProgress =
-
-    questionsInCurrentLevel === 0 &&
-
-    progress.questions_answered > 0
-
-      ? 100
-
-      : Math.min(
-
-          (questionsInCurrentLevel / 50) * 100,
-
-          100
-
-        );
-
-  /*
-
-   * REQUIRED CORRECT ANSWERS TO PASS
-
-   */
-
-  const levelCorrectProgress = Math.min(
-
-    (correctInCurrentLevel / 25) * 100,
-
-    100
-
-  );
-
-  /*
-
-   * DISPLAY DATE
-
-   */
-
-  const subscriptionEndDate =
-
-    subscription?.current_period_end
-
-      ? new Date(
-
-          subscription.current_period_end
-
-        ).toLocaleDateString("en-US", {
-
-          day: "numeric",
-
-          month: "short",
-
-          year: "numeric",
-
-        })
-
-      : "";
-
-  return (
-
-    <main
-
-      className="sq-page"
-
-      style={{
-
-        minHeight: "100vh",
-
-        background:
-
-          "radial-gradient(circle at top left, rgba(204, 251, 241, 0.8), transparent 32%), var(--background)",
-
-      }}
-
-    >
-
-      <div className="sq-container">
-
-        {/* NAVIGATION */}
-
-        <div
-
-          className="dashboard-navbar-wrapper"
-
-          style={{
-
-            marginBottom: "28px",
-
-          }}
-
-        >
-
-          <AppNavbar />
-
-        </div>
-
-        {/* WELCOME HERO */}
-
-        <section
-
-          className="sq-card"
-
-          style={{
-
-            padding: "36px",
-
-            background:
-
-              "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
-
-            overflow: "hidden",
-
-            position: "relative",
-
-          }}
-
-        >
-
-          <div
-
-            style={{
-
-              position: "absolute",
-
-              right: "-60px",
-
-              top: "-80px",
-
-              width: "220px",
-
-              height: "220px",
-
-              borderRadius: "50%",
-
-              background:
-
-                "var(--primary-light)",
-
-              opacity: 0.6,
-
-            }}
-
-          />
-
-          <div
-
-            style={{
-
-              position: "relative",
-
-              zIndex: 1,
-
-              maxWidth: "720px",
-
-            }}
-
-          >
-
-            <div
-
-              style={{
-
-                display: "flex",
-
-                gap: "8px",
-
-                flexWrap: "wrap",
-
-              }}
-
-            >
-
-              <span className="sq-badge">
-
-                Level {progress.current_level}
+                {statistics.used_seats} seats used
 
               </span>
 
-              <span
 
-                className="sq-badge"
 
-                style={{
+              <span className="font-semibold text-gray-900">
 
-                  background:
-
-                    profile.account_type ===
-
-                    "family"
-
-                      ? "#fef3c7"
-
-                      : profile.account_type ===
-
-                        "individual"
-
-                      ? "#dbeafe"
-
-                      : "var(--primary-light)",
-
-                  color:
-
-                    profile.account_type ===
-
-                    "family"
-
-                      ? "#92400e"
-
-                      : profile.account_type ===
-
-                        "individual"
-
-                      ? "#1d4ed8"
-
-                      : "var(--primary-dark)",
-
-                }}
-
-              >
-
-                {accountLabel}
+                {statistics.seat_limit} total
 
               </span>
 
             </div>
 
-            <h1
 
-              style={{
 
-                margin: "18px 0 8px",
+            {statistics.remaining_seats ===
 
-                fontSize:
+              0 &&
 
-                  "clamp(30px, 5vw, 48px)",
+              statistics.seat_limit > 0 && (
 
-                lineHeight: 1.1,
+                <div className="mt-5 rounded-xl bg-amber-50 p-4">
 
-                letterSpacing: "-1.2px",
+                  <p className="text-sm font-semibold text-amber-800">
 
-                fontWeight: 900,
+                    All student seats are currently
 
-              }}
-
-            >
-
-              Assalamu alaikum,{" "}
-
-              <span
-
-                style={{
-
-                  color: "var(--primary)",
-
-                }}
-
-              >
-
-                {playerName}
-
-              </span>{" "}
-
-              👋
-
-            </h1>
-
-            <p
-
-              style={{
-
-                margin: 0,
-
-                maxWidth: "620px",
-
-                color: "var(--muted)",
-
-                fontSize: "17px",
-
-                lineHeight: 1.7,
-
-              }}
-
-            >
-
-              Ready to continue your Sahaba
-
-              journey? Test your knowledge,
-
-              build your streak, and learn
-
-              something valuable today.
-
-            </p>
-
-            <div
-
-              style={{
-
-                display: "flex",
-
-                gap: "12px",
-
-                flexWrap: "wrap",
-
-                marginTop: "26px",
-
-              }}
-
-            >
-
-              <a
-
-                href="/quiz"
-
-                className="sq-button-primary"
-
-              >
-
-                🎮 Continue Quest
-
-              </a>
-
-              <a
-
-                href="/progress"
-
-                className="sq-button-secondary"
-
-              >
-
-                View Progress
-
-              </a>
-
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* DAILY QUEST: show only when today's quest is unfinished */}
-
-        {dailyQuest && dailyQuest.status !== "completed" && (
-
-          <section
-
-            className="sq-card"
-
-            style={{
-
-              marginTop: "20px",
-
-              padding: "28px",
-
-              background: "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
-
-              border: "1px solid rgba(15, 118, 110, 0.12)",
-
-              overflow: "hidden",
-
-              position: "relative",
-
-            }}
-
-          >
-
-            <div
-
-              style={{
-
-                position: "absolute", right: "-50px", top: "-60px",
-
-                width: "180px", height: "180px", borderRadius: "50%",
-
-                background: "var(--primary-light)", opacity: 0.55,
-
-                pointerEvents: "none",
-
-              }}
-
-            />
-
-            <div
-
-              style={{
-
-                position: "relative", zIndex: 1, display: "flex",
-
-                justifyContent: "space-between", alignItems: "center",
-
-                gap: "24px", flexWrap: "wrap",
-
-              }}
-
-            >
-
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", flex: 1, minWidth: "260px" }}>
-
-                <div
-
-                  style={{
-
-                    width: "52px", height: "52px", flexShrink: 0,
-
-                    borderRadius: "16px", background: "var(--primary)",
-
-                    color: "white", display: "flex", alignItems: "center",
-
-                    justifyContent: "center", fontSize: "24px",
-
-                  }}
-
-                >
-
-                  📖
-
-                </div>
-
-                <div>
-
-                  <div className="sq-badge">Daily Quest</div>
-
-                  <h2 style={{ margin: "10px 0 6px", fontSize: "24px", fontWeight: 900 }}>
-
-                    {dailyQuest.status === "in_progress"
-
-                      ? "Continue Your Daily Quest"
-
-                      : "Your Daily Quest Awaits"}
-
-                  </h2>
-
-                  <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6, maxWidth: "650px" }}>
-
-                    {dailyQuest.status === "in_progress"
-
-                      ? `You've answered ${dailyQuest.questions_answered} of ${dailyQuest.question_count} questions. Continue where you stopped.`
-
-                      : dailyQuest.description}
+                    occupied.
 
                   </p>
 
-                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "12px" }}>
 
-                    <span className="sq-badge">{dailyQuest.question_count} Questions</span>
 
-                    <span className="sq-badge">⏱ {dailyQuest.time_per_question}s each</span>
+                  <p className="mt-1 text-xs leading-5 text-amber-700">
 
-                    {dailyQuest.daily_streak > 0 && (
+                    Increase your student capacity
 
-                      <span className="sq-badge">🔥 {dailyQuest.daily_streak} day streak</span>
+                    before adding more active
+
+                    students.
+
+                  </p>
+
+                </div>
+
+              )}
+
+          </div>
+
+
+
+          {/* SUBSCRIPTION */}
+
+
+
+          <div className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)]">
+
+            <div className="mb-5 flex items-start justify-between gap-4">
+
+              <div>
+
+                <h2 className="text-lg font-bold text-gray-900">
+
+                  Subscription
+
+                </h2>
+
+
+
+                <p className="mt-1 text-sm text-gray-500">
+
+                  Your current Schools & Madrasas
+
+                  subscription.
+
+                </p>
+
+              </div>
+
+
+
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+
+                {subscription?.status ===
+
+                "active"
+
+                  ? "Active"
+
+                  : "Inactive"}
+
+              </span>
+
+            </div>
+
+
+
+            {subscription ? (
+
+              <div className="space-y-4">
+
+                <div className="flex items-center justify-between">
+
+                  <span className="text-sm text-gray-500">
+
+                    Billing
+
+                  </span>
+
+
+
+                  <span className="text-sm font-semibold text-gray-900">
+
+                    {formatBillingInterval(
+
+                      subscription.billing_interval
 
                     )}
 
-                  </div>
+                  </span>
 
                 </div>
 
+
+
+                <div className="flex items-center justify-between">
+
+                  <span className="text-sm text-gray-500">
+
+                    Seats
+
+                  </span>
+
+
+
+                  <span className="text-sm font-semibold text-gray-900">
+
+                    {subscription.student_seat_limit.toLocaleString()}
+
+                  </span>
+
+                </div>
+
+
+
+                <div className="flex items-center justify-between">
+
+                  <span className="text-sm text-gray-500">
+
+                    Amount
+
+                  </span>
+
+
+
+                  <span className="text-sm font-semibold text-gray-900">
+
+                    {formatCurrency(
+
+                      subscription.total_amount,
+
+                      subscription.currency
+
+                    )}
+
+                  </span>
+
+                </div>
+
+
+
+                <div className="flex items-center justify-between">
+
+                  <span className="text-sm text-gray-500">
+
+                    Expires
+
+                  </span>
+
+
+
+                  <span className="text-sm font-semibold text-gray-900">
+
+                    {formatDate(
+
+                      subscription.current_period_end
+
+                    )}
+
+                  </span>
+
+                </div>
+
+
+
+                <Link
+
+                  href="/schools/subscription"
+
+                  className="block rounded-xl border border-green-700 px-4 py-3 text-center text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+
+                >
+
+                  Manage Subscription
+
+                </Link>
+
               </div>
 
-              <a
+            ) : (
 
-                href="/daily-quest"
+              <div className="rounded-xl bg-gray-50 p-5">
 
-                className="sq-button-primary"
+                <p className="text-sm text-gray-600">
 
-                style={{
+                  Your school does not currently
 
-                  minHeight: "48px", padding: "0 22px", display: "inline-flex",
+                  have an active subscription.
 
-                  alignItems: "center", justifyContent: "center",
+                </p>
 
-                  textDecoration: "none", whiteSpace: "nowrap",
 
-                }}
 
-              >
+                <Link
 
-                {dailyQuest.status === "in_progress" ? "Continue Quest →" : "Start Today's Quest →"}
+                  href="/schools"
 
-              </a>
+                  className="mt-4 inline-block rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
 
-            </div>
+                >
 
-          </section>
+                  Renew Subscription
 
-        )}
-
-        {/* ACCOUNT TYPE */}
-
-        <section
-
-          className="sq-card"
-
-          style={{
-
-            marginTop: "20px",
-
-            padding: "22px 26px",
-
-            background:
-
-              "linear-gradient(135deg, #ffffff 0%, #f8faf9 100%)",
-
-          }}
-
-        >
-
-          <div
-
-            style={{
-
-              display: "flex",
-
-              justifyContent: "space-between",
-
-              alignItems: "center",
-
-              gap: "18px",
-
-              flexWrap: "wrap",
-
-            }}
-
-          >
-
-            <div>
-
-              <div className="sq-badge">
-
-                Account Type
+                </Link>
 
               </div>
-
-              <h2
-
-                style={{
-
-                  margin: "9px 0 4px",
-
-                  fontSize: "20px",
-
-                  fontWeight: 900,
-
-                }}
-
-              >
-
-                {accountLabel}
-
-              </h2>
-
-              <p
-
-                style={{
-
-                  margin: 0,
-
-                  color: "var(--muted)",
-
-                  fontSize: "13px",
-
-                  lineHeight: 1.6,
-
-                }}
-
-              >
-
-                {accountDescription}
-
-              </p>
-
-            </div>
-
-            {profile.account_type ===
-
-              "free" && (
-
-              <a
-
-                href="/pricing"
-
-                className="sq-button-primary"
-
-                style={{
-
-                  minHeight: "44px",
-
-                  padding: "0 18px",
-
-                  display: "inline-flex",
-
-                  alignItems: "center",
-
-                  justifyContent: "center",
-
-                  textDecoration: "none",
-
-                  whiteSpace: "nowrap",
-
-                }}
-
-              >
-
-                Explore Plans →
-
-              </a>
 
             )}
 
@@ -1486,1321 +1624,385 @@ export default function DashboardPage() {
 
         </section>
 
-        {/* STATS */}
 
-        <section
 
-          style={{
+        {/* =================================================
 
-            display: "grid",
+            QUICK ACTIONS
 
-            gridTemplateColumns:
+        ================================================= */}
 
-              "repeat(auto-fit, minmax(180px, 1fr))",
 
-            gap: "16px",
 
-            marginTop: "20px",
+        <section className="mb-8">
 
-          }}
+          <div className="mb-5">
 
-        >
+            <h2 className="text-xl font-bold text-gray-900">
 
-          <div className="sq-stat">
-
-            <div className="sq-stat-label">
-
-              Current Level
-
-            </div>
-
-            <div className="sq-stat-value">
-
-              {progress.current_level}
-
-            </div>
-
-            <div
-
-              style={{
-
-                marginTop: "6px",
-
-                color: "var(--primary)",
-
-                fontSize: "13px",
-
-                fontWeight: 700,
-
-              }}
-
-            >
-
-              Keep progressing
-
-            </div>
-
-          </div>
-
-          <div className="sq-stat">
-
-            <div className="sq-stat-label">
-
-              Total XP
-
-            </div>
-
-            <div className="sq-stat-value">
-
-              {progress.total_xp.toLocaleString()}
-
-            </div>
-
-            <div
-
-              style={{
-
-                marginTop: "6px",
-
-                color: "var(--muted)",
-
-                fontSize: "13px",
-
-              }}
-
-            >
-
-              Experience earned
-
-            </div>
-
-          </div>
-
-          <div className="sq-stat">
-
-            <div className="sq-stat-label">
-
-              Current Streak
-
-            </div>
-
-            <div
-
-              className="sq-stat-value"
-
-              style={{
-
-                display: "flex",
-
-                alignItems: "center",
-
-                gap: "8px",
-
-              }}
-
-            >
-
-              🔥 {progress.current_streak}
-
-            </div>
-
-            <div
-
-              style={{
-
-                marginTop: "6px",
-
-                color: "var(--muted)",
-
-                fontSize: "13px",
-
-              }}
-
-            >
-
-              Best: {progress.best_streak}
-
-            </div>
-
-          </div>
-
-          <div className="sq-stat">
-
-            <div className="sq-stat-label">
-
-              Accuracy
-
-            </div>
-
-            <div className="sq-stat-value">
-
-              {accuracy}%
-
-            </div>
-
-            <div
-
-              style={{
-
-                marginTop: "6px",
-
-                color: "var(--muted)",
-
-                fontSize: "13px",
-
-              }}
-
-            >
-
-              {progress.correct_answers} correct
-
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* SUBSCRIPTION */}
-
-        <section
-
-          className="sq-card"
-
-          style={{
-
-            marginTop: "20px",
-
-            padding: "26px 28px",
-
-            background: subscription
-
-              ? "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)"
-
-              : "linear-gradient(135deg, #ffffff 0%, #f8faf9 100%)",
-
-          }}
-
-        >
-
-          <div
-
-            style={{
-
-              display: "flex",
-
-              justifyContent: "space-between",
-
-              alignItems: "center",
-
-              gap: "20px",
-
-              flexWrap: "wrap",
-
-            }}
-
-          >
-
-            <div
-
-              style={{
-
-                display: "flex",
-
-                alignItems: "flex-start",
-
-                gap: "16px",
-
-              }}
-
-            >
-
-              <div
-
-                style={{
-
-                  width: "48px",
-
-                  height: "48px",
-
-                  flexShrink: 0,
-
-                  borderRadius: "14px",
-
-                  background:
-
-                    "var(--primary-light)",
-
-                  color: "var(--primary)",
-
-                  display: "flex",
-
-                  alignItems: "center",
-
-                  justifyContent: "center",
-
-                  fontSize: "21px",
-
-                  fontWeight: 900,
-
-                }}
-
-              >
-
-                {subscription ? "✓" : "✦"}
-
-              </div>
-
-              <div>
-
-                <div className="sq-badge">
-
-                  Your Subscription
-
-                </div>
-
-                <h2
-
-                  style={{
-
-                    margin: "10px 0 5px",
-
-                    fontSize: "22px",
-
-                    fontWeight: 900,
-
-                  }}
-
-                >
-
-                  {subscription?.plan
-
-                    ?.display_name ||
-
-                    "Sahaba Quest Free"}
-
-                </h2>
-
-                <p
-
-                  style={{
-
-                    margin: 0,
-
-                    color: "var(--muted)",
-
-                    fontSize: "13px",
-
-                    lineHeight: 1.6,
-
-                  }}
-
-                >
-
-                  {subscription
-
-                    ? "Your subscription is active and your premium access is available."
-
-                    : "You are currently on the free plan. Continue your journey or unlock more levels."}
-
-                </p>
-
-                {subscription &&
-
-                  subscriptionEndDate && (
-
-                    <div
-
-                      style={{
-
-                        marginTop: "8px",
-
-                        color: "var(--success)",
-
-                        fontSize: "12px",
-
-                        fontWeight: 800,
-
-                      }}
-
-                    >
-
-                      Active until{" "}
-
-                      {subscriptionEndDate}
-
-                    </div>
-
-                  )}
-
-              </div>
-
-            </div>
-
-            {!subscription && (
-
-              <a
-
-                href="/pricing"
-
-                className="sq-button-primary"
-
-                style={{
-
-                  minHeight: "46px",
-
-                  padding: "0 20px",
-
-                  display: "inline-flex",
-
-                  alignItems: "center",
-
-                  justifyContent: "center",
-
-                  textDecoration: "none",
-
-                  whiteSpace: "nowrap",
-
-                }}
-
-              >
-
-                View Plans →
-
-              </a>
-
-            )}
-
-          </div>
-
-        </section>
-
-        {/* MAIN CONTENT GRID */}
-
-        <section
-
-          className="dashboard-main-grid"
-
-          style={{
-
-            display: "grid",
-
-            gridTemplateColumns:
-
-              "minmax(0, 1.5fr) minmax(280px, 1fr)",
-
-            gap: "20px",
-
-            marginTop: "20px",
-
-          }}
-
-        >
-
-          {/* PROGRESS CARD */}
-
-          <div
-
-            className="sq-card"
-
-            style={{
-
-              padding: "28px",
-
-            }}
-
-          >
-
-            <div
-
-              style={{
-
-                display: "flex",
-
-                justifyContent: "space-between",
-
-                alignItems: "flex-start",
-
-                gap: "20px",
-
-              }}
-
-            >
-
-              <div>
-
-                <div className="sq-badge">
-
-                  Your Journey
-
-                </div>
-
-                <h2
-
-                  style={{
-
-                    margin: "16px 0 6px",
-
-                    fontSize: "24px",
-
-                    fontWeight: 800,
-
-                  }}
-
-                >
-
-                  Level{" "}
-
-                  {progress.current_level}
-
-                </h2>
-
-                <p
-
-                  style={{
-
-                    margin: 0,
-
-                    color: "var(--muted)",
-
-                    lineHeight: 1.6,
-
-                  }}
-
-                >
-
-                  Keep answering
-
-                  questions to
-
-                  strengthen your
-
-                  knowledge.
-
-                </p>
-
-              </div>
-
-              <div
-
-                style={{
-
-                  fontSize: "34px",
-
-                  fontWeight: 900,
-
-                  color: "var(--primary)",
-
-                }}
-
-              >
-
-                {progress.total_xp}
-
-              </div>
-
-            </div>
-
-            {/* QUESTIONS PROGRESS */}
-
-            <div
-
-              style={{
-
-                marginTop: "28px",
-
-              }}
-
-            >
-
-              <div
-
-                style={{
-
-                  display: "flex",
-
-                  justifyContent: "space-between",
-
-                  marginBottom: "9px",
-
-                }}
-
-              >
-
-                <span
-
-                  style={{
-
-                    fontSize: "13px",
-
-                    fontWeight: 700,
-
-                    color: "var(--muted)",
-
-                  }}
-
-                >
-
-                  Level questions
-
-                </span>
-
-                <span
-
-                  style={{
-
-                    fontSize: "13px",
-
-                    fontWeight: 800,
-
-                    color: "var(--primary)",
-
-                  }}
-
-                >
-
-                  {questionsInCurrentLevel}
-
-                  /50
-
-                </span>
-
-              </div>
-
-              <div className="sq-progress">
-
-                <div
-
-                  className="sq-progress-bar"
-
-                  style={{
-
-                    width: `${levelQuestionProgress}%`,
-
-                  }}
-
-                />
-
-              </div>
-
-            </div>
-
-            {/* PASS PROGRESS */}
-
-            <div
-
-              style={{
-
-                marginTop: "20px",
-
-              }}
-
-            >
-
-              <div
-
-                style={{
-
-                  display: "flex",
-
-                  justifyContent: "space-between",
-
-                  marginBottom: "9px",
-
-                }}
-
-              >
-
-                <span
-
-                  style={{
-
-                    fontSize: "13px",
-
-                    fontWeight: 700,
-
-                    color: "var(--muted)",
-
-                  }}
-
-                >
-
-                  Correct answers needed
-
-                </span>
-
-                <span
-
-                  style={{
-
-                    fontSize: "13px",
-
-                    fontWeight: 800,
-
-                    color: "var(--primary)",
-
-                  }}
-
-                >
-
-                  {correctInCurrentLevel}
-
-                  /25
-
-                </span>
-
-              </div>
-
-              <div className="sq-progress">
-
-                <div
-
-                  className="sq-progress-bar"
-
-                  style={{
-
-                    width: `${levelCorrectProgress}%`,
-
-                  }}
-
-                />
-
-              </div>
-
-            </div>
-
-            {/* SMALL PROGRESS STATS */}
-
-            <div
-
-              style={{
-
-                display: "grid",
-
-                gridTemplateColumns:
-
-                  "repeat(2, 1fr)",
-
-                gap: "12px",
-
-                marginTop: "24px",
-
-              }}
-
-            >
-
-              <div
-
-                style={{
-
-                  padding: "16px",
-
-                  borderRadius: "16px",
-
-                  background: "#f8faf9",
-
-                  border:
-
-                    "1px solid var(--border)",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    color: "var(--muted)",
-
-                    fontSize: "12px",
-
-                    fontWeight: 700,
-
-                  }}
-
-                >
-
-                  Questions Answered
-
-                </div>
-
-                <div
-
-                  style={{
-
-                    marginTop: "5px",
-
-                    fontSize: "22px",
-
-                    fontWeight: 800,
-
-                  }}
-
-                >
-
-                  {progress.questions_answered}
-
-                </div>
-
-              </div>
-
-              <div
-
-                style={{
-
-                  padding: "16px",
-
-                  borderRadius: "16px",
-
-                  background: "#f8faf9",
-
-                  border:
-
-                    "1px solid var(--border)",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    color: "var(--muted)",
-
-                    fontSize: "12px",
-
-                    fontWeight: 700,
-
-                  }}
-
-                >
-
-                  Correct Answers
-
-                </div>
-
-                <div
-
-                  style={{
-
-                    marginTop: "5px",
-
-                    fontSize: "22px",
-
-                    fontWeight: 800,
-
-                  }}
-
-                >
-
-                  {progress.correct_answers}
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* QUICK ACTIONS */}
-
-          <div
-
-            className="sq-card"
-
-            style={{
-
-              padding: "28px",
-
-            }}
-
-          >
-
-            <div className="sq-badge">
-
-              Quick Actions
-
-            </div>
-
-            <h2
-
-              style={{
-
-                margin: "16px 0 18px",
-
-                fontSize: "24px",
-
-                fontWeight: 800,
-
-              }}
-
-            >
-
-              What do you want to
-
-              do?
+              School Management
 
             </h2>
 
-            <div
 
-              style={{
 
-                display: "grid",
+            <p className="mt-1 text-sm text-gray-500">
 
-                gap: "12px",
+              Manage your school&apos;s learning
 
-              }}
+              environment from here.
+
+            </p>
+
+          </div>
+
+
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+            <Link
+
+              href="/schools/students"
+
+              className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)] transition hover:-translate-y-0.5 hover:shadow-md"
 
             >
 
-              <a
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-xl">
 
-                href="/quiz"
+                👨‍🎓
 
-                style={{
+              </div>
 
-                  padding: "17px",
 
-                  borderRadius: "16px",
 
-                  background:
+              <h3 className="font-bold text-gray-900">
 
-                    "var(--primary)",
+                Students
 
-                  color: "white",
+              </h3>
 
-                  fontWeight: 800,
 
-                  display: "flex",
 
-                  alignItems: "center",
+              <p className="mt-2 text-sm leading-6 text-gray-600">
 
-                  justifyContent: "space-between",
+                Add students, generate credentials
 
-                  textDecoration: "none",
+                and manage your student list.
 
-                }}
+              </p>
 
-              >
+            </Link>
 
-                <span>
 
-                  🎮 Play Quiz
 
-                </span>
+            <Link
 
-                <span>→</span>
+              href="/schools/classes"
 
-              </a>
+              className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)] transition hover:-translate-y-0.5 hover:shadow-md"
 
-              <a
+            >
 
-                href="/leaderboard"
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-xl">
 
-                style={{
+                🏫
 
-                  padding: "17px",
+              </div>
 
-                  borderRadius: "16px",
 
-                  background:
 
-                    "var(--secondary-light)",
+              <h3 className="font-bold text-gray-900">
 
-                  color: "#7c5d00",
+                Classes
 
-                  fontWeight: 800,
+              </h3>
 
-                  display: "flex",
 
-                  alignItems: "center",
 
-                  justifyContent: "space-between",
+              <p className="mt-2 text-sm leading-6 text-gray-600">
 
-                  textDecoration: "none",
+                Create and organize the classes in
 
-                }}
+                your school.
 
-              >
+              </p>
 
-                <span>
+            </Link>
 
-                  🏆 Leaderboard
 
-                </span>
 
-                <span>→</span>
+            <Link
 
-              </a>
+              href="/schools/questions"
 
-              <a
+              className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)] transition hover:-translate-y-0.5 hover:shadow-md"
 
-                href="/challenges"
+            >
 
-                style={{
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-xl">
 
-                  padding: "17px",
+                ✍️
 
-                  borderRadius: "16px",
+              </div>
 
-                  background: "#f1f5f3",
 
-                  color: "var(--foreground)",
 
-                  fontWeight: 800,
+              <h3 className="font-bold text-gray-900">
 
-                  display: "flex",
+                Custom Questions
 
-                  alignItems: "center",
+              </h3>
 
-                  justifyContent: "space-between",
 
-                  textDecoration: "none",
 
-                }}
+              <p className="mt-2 text-sm leading-6 text-gray-600">
 
-              >
+                Create questions and assign them to
 
-                <span>
+                your school classes.
 
-                  🎯 Challenges
+              </p>
 
-                </span>
+            </Link>
+            <Link
+              href="/schools/results"
+              className="group rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-xl transition group-hover:bg-emerald-100">
+                📊
+              </div>
+              <h3 className="font-bold text-gray-900">Activity Results</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Review student submissions, scores, percentages and answers for school activities.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800">
+                View results <span aria-hidden="true">→</span>
+              </span>
+            </Link>
 
-                <span>→</span>
 
-              </a>
 
-              <a
 
-                href="/profile"
+            <Link
 
-                style={{
+              href="/schools/leaderboard"
 
-                  padding: "17px",
+              className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)] transition hover:-translate-y-0.5 hover:shadow-md"
 
-                  borderRadius: "16px",
+            >
 
-                  background: "#f1f5f3",
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-xl">
 
-                  color: "var(--foreground)",
+                🏆
 
-                  fontWeight: 800,
+              </div>
 
-                  display: "flex",
 
-                  alignItems: "center",
 
-                  justifyContent: "space-between",
+              <h3 className="font-bold text-gray-900">
 
-                  textDecoration: "none",
+                Leaderboard
 
-                }}
+              </h3>
 
-              >
 
-                <span>
 
-                  👤 My Profile
+              <p className="mt-2 text-sm leading-6 text-gray-600">
 
-                </span>
+                View student and class performance
 
-                <span>→</span>
+                rankings.
 
-              </a>
+              </p>
 
-            </div>
+            </Link>
 
           </div>
 
         </section>
 
-        {/* LEARNING MOTIVATION */}
 
-        <section
 
-          className="sq-card"
+        {/* =================================================
 
-          style={{
+            SCHOOL INFORMATION
 
-            marginTop: "20px",
+        ================================================= */}
 
-            padding: "28px",
 
-            background:
 
-              "linear-gradient(135deg, #115e59, #0f766e)",
+        <section>
 
-            color: "white",
+          <div className="rounded-2xl border border-emerald-100/70 bg-white p-6 shadow-[0_8px_30px_rgba(15,118,110,0.045)]">
 
-            border: "none",
+            <div className="mb-5">
 
-          }}
+              <h2 className="text-lg font-bold text-gray-900">
 
-        >
-
-          <div
-
-            style={{
-
-              display: "flex",
-
-              justifyContent: "space-between",
-
-              alignItems: "center",
-
-              gap: "24px",
-
-              flexWrap: "wrap",
-
-            }}
-
-          >
-
-            <div
-
-              style={{
-
-                maxWidth: "700px",
-
-              }}
-
-            >
-
-              <div
-
-                style={{
-
-                  fontSize: "13px",
-
-                  fontWeight: 800,
-
-                  letterSpacing: "1px",
-
-                  textTransform: "uppercase",
-
-                  opacity: 0.8,
-
-                }}
-
-              >
-
-                Daily reminder
-
-              </div>
-
-              <h2
-
-                style={{
-
-                  margin: "10px 0 8px",
-
-                  fontSize: "26px",
-
-                  fontWeight: 900,
-
-                }}
-
-              >
-
-                Learn about those
-
-                who walked with the
-
-                Prophet ﷺ.
+                School Information
 
               </h2>
 
-              <p
 
-                style={{
 
-                  margin: 0,
+              <p className="mt-1 text-sm text-gray-500">
 
-                  lineHeight: 1.7,
+                Basic information associated with
 
-                  opacity: 0.85,
-
-                }}
-
-              >
-
-                Every question is an
-
-                opportunity to increase
-
-                your knowledge and
-
-                strengthen your
-
-                connection with the
-
-                lives of the Sahaba.
+                your school account.
 
               </p>
 
             </div>
 
-            <a
 
-              href="/quiz"
 
-              style={{
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
-                minHeight: "50px",
+              <div>
 
-                padding: "0 22px",
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
 
-                borderRadius: "14px",
+                  School Name
 
-                background: "white",
+                </p>
 
-                color: "var(--primary-dark)",
 
-                display: "inline-flex",
 
-                alignItems: "center",
+                <p className="mt-1 text-sm font-medium text-gray-900">
 
-                justifyContent: "center",
+                  {school.school_name}
 
-                fontWeight: 800,
+                </p>
 
-                textDecoration: "none",
+              </div>
 
-              }}
 
-            >
 
-              Start Learning →
+              <div>
 
-            </a>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+
+                  School Type
+
+                </p>
+
+
+
+                <p className="mt-1 text-sm font-medium text-gray-900">
+
+                  {formatSchoolType(
+
+                    school.school_type
+
+                  )}
+
+                </p>
+
+              </div>
+
+
+
+              <div>
+
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+
+                  School Code
+
+                </p>
+
+
+
+                <p className="mt-1 font-mono text-sm font-semibold text-gray-900">
+
+                  {school.school_code}
+
+                </p>
+
+              </div>
+
+
+
+              <div>
+
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+
+                  Country
+
+                </p>
+
+
+
+                <p className="mt-1 text-sm font-medium text-gray-900">
+
+                  {school.country}
+
+                </p>
+
+              </div>
+
+
+
+              <div>
+
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+
+                  Location
+
+                </p>
+
+
+
+                <p className="mt-1 text-sm font-medium text-gray-900">
+
+                  {[
+
+                    school.city,
+
+                    school.state,
+
+                  ]
+
+                    .filter(Boolean)
+
+                    .join(", ") || "—"}
+
+                </p>
+
+              </div>
+
+
+
+              <div>
+
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+
+                  Contact Phone
+
+                </p>
+
+
+
+                <p className="mt-1 text-sm font-medium text-gray-900">
+
+                  {school.contact_phone ||
+
+                    "—"}
+
+                </p>
+
+              </div>
+
+            </div>
 
           </div>
 
         </section>
 
-        {/* FOOTER */}
+      </main>
 
-        <footer
-
-          style={{
-
-            padding: "28px 0 8px",
-
-            textAlign: "center",
-
-            color: "var(--muted-light)",
-
-            fontSize: "12px",
-
-          }}
-
-        >
-
-          Sahaba Quest • Learn.
-
-          Remember. Compete.
-
-        </footer>
-
-      </div>
-
-      {/* RESPONSIVE DASHBOARD FIX */}
-
-      <style jsx>{`
-
-        
-
-        @media (max-width: 800px) {
-
-          .dashboard-main-grid {
-
-            grid-template-columns: 1fr !important;
-
-            gap: 16px !important;
-
-            width: 100% !important;
-
-          }
-
-          .dashboard-main-grid > * {
-
-            width: 100% !important;
-
-            min-width: 0 !important;
-
-          }
-
-        }
-
-        @media (max-width: 600px) {
-
-          /*
-
-           * Keep the mobile navbar close to the top of the screen.
-
-           * The desktop spacing remains unchanged.
-
-           */
-
-          .dashboard-navbar-wrapper {
-
-            margin-top: -10px !important;
-
-            margin-bottom: 14px !important;
-
-          }
-
-          .dashboard-main-grid {
-
-            gap: 16px !important;
-
-          }
-
-          .dashboard-main-grid .sq-card {
-
-            padding: 22px !important;
-
-          }
-
-          .dashboard-main-grid
-
-            .sq-card
-
-            > div:first-child {
-
-            min-width: 0;
-
-          }
-
-          .dashboard-main-grid
-
-            .sq-card
-
-            h2 {
-
-            line-height: 1.25 !important;
-
-          }
-
-          .dashboard-main-grid
-
-            .sq-card
-
-            p {
-
-            max-width: 100% !important;
-
-          }
-
-        }
-
-      `}</style>
-
-    </main>
+    </div>
 
   );
 

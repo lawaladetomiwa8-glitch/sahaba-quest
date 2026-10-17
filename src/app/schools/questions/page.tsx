@@ -417,6 +417,30 @@ export default function SchoolQuestionsPage() {
     }
   }
 
+  async function deleteQuestion(question: Question) {
+    const confirmed = window.confirm(
+      `Archive “${question.question_text.slice(0, 100)}${question.question_text.length > 100 ? "…" : ""}”? This question will no longer appear in your active question bank.`
+    );
+    if (!confirmed) return;
+
+    setActionBusyId(question.id);
+    setNotice("");
+    setPageError("");
+
+    try {
+      await requestApi("DELETE", undefined, `id=${encodeURIComponent(question.id)}`);
+      setNotice("Question archived successfully.");
+      if (showQuestionPreview === question.id) setShowQuestionPreview(null);
+      await loadData();
+    } catch (error) {
+      setPageError(
+        error instanceof Error ? error.message : "Unable to archive this question."
+      );
+    } finally {
+      setActionBusyId(null);
+    }
+  }
+
   function openNewActivity() {
     setActivityForm(emptyActivity);
     setShowActivityForm(true);
@@ -487,6 +511,29 @@ export default function SchoolQuestionsPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteActivity(activity: Activity) {
+    const confirmed = window.confirm(
+      `Delete the activity “${activity.title}”? This will remove the activity and its class/question assignments. This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setActionBusyId(activity.id);
+    setNotice("");
+    setPageError("");
+
+    try {
+      await requestApi("DELETE", { action: "activity", id: activity.id });
+      setNotice("Activity deleted successfully.");
+      await loadData();
+    } catch (error) {
+      setPageError(
+        error instanceof Error ? error.message : "Unable to delete this activity."
+      );
+    } finally {
+      setActionBusyId(null);
     }
   }
 
@@ -863,18 +910,12 @@ export default function SchoolQuestionsPage() {
                             <button
                               type="button"
                               disabled={actionBusyId === question.id}
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    "Archive this question? It will no longer be available for new activities."
-                                  )
-                                ) {
-                                  void changeQuestionStatus(question, "archived");
-                                }
-                              }}
-                              className="inline-flex items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                              onClick={() => void deleteQuestion(question)}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              aria-label="Delete question"
+                              title="Delete question (archive)"
                             >
-                              Archive
+                              {actionBusyId === question.id ? "Deleting…" : "Delete"}
                             </button>
                           )}
                         </div>
@@ -1108,6 +1149,16 @@ export default function SchoolQuestionsPage() {
                               Reopen activity
                             </button>
                           )}
+
+                          <button
+                            type="button"
+                            disabled={actionBusyId === activity.id}
+                            onClick={() => void deleteActivity(activity)}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            aria-label={`Delete activity ${activity.title}`}
+                          >
+                            {actionBusyId === activity.id ? "Deleting…" : "Delete activity"}
+                          </button>
                         </div>
                       </article>
                     );

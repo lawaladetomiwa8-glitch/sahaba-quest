@@ -742,43 +742,51 @@ export default function SchoolStudentDashboardPage() {
 
 
   if (loading) {
-
     return (
-
-      <main className="sq-student-page">
-
-        <div className="sq-loading-shell">
-
-          <div className="sq-loading-mark">
-
-            <Icon name="sparkles" size={28} />
-
+      <main className="sq-student-page sq-loading-page" aria-busy="true" aria-live="polite">
+        <header className="sq-loading-topbar">
+          <div className="sq-loading-brand">
+            <div className="sq-loading-brand-mark">SQ</div>
+            <div><strong>Sahaba Quest</strong><span>Schools &amp; Madrasas</span></div>
           </div>
+          <div className="sq-loading-secure"><Icon name="shield" size={15} /> Secure student portal</div>
+        </header>
 
-          <div className="sq-loading-line sq-loading-line-lg" />
+        <div className="sq-loading-content">
+          <section className="sq-loading-hero">
+            <div className="sq-loading-hero-copy">
+              <span className="sq-loading-eyebrow"><Icon name="sparkles" size={15} /> YOUR LEARNING JOURNEY</span>
+              <h1>Assalamu Alaikum!</h1>
+              <p>We’re getting your learning space ready. Your next quest is just around the corner.</p>
+              <div className="sq-loading-status"><span className="sq-loading-spinner" /> Preparing your dashboard</div>
+            </div>
+            <div className="sq-loading-hero-art" aria-hidden="true"><Icon name="book" size={54} /><span>✦</span></div>
+          </section>
 
-          <div className="sq-loading-line" />
+          <div className="sq-loading-section-label"><span>YOUR PROGRESS</span><i /></div>
+          <section className="sq-loading-stat-grid" aria-label="Loading progress statistics">
+            {['xp', 'streak', 'accuracy', 'best'].map((item) => <div className="sq-loading-stat" key={item}><div className="sq-skeleton sq-skeleton-icon" /><div className="sq-loading-stat-copy"><div className="sq-skeleton sq-skeleton-label" /><div className="sq-skeleton sq-skeleton-value" /><div className="sq-skeleton sq-skeleton-caption" /></div></div>)}
+          </section>
 
-          <div className="sq-loading-cards">
-
-            <div />
-
-            <div />
-
-            <div />
-
-          </div>
-
-          <p>Preparing your learning space...</p>
-
+          <section className="sq-loading-dashboard-grid">
+            <div className="sq-loading-main-column">
+              <article className="sq-loading-panel">
+                <div className="sq-loading-panel-heading"><div><div className="sq-skeleton sq-skeleton-label wide" /><div className="sq-skeleton sq-skeleton-heading" /></div><div className="sq-skeleton sq-skeleton-icon" /></div>
+                <div className="sq-skeleton sq-skeleton-paragraph" /><div className="sq-skeleton sq-skeleton-paragraph short" />
+                <div className="sq-loading-activity-row"><div className="sq-skeleton sq-skeleton-icon" /><div className="sq-loading-activity-lines"><div className="sq-skeleton sq-skeleton-label wide" /><div className="sq-skeleton sq-skeleton-caption wide" /></div><div className="sq-skeleton sq-skeleton-button" /></div>
+              </article>
+              <article className="sq-loading-panel">
+                <div className="sq-loading-panel-heading"><div><div className="sq-skeleton sq-skeleton-label" /><div className="sq-skeleton sq-skeleton-heading" /></div><div className="sq-skeleton sq-skeleton-icon" /></div>
+                <div className="sq-skeleton sq-skeleton-progress" /><div className="sq-skeleton sq-skeleton-paragraph" />
+              </article>
+            </div>
+            <aside className="sq-loading-side-column"><div className="sq-loading-panel"><div className="sq-skeleton sq-skeleton-icon large" /><div className="sq-skeleton sq-skeleton-heading side-heading" /><div className="sq-skeleton sq-skeleton-paragraph" /><div className="sq-skeleton sq-skeleton-paragraph short" /><div className="sq-skeleton sq-skeleton-divider" /><div className="sq-skeleton sq-skeleton-label wide" /><div className="sq-skeleton sq-skeleton-caption wide" /></div><div className="sq-loading-panel slim"><div className="sq-skeleton sq-skeleton-label wide" /><div className="sq-skeleton sq-skeleton-paragraph" /><div className="sq-skeleton sq-skeleton-caption wide" /></div></aside>
+          </section>
+          <footer className="sq-loading-footer"><span><Icon name="shield" size={14} /> Loading securely</span><span>May Allah place barakah in your learning journey.</span></footer>
         </div>
-
         <StudentDashboardStyles />
-
       </main>
-
     );
-
   }
 
 
@@ -3180,7 +3188,67 @@ function StudentDashboardStyles() {
 
 
 
-      .sq-loading-shell,
+      .sq-loading-page { min-height: 100vh; background: #f6f9f7; color: #17221d; }
+      .sq-loading-topbar { min-height: 74px; padding: 0 max(24px, calc((100% - 1240px) / 2)); display: flex; align-items: center; justify-content: space-between; gap: 18px; background: rgba(255,255,255,.94); border-bottom: 1px solid #e2eae6; }
+      .sq-loading-brand { display: flex; align-items: center; gap: 11px; }
+      .sq-loading-brand-mark { width: 43px; height: 43px; border-radius: 13px; display: grid; place-items: center; background: linear-gradient(145deg,#0f766e,#115e59); color: white; font-size: 11px; font-weight: 900; letter-spacing: .06em; box-shadow: 0 7px 18px rgba(15,118,110,.18); }
+      .sq-loading-brand > div:last-child { display: grid; gap: 3px; }
+      .sq-loading-brand strong { font-size: 15px; letter-spacing: -.02em; }
+      .sq-loading-brand span { color: #718079; font-size: 11px; font-weight: 600; }
+      .sq-loading-secure { display: inline-flex; align-items: center; gap: 7px; color: #64746d; font-size: 12px; font-weight: 650; }
+      .sq-loading-secure svg { color: #0f766e; }
+      .sq-loading-content { position: relative; width: min(1240px,calc(100% - 48px)); margin: 0 auto; padding: 28px 0 34px; }
+      .sq-loading-hero { min-height: 220px; display: flex; align-items: center; justify-content: space-between; gap: 24px; overflow: hidden; position: relative; padding: 32px 38px; border-radius: 23px; color: white; background: radial-gradient(circle at 90% 15%,rgba(255,255,255,.13),transparent 26%),linear-gradient(135deg,#115e59,#0f766e 58%,#0b665f); box-shadow: 0 16px 38px rgba(15,118,110,.14); }
+      .sq-loading-hero::after { content: ""; position: absolute; inset: 0; opacity: .09; pointer-events: none; background-image: linear-gradient(30deg,transparent 48%,white 49%,white 51%,transparent 52%),linear-gradient(150deg,transparent 48%,white 49%,white 51%,transparent 52%); background-size: 42px 42px; }
+      .sq-loading-hero-copy { position: relative; z-index: 1; max-width: 700px; }
+      .sq-loading-eyebrow { display: inline-flex; align-items: center; gap: 7px; color: rgba(255,255,255,.8); font-size: 10px; font-weight: 850; letter-spacing: .1em; }
+      .sq-loading-eyebrow svg { color: #f8df8b; }
+      .sq-loading-hero h1 { margin: 13px 0 0; color: white; font-size: clamp(29px,4vw,42px); line-height: 1.12; letter-spacing: -.045em; font-weight: 850; }
+      .sq-loading-hero p { max-width: 570px; margin: 11px 0 0; color: rgba(255,255,255,.78); font-size: 13px; line-height: 1.7; }
+      .sq-loading-status { display: inline-flex; align-items: center; gap: 9px; margin-top: 19px; padding: 8px 11px; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: rgba(255,255,255,.09); color: rgba(255,255,255,.93); font-size: 11px; font-weight: 700; }
+      .sq-loading-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.35); border-top-color: #f8df8b; border-radius: 50%; animation: sq-spin .8s linear infinite; }
+      .sq-loading-hero-art { position: relative; z-index: 1; flex: 0 0 124px; width: 124px; height: 124px; display: grid; place-items: center; color: #f8df8b; border: 1px solid rgba(255,255,255,.18); border-radius: 50%; background: rgba(255,255,255,.08); }
+      .sq-loading-hero-art::before { content: ""; position: absolute; inset: 9px; border: 1px dashed rgba(255,255,255,.24); border-radius: 50%; }
+      .sq-loading-hero-art span { position: absolute; top: 18px; right: 20px; font-size: 18px; }
+      .sq-loading-section-label { display: flex; align-items: center; gap: 13px; margin: 22px 0 12px; color: #718079; font-size: 10px; font-weight: 850; letter-spacing: .11em; }
+      .sq-loading-section-label i { height: 1px; flex: 1; background: #e2eae6; }
+      .sq-loading-stat-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
+      .sq-loading-stat { min-width: 0; min-height: 108px; padding: 17px; display: flex; align-items: center; gap: 13px; border: 1px solid #e2eae6; border-radius: 17px; background: white; box-shadow: 0 6px 20px rgba(23,34,29,.025); }
+      .sq-loading-stat-copy { flex: 1; min-width: 0; display: grid; gap: 9px; }
+      .sq-skeleton { display: block; overflow: hidden; position: relative; border-radius: 7px; background: #eaf0ed; }
+      .sq-skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg,transparent,rgba(255,255,255,.82),transparent); animation: sq-shimmer 1.5s ease-in-out infinite; }
+      .sq-skeleton-icon { width: 43px; height: 43px; flex: 0 0 auto; border-radius: 13px; background: #e0f3ee; }
+      .sq-skeleton-label { width: 78px; height: 8px; }
+      .sq-skeleton-label.wide { width: 145px; max-width: 100%; }
+      .sq-skeleton-value { width: 66px; height: 21px; border-radius: 5px; }
+      .sq-skeleton-caption { width: 105px; height: 7px; }
+      .sq-skeleton-caption.wide { width: 175px; max-width: 100%; }
+      .sq-loading-dashboard-grid { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(270px,.75fr); align-items: start; gap: 16px; margin-top: 16px; }
+      .sq-loading-main-column,.sq-loading-side-column { display: grid; gap: 16px; min-width: 0; }
+      .sq-loading-panel { min-width: 0; padding: 22px; border: 1px solid #e2eae6; border-radius: 19px; background: white; box-shadow: 0 6px 20px rgba(23,34,29,.025); }
+      .sq-loading-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 22px; }
+      .sq-loading-panel-heading > div:first-child { display: grid; gap: 10px; }
+      .sq-skeleton-heading { width: 220px; max-width: 55vw; height: 19px; }
+      .sq-skeleton-paragraph { width: 92%; height: 9px; margin-top: 12px; }
+      .sq-skeleton-paragraph.short { width: 62%; margin-top: 9px; }
+      .sq-loading-activity-row { display: flex; align-items: center; gap: 12px; margin-top: 22px; padding: 14px; border: 1px solid #edf2ef; border-radius: 13px; background: #fbfdfc; }
+      .sq-loading-activity-lines { flex: 1; min-width: 0; display: grid; gap: 9px; }
+      .sq-skeleton-button { width: 92px; height: 32px; border-radius: 9px; }
+      .sq-skeleton-progress { height: 9px; margin-top: 24px; border-radius: 999px; }
+      .sq-loading-panel .sq-skeleton-progress + .sq-skeleton-paragraph { margin-top: 12px; }
+      .sq-skeleton-icon.large { width: 48px; height: 48px; margin-bottom: 20px; }
+      .sq-skeleton-heading.side-heading { width: 170px; margin-bottom: 17px; }
+      .sq-skeleton-divider { height: 1px; margin: 19px 0; background: #edf2ef; }
+      .sq-loading-panel.slim { padding: 19px; }
+      .sq-loading-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; padding-top: 17px; border-top: 1px solid #e2eae6; color: #819088; font-size: 10px; }
+      .sq-loading-footer span:first-child { display: inline-flex; align-items: center; gap: 6px; color: #64746d; font-weight: 700; }
+      .sq-loading-footer svg { color: #0f766e; }
+      @keyframes sq-shimmer { 100% { transform: translateX(100%); } }
+      @keyframes sq-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .sq-skeleton::after,.sq-loading-spinner { animation: none; } }
+      @media (max-width: 900px) { .sq-loading-stat-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .sq-loading-dashboard-grid { grid-template-columns: 1fr; } .sq-loading-side-column { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+      @media (max-width: 600px) { .sq-loading-topbar { min-height: 66px; padding: 0 18px; } .sq-loading-secure { font-size: 0; gap: 0; } .sq-loading-secure svg { width: 19px; height: 19px; } .sq-loading-content { width: calc(100% - 28px); padding-top: 17px; } .sq-loading-hero { min-height: 0; padding: 25px 22px; border-radius: 19px; } .sq-loading-hero-art { display: none; } .sq-loading-hero h1 { font-size: 30px; } .sq-loading-hero p { font-size: 12px; } .sq-loading-stat-grid { gap: 9px; } .sq-loading-stat { min-height: 88px; padding: 12px; gap: 9px; } .sq-loading-stat .sq-skeleton-icon { width: 34px; height: 34px; border-radius: 10px; } .sq-loading-panel { padding: 17px; } .sq-loading-side-column { grid-template-columns: 1fr; } .sq-loading-footer { align-items: flex-start; flex-direction: column; gap: 8px; } }
+      @media (max-width: 380px) { .sq-loading-stat { padding: 9px; } .sq-loading-stat .sq-skeleton-icon { display: none; } .sq-loading-brand strong { font-size: 13px; } .sq-loading-brand-mark { width: 38px; height: 38px; } }
 
       .sq-error-shell {
 
