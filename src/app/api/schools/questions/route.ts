@@ -391,6 +391,25 @@ export async function POST(request: NextRequest) {
       const activityType = body.activity_type;
       const status = body.status ?? "draft";
       const dueAt = body.due_at;
+      const rawTimeLimit = body.time_limit_minutes;
+      const timeLimitMinutes =
+        rawTimeLimit === undefined || rawTimeLimit === null || rawTimeLimit === ""
+          ? null
+          : typeof rawTimeLimit === "number" ||
+              (typeof rawTimeLimit === "string" && rawTimeLimit.trim() !== "")
+            ? Number(rawTimeLimit)
+            : Number.NaN;
+
+      if (
+        timeLimitMinutes !== null &&
+        (!Number.isInteger(timeLimitMinutes) ||
+          timeLimitMinutes < 1 ||
+          timeLimitMinutes > 1440)
+      ) {
+        return respondError(
+          "The time limit must be a whole number between 1 and 1,440 minutes, or left blank for no time limit."
+        );
+      }
 
       const classIds = Array.isArray(body.class_ids)
         ? [...new Set(body.class_ids)]
@@ -511,6 +530,7 @@ export async function POST(request: NextRequest) {
             activity_type: activityType as ActivityType,
             status: status as ActivityStatus,
             due_at: normalizedDueAt,
+            time_limit_minutes: timeLimitMinutes,
           })
           .select("*")
           .single();
@@ -813,6 +833,30 @@ export async function PATCH(request: NextRequest) {
         } else {
           return respondError("Enter a valid due date and time.");
         }
+      }
+
+      if ("time_limit_minutes" in body) {
+        const rawTimeLimit = body.time_limit_minutes;
+        const timeLimitMinutes =
+          rawTimeLimit === null || rawTimeLimit === ""
+            ? null
+            : typeof rawTimeLimit === "number" ||
+                (typeof rawTimeLimit === "string" && rawTimeLimit.trim() !== "")
+              ? Number(rawTimeLimit)
+              : Number.NaN;
+
+        if (
+          timeLimitMinutes !== null &&
+          (!Number.isInteger(timeLimitMinutes) ||
+            timeLimitMinutes < 1 ||
+            timeLimitMinutes > 1440)
+        ) {
+          return respondError(
+            "The time limit must be a whole number between 1 and 1,440 minutes, or left blank for no time limit."
+          );
+        }
+
+        updates.time_limit_minutes = timeLimitMinutes;
       }
 
       const { data: activity, error } = await supabaseServer
