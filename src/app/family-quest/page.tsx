@@ -151,7 +151,7 @@ function isFillBlankQuestion(question: Question): boolean {
 
  */
 
-const QUESTION_TIME = 15;
+const QUESTION_TIME = 30;
 
 const TOTAL_QUESTIONS = 50;
 

@@ -70,7 +70,7 @@ export default function QuizPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [typedAnswer, setTypedAnswer] = useState("");
 
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(30);
   const [timeUp, setTimeUp] = useState(false);
 
   const [questionStartedAt, setQuestionStartedAt] = useState<number | null>(
@@ -498,13 +498,13 @@ export default function QuizPage() {
       (Date.now() - originalStartedAt) / 1000
     );
 
-    const remainingSeconds = Math.max(0, 15 - elapsedSeconds);
+    const remainingSeconds = Math.max(0, 30 - elapsedSeconds);
 
     setTimeLeft(remainingSeconds);
     setMessage("");
 
     /*
-     * If the 15 seconds already expired while the user
+     * If the 30 seconds already expired while the user
      * was away, let the timer immediately submit the timeout.
      */
   }
@@ -668,7 +668,7 @@ export default function QuizPage() {
     setOptions(shuffledOptions);
     setSelectedAnswer(null);
     setTypedAnswer("");
-    setTimeLeft(15);
+    setTimeLeft(30);
     setTimeUp(false);
     setQuestionStartedAt(startedAt.getTime());
     setMessage("");
@@ -712,7 +712,7 @@ export default function QuizPage() {
 
     const responseTime = questionStartedAt
       ? Date.now() - questionStartedAt
-      : 15000;
+      : 30000;
 
     setMessage("Checking answer...");
 
@@ -722,7 +722,7 @@ export default function QuizPage() {
         p_session_id: sessionId,
         p_question_id: question.id,
         p_selected_answer: normalizedAnswer,
-        p_response_time_ms: Math.min(Math.max(responseTime, 0), 15000),
+        p_response_time_ms: Math.min(Math.max(responseTime, 0), 30000),
       }
     );
 
@@ -765,7 +765,7 @@ export default function QuizPage() {
 
     const responseTime = questionStartedAt
       ? Date.now() - questionStartedAt
-      : 15000;
+      : 30000;
 
     const { data, error } = await supabase.rpc(
       "submit_quiz_answer",
@@ -773,7 +773,7 @@ export default function QuizPage() {
         p_session_id: sessionId,
         p_question_id: question.id,
         p_selected_answer: null,
-        p_response_time_ms: Math.min(Math.max(responseTime, 0), 15000),
+        p_response_time_ms: Math.min(Math.max(responseTime, 0), 30000),
       }
     );
 
@@ -1664,7 +1664,7 @@ export default function QuizPage() {
                 <div
                   className="sq-progress-bar"
                   style={{
-                    width: `${(timeLeft / 15) * 100}%`,
+                    width: `${(timeLeft / 30) * 100}%`,
                     background:
                       timeLeft <= 3
                         ? "var(--danger)"

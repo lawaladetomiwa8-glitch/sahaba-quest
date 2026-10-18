@@ -12,7 +12,7 @@ import { supabase } from "../../lib/supabase";
 
 const SESSION_KEY = "sahabaquest_family_member_session";
 
-const QUESTION_TIME_SECONDS = 15;
+const QUESTION_TIME_SECONDS = 30;
 
 const QUESTION_TIME_MS = QUESTION_TIME_SECONDS * 1000;
 
@@ -1804,7 +1804,7 @@ export default function FamilyMemberQuizPage() {
 
                     <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.6 }}>
 
-                      You did not answer within 15 seconds, so no XP was awarded.
+                      You did not answer within 30 seconds, so no XP was awarded.
 
                     </p>
 
