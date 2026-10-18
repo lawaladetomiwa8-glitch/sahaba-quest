@@ -1695,20 +1695,46 @@ export default function LeaderboardPage() {
       </div>
 
       <style jsx>{`
+        .leaderboard-podium {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .leaderboard-row {
+          grid-template-columns: 55px minmax(0, 1fr) 100px 70px 65px !important;
+          min-width: 0;
+        }
+
+        .leaderboard-row > div {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
         @media (max-width: 800px) {
           .leaderboard-podium {
-            grid-template-columns:
-              1fr !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px !important;
           }
 
           .leaderboard-podium > div {
-            transform:
-              none !important;
+            transform: none !important;
+            padding: 20px 12px !important;
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+
+          .leaderboard-podium > div > div:nth-of-type(3) {
+            font-size: 15px !important;
           }
 
           .leaderboard-row {
-            grid-template-columns:
-              55px 1fr 80px !important;
+            grid-template-columns: 38px minmax(0, 1fr) auto !important;
+            gap: 10px !important;
+            padding: 14px 16px !important;
+          }
+
+          .leaderboard-row > div:nth-child(3) {
+            font-size: 13px;
+            white-space: nowrap;
           }
 
           .leaderboard-row > div:nth-child(4),
@@ -1718,18 +1744,63 @@ export default function LeaderboardPage() {
         }
 
         @media (max-width: 520px) {
+          .leaderboard-podium {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 12px !important;
+          }
+
+          .leaderboard-podium > div {
+            padding: 20px 16px !important;
+          }
+
+          .leaderboard-podium > div > div:nth-of-type(3) {
+            font-size: 24px !important;
+          }
+
           .leaderboard-row {
-            padding:
-              16px !important;
-            gap:
-              10px !important;
+            grid-template-columns: 30px minmax(0, 1fr) auto !important;
+            gap: 8px !important;
+            padding: 14px 12px !important;
+          }
+
+          .leaderboard-row > div:nth-child(3) {
+            font-size: 12px;
+            white-space: normal;
+            text-align: right;
+          }
+
+          .sq-page {
+            padding-left: 12px;
+            padding-right: 12px;
+          }
+
+          .sq-container {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+          }
+
+          .sq-card {
+            min-width: 0;
+            max-width: 100%;
           }
 
           select {
-            width:
-              100% !important;
-            min-width:
-              0 !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100%;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .leaderboard-row {
+            grid-template-columns: 26px minmax(0, 1fr) auto !important;
+            gap: 6px !important;
+            padding: 12px 8px !important;
+          }
+
+          .leaderboard-row > div:nth-child(3) {
+            font-size: 11px;
           }
         }
       `}</style>

@@ -1032,7 +1032,7 @@ export default function QuizPage() {
           </div>
 
           <div
-            className="sq-card"
+            className="sq-card sq-resume-card"
             style={{
               maxWidth: "700px",
               margin: "80px auto",
@@ -1041,6 +1041,7 @@ export default function QuizPage() {
             }}
           >
             <div
+              className="sq-resume-logo"
               style={{
                 width: "76px",
                 height: "76px",
@@ -1050,12 +1051,16 @@ export default function QuizPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--primary)",
-                fontSize: "28px",
-                fontWeight: 900,
+                overflow: "hidden",
               }}
             >
-              SQ
+              <img
+                src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+                alt="Sahaba Quest logo"
+                width={76}
+                height={76}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
             </div>
 
             {checkingSession ? (
@@ -2070,6 +2075,58 @@ export default function QuizPage() {
         /* Mobile-first refinements for the timed individual quiz.
            Desktop styling remains unchanged. */
         @media (max-width: 640px) {
+          /* Keep the unfinished-game screen compact without changing its actions. */
+          .sq-page:has(.sq-resume-card) {
+            min-height: 100svh !important;
+            padding-top: 8px !important;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+          }
+
+          .sq-page:has(.sq-resume-card) .sq-container {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+
+          .sq-page:has(.sq-resume-card) .sq-resume-card {
+            margin: 12px auto 18px !important;
+            padding: 22px 18px !important;
+            border-radius: 22px !important;
+          }
+
+          .sq-resume-logo {
+            width: 56px !important;
+            height: 56px !important;
+            margin-bottom: 12px !important;
+            border-radius: 16px !important;
+          }
+
+          .sq-page:has(.sq-resume-card) .sq-resume-card .sq-title {
+            font-size: clamp(23px, 6vw, 30px) !important;
+            line-height: 1.15 !important;
+          }
+
+          .sq-page:has(.sq-resume-card) .sq-resume-card .sq-subtitle {
+            font-size: 15px !important;
+            line-height: 1.45 !important;
+          }
+
+          .sq-page:has(.sq-resume-card) .sq-resume-card > div[style*="marginTop: 28px"] {
+            margin-top: 16px !important;
+            padding: 16px !important;
+          }
+
+          .sq-page:has(.sq-resume-card) .sq-resume-card button {
+            min-height: 48px !important;
+            margin-top: 10px !important;
+          }
+
+          .sq-page:has(.sq-resume-card) .sq-resume-card > div[style*="marginTop: 18px"] {
+            margin-top: 12px !important;
+            padding: 11px 12px !important;
+            font-size: 12px !important;
+            line-height: 1.45 !important;
+          }
+
           .sq-page:has(.sq-quiz-card) {
             min-height: 100svh !important;
             padding-bottom: max(8px, env(safe-area-inset-bottom));
@@ -2109,12 +2166,12 @@ export default function QuizPage() {
 
           .sq-quiz-card {
             margin-top: 12px !important;
-            padding: 14px !important;
+            padding: 18px !important;
             border-radius: 20px !important;
           }
 
           .sq-quiz-progress {
-            margin-bottom: 12px !important;
+            margin-bottom: 20px !important;
           }
 
           .sq-quiz-progress > div:first-child {
@@ -2127,26 +2184,26 @@ export default function QuizPage() {
           }
 
           .sq-quiz-question {
-            margin-bottom: 14px !important;
+            margin-bottom: 24px !important;
           }
 
           .sq-quiz-question h2 {
-            font-size: clamp(18px, 4.8vw, 23px) !important;
-            line-height: 1.24 !important;
+            font-size: clamp(19px, 5vw, 24px) !important;
+            line-height: 1.38 !important;
             letter-spacing: -0.25px !important;
             overflow-wrap: anywhere;
           }
 
           .sq-quiz-answers {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 8px !important;
+            gap: 12px !important;
           }
 
           .sq-quiz-answer {
             min-width: 0 !important;
-            min-height: 66px !important;
-            padding: 10px !important;
-            gap: 8px !important;
+            min-height: 76px !important;
+            padding: 13px 11px !important;
+            gap: 9px !important;
             border-radius: 13px !important;
             align-items: flex-start !important;
           }
@@ -2162,8 +2219,8 @@ export default function QuizPage() {
 
           .sq-quiz-answer > span:not(.sq-answer-letter) {
             min-width: 0 !important;
-            font-size: 13px !important;
-            line-height: 1.3 !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
             overflow-wrap: anywhere;
           }
 
@@ -2189,15 +2246,15 @@ export default function QuizPage() {
 
         @media (max-width: 360px) {
           .sq-quiz-card {
-            padding: 11px !important;
+            padding: 13px !important;
           }
 
           .sq-quiz-answers {
-            gap: 6px !important;
+            gap: 8px !important;
           }
 
           .sq-quiz-answer {
-            padding: 8px !important;
+            padding: 10px 8px !important;
             gap: 6px !important;
           }
 
