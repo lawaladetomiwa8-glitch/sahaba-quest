@@ -126,25 +126,35 @@ export default function LoginPage() {
 
   const routeAuthenticatedUser = async (user: {
     id: string;
+    email?: string;
     user_metadata?: Record<string, unknown>;
   }) => {
+    // TEMPORARY DEBUGGING: remove these logs after identifying the redirect.
+    console.log("[AUTH ROUTING] routeAuthenticatedUser called");
+    console.log("[AUTH ROUTING] User ID:", user.id);
+    console.log("[AUTH ROUTING] Email:", user.email ?? "(email unavailable)");
+
+    const metadataAccountType =
+      typeof user.user_metadata?.account_type === "string"
+        ? user.user_metadata.account_type.trim().toLowerCase()
+        : "";
+
     /*
-     * ===================================================
-     * ADMIN CHECK
-     * ===================================================
+     * ROUTING ORDER
+     * 1. Super admin
+     * 2. Active school administrator
+     * 3. Existing organization space / organization setup
+     * 4. Family account
+     * 5. Individual or free player
      *
-     * admin_users is the source of truth for admin access.
-     *
-     * We deliberately check this before profiles.
+     * Keep this function as the single routing source for both
+     * fresh sign-ins and sessions already active in the browser.
      */
-    const {
-      data: adminUser,
-      error: adminError,
-    } = await supabase
+
+    // 1. SUPER ADMIN: only the explicit super_admin role may use /admin.
+    const { data: adminUser, error: adminError } = await supabase
       .from("admin_users")
-      .select(
-        "user_id, role, is_active"
-      )
+      .select("user_id, role, is_active")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
@@ -154,148 +164,204 @@ export default function LoginPage() {
         "[Sahaba Quest] Admin lookup failed:",
         adminError
       );
-
       throw new Error(
         "We couldn't verify your account permissions. Please try signing in again."
       );
     }
 
-    /*
-     * ACTIVE ADMIN
-     *
-     * Never send an admin to the player dashboard.
-     */
-    if (adminUser) {
-      console.log(
-        "[Sahaba Quest] Active admin detected:",
-        adminUser.role
-      );
-
+    if (adminUser?.role?.trim().toLowerCase() === "super_admin") {
+      console.log("[AUTH ROUTING] Super admin found. Redirecting to /admin");
       window.location.replace("/admin");
       return;
     }
 
-    /* ===================================================
-       ORGANISATION CHECK
-    =================================================== */
+    // 2. SCHOOL ADMIN: school administrators are stored separately
+    // in school_admins. Only active assignments qualify.
+    const { data: schoolAdmins, error: schoolAdminError } = await supabase
+      .from("school_admins")
+      .select("id, school_id, role, status")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(1);
 
+    if (schoolAdminError) {
+      console.error(
+        "[Sahaba Quest] School-admin lookup failed:",
+        schoolAdminError
+      );
+      throw new Error(
+        "We couldn't verify your school account. Please try signing in again."
+      );
+    }
+
+    console.log(
+      "[AUTH ROUTING] Active school-admin assignments found:",
+      schoolAdmins?.length ?? 0
+    );
+
+    if (schoolAdmins && schoolAdmins.length > 0) {
+      console.log(
+        "[AUTH ROUTING] Active school admin found for this user. Redirecting to /schools/dashboard:",
+        user.id
+      );
+      window.location.replace("/schools/dashboard");
+      return;
+    }
+
+    console.log(
+      "[AUTH ROUTING] No active school-admin assignment found for user:",
+      user.id
+    );
+
+    // 3. Read the profile account type. In this database, standard
+    // players may have account_type "free" as well as "individual".
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("account_type")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error(
+        "[Sahaba Quest] Profile lookup failed:",
+        profileError
+      );
+      throw new Error(
+        "We couldn't identify your account type. Please try signing in again."
+      );
+    }
+
+    const profileAccountType =
+      typeof profile?.account_type === "string"
+        ? profile.account_type.trim().toLowerCase()
+        : "";
+
+    const accountType = profileAccountType || metadataAccountType;
+
+    console.log("[AUTH ROUTING] Profile account_type:", profileAccountType || "(missing)");
+    console.log("[AUTH ROUTING] Metadata account_type:", metadataAccountType || "(missing)");
+    console.log("[AUTH ROUTING] Resolved account_type:", accountType || "(missing)");
+
+    const isOrganizationAccount =
+      accountType === "organisation" ||
+      accountType === "organization" ||
+      metadataAccountType === "organisation" ||
+      metadataAccountType === "organization";
+
+    // Check for an existing organization space before sending a user
+    // to a player dashboard. This preserves the existing organization
+    // membership/owner flow.
     const {
       data: organizationSpace,
       error: organizationError,
-    } = await supabase.rpc(
-      "get_my_organization_space"
-    );
+    } = await supabase.rpc("get_my_organization_space");
 
     if (organizationError) {
       console.error(
-        "[Sahaba Quest] Organisation lookup failed:",
+        "[Sahaba Quest] Organization lookup failed:",
         organizationError
       );
+
+      // A failed organization lookup must not turn a clearly identified
+      // family/player into an organization account or block those users.
+      // Organization accounts, however, must be verified before routing.
+      if (isOrganizationAccount) {
+        throw new Error(
+          "We couldn't verify your organization account. Please try signing in again."
+        );
+      }
+
+      if (accountType === "family") {
+        window.location.replace("/family-dashboard");
+        return;
+      }
+
+      if (accountType === "individual" || accountType === "free") {
+        window.location.replace("/dashboard");
+        return;
+      }
 
       throw new Error(
         "We couldn't determine your account space. Please try signing in again."
       );
     }
 
-    /*
-     * Existing Organisation
-     */
-    if (
-      Array.isArray(organizationSpace) &&
-      organizationSpace.length > 0
-    ) {
-      console.log(
-        "[Sahaba Quest] Organisation found:",
-        organizationSpace[0]
-      );
+    console.log(
+      "[AUTH ROUTING] Organization space records found:",
+      Array.isArray(organizationSpace) ? organizationSpace.length : "(not an array)"
+    );
 
+    if (Array.isArray(organizationSpace) && organizationSpace.length > 0) {
+      console.log("[AUTH ROUTING] Redirecting to /organization");
       window.location.replace("/organization");
       return;
     }
 
-    /* ===================================================
-       FIRST LOGIN ORGANISATION SETUP
-    =================================================== */
-
-    const accountType =
-      user.user_metadata?.account_type;
-
-    if (
-      accountType === "organisation"
-    ) {
-      console.log(
-        "[Sahaba Quest] Organisation account detected. Creating Organisation space..."
-      );
-
-      const {
-        error: setupError,
-      } = await supabase.rpc(
+    // 4. First-time organization setup. Only attempt setup when the
+    // account metadata/profile explicitly identifies an organization.
+    if (isOrganizationAccount) {
+      const { error: setupError } = await supabase.rpc(
         "setup_my_organization"
       );
 
       if (setupError) {
         console.error(
-          "[Sahaba Quest] Organisation setup failed:",
+          "[Sahaba Quest] Organization setup failed:",
           setupError
         );
-
         throw new Error(
-          "We couldn't finish setting up your organisation. Please try again."
+          "We couldn't finish setting up your organization. Please try again."
         );
       }
 
-      /*
-       * Verify setup before redirecting.
-       */
       const {
         data: createdOrganizationSpace,
         error: verifyError,
-      } = await supabase.rpc(
-        "get_my_organization_space"
-      );
+      } = await supabase.rpc("get_my_organization_space");
 
       if (verifyError) {
         console.error(
-          "[Sahaba Quest] Organisation verification failed:",
+          "[Sahaba Quest] Organization verification failed:",
           verifyError
         );
-
         throw new Error(
-          "Your organisation was created, but we couldn't verify the organisation space. Please sign in again."
+          "Your organization setup could not be verified. Please sign in again."
         );
       }
 
       if (
-        !Array.isArray(
-          createdOrganizationSpace
-        ) ||
+        !Array.isArray(createdOrganizationSpace) ||
         createdOrganizationSpace.length === 0
       ) {
         throw new Error(
-          "We couldn't find your organisation after setup. Please sign in again."
+          "We couldn't find your organization after setup. Please sign in again."
         );
       }
 
-      console.log(
-        "[Sahaba Quest] Organisation setup verified."
-      );
-
-      window.location.replace(
-        "/organization"
-      );
+      window.location.replace("/organization");
       return;
     }
 
-    /* ===================================================
-       NORMAL PLAYER
-    =================================================== */
+    // 5. Family accounts and ordinary player accounts.
+    if (accountType === "family") {
+      console.log("[AUTH ROUTING] Family account detected. Redirecting to /family-dashboard:", user.id);
+      window.location.replace("/family-dashboard");
+      return;
+    }
 
-    console.log(
-      "[Sahaba Quest] Normal player detected. Opening Individual dashboard."
+    if (accountType === "individual" || accountType === "free") {
+      console.log("[AUTH ROUTING] Individual/free account detected. Redirecting to /dashboard:", user.id);
+      window.location.replace("/dashboard");
+      return;
+    }
+
+    // Do not silently send an unrecognized account to the wrong dashboard.
+    console.error(
+      "[Sahaba Quest] Unrecognized account type:",
+      accountType || "(missing)"
     );
-
-    window.location.replace(
-      "/dashboard"
+    throw new Error(
+      "We couldn't identify your account type. Please contact Sahaba Quest support."
     );
   };
 
@@ -376,9 +442,12 @@ export default function LoginPage() {
          * =================================================
          */
 
-        await routeAuthenticatedUser(
-          user
+        console.log(
+          "[AUTH ROUTING] Routing an existing session from the login page:",
+          user.id,
+          user.email ?? "(email unavailable)"
         );
+        await routeAuthenticatedUser(user);
 
       } catch (error) {
         console.error(
@@ -490,9 +559,12 @@ export default function LoginPage() {
        * =================================================
        */
 
-      await routeAuthenticatedUser(
-        data.user
+      console.log(
+        "[AUTH ROUTING] Routing immediately after fresh sign-in:",
+        data.user.id,
+        data.user.email ?? "(email unavailable)"
       );
+      await routeAuthenticatedUser(data.user);
 
     } catch (error) {
       console.error(

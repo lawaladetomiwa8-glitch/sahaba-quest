@@ -746,7 +746,7 @@ export default function SchoolStudentDashboardPage() {
       <main className="sq-student-page sq-loading-page" aria-busy="true" aria-live="polite">
         <header className="sq-loading-topbar">
           <div className="sq-loading-brand">
-            <div className="sq-loading-brand-mark">SQ</div>
+            <div className="sq-loading-brand-mark"><img src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png" alt="Sahaba Quest logo" className="sq-brand-logo-image" /></div>
             <div><strong>Sahaba Quest</strong><span>Schools &amp; Madrasas</span></div>
           </div>
           <div className="sq-loading-secure"><Icon name="shield" size={15} /> Secure student portal</div>
@@ -881,7 +881,7 @@ export default function SchoolStudentDashboardPage() {
 
             <div className="sq-brand-mark">
 
-              <span>SQ</span>
+              <img src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png" alt="Sahaba Quest logo" className="sq-brand-logo-image" />
 
             </div>
 
@@ -3188,6 +3188,13 @@ function StudentDashboardStyles() {
 
 
 
+      .sq-brand-logo-image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: inherit;
+      }
       .sq-loading-page { min-height: 100vh; background: #f6f9f7; color: #17221d; }
       .sq-loading-topbar { min-height: 74px; padding: 0 max(24px, calc((100% - 1240px) / 2)); display: flex; align-items: center; justify-content: space-between; gap: 18px; background: rgba(255,255,255,.94); border-bottom: 1px solid #e2eae6; }
       .sq-loading-brand { display: flex; align-items: center; gap: 11px; }
