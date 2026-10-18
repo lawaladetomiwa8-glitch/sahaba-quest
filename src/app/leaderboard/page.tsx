@@ -1016,6 +1016,7 @@ export default function LeaderboardPage() {
                         {rank ===
                           1 && (
                           <div
+                            className="podium-champion"
                             style={{
                               marginBottom:
                                 "8px",
@@ -1039,6 +1040,7 @@ export default function LeaderboardPage() {
 
                         {isCurrentUser && (
                           <div
+                            className="podium-you"
                             style={{
                               position:
                                 "absolute",
@@ -1059,6 +1061,7 @@ export default function LeaderboardPage() {
                         )}
 
                         <div
+                          className="podium-medal"
                           style={{
                             fontSize:
                               "38px",
@@ -1076,6 +1079,7 @@ export default function LeaderboardPage() {
                         </div>
 
                         <div
+                          className="podium-name"
                           style={{
                             fontSize:
                               "18px",
@@ -1090,6 +1094,7 @@ export default function LeaderboardPage() {
 
                         {player.username && (
                           <div
+                            className="podium-username"
                             style={{
                               marginTop:
                                 "4px",
@@ -1107,6 +1112,7 @@ export default function LeaderboardPage() {
                         )}
 
                         <div
+                          className="podium-xp"
                           style={{
                             marginTop:
                               "18px",
@@ -1122,6 +1128,7 @@ export default function LeaderboardPage() {
                         </div>
 
                         <div
+                          className="podium-xp-label"
                           style={{
                             color:
                               "var(--muted)",
@@ -1135,6 +1142,7 @@ export default function LeaderboardPage() {
                         </div>
 
                         <div
+                          className="podium-stats"
                           style={{
                             display:
                               "flex",
@@ -1709,6 +1717,24 @@ export default function LeaderboardPage() {
           word-break: normal;
         }
 
+        .podium-name {
+          overflow-wrap: anywhere;
+          word-break: normal;
+        }
+
+        .podium-username {
+          min-width: 0;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .podium-xp {
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+        }
+
         .leaderboard-row {
           grid-template-columns: 58px minmax(0, 1fr) 112px 76px 68px !important;
           min-width: 0;
@@ -1738,61 +1764,50 @@ export default function LeaderboardPage() {
             border-radius: 22px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(1) {
+          .podium-champion {
+            min-height: 25px;
             font-size: 10px !important;
             line-height: 1.25 !important;
-            min-height: 25px;
-            overflow-wrap: normal;
-            word-break: normal;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(2) {
+          .podium-you {
             top: 8px !important;
             right: 8px !important;
             font-size: 9px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(3) {
+          .podium-medal {
             font-size: 30px !important;
             line-height: 1.1 !important;
             margin-bottom: 8px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(4) {
+          .podium-name {
+            min-height: 39px;
             font-size: 15px !important;
             line-height: 1.3 !important;
-            overflow-wrap: anywhere;
-            word-break: normal;
             display: -webkit-box;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 2;
             overflow: hidden;
-            min-height: 39px;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(5) {
+          .podium-username {
             font-size: 11px !important;
             line-height: 1.3 !important;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(6) {
+          .podium-xp {
             margin-top: 12px !important;
             font-size: clamp(16px, 3.8vw, 23px) !important;
             line-height: 1.15 !important;
-            white-space: nowrap;
-            overflow-wrap: normal;
-            word-break: keep-all;
-            font-variant-numeric: tabular-nums;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(7) {
+          .podium-xp-label {
             font-size: 11px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:last-child {
+          .podium-stats {
             margin-top: 12px !important;
             gap: 8px !important;
             font-size: 11px !important;
@@ -1871,47 +1886,48 @@ export default function LeaderboardPage() {
             border-radius: 18px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(1) {
+          .podium-champion {
             font-size: 8px !important;
             letter-spacing: 0 !important;
             min-height: 22px;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(2) {
+          .podium-you {
             top: 6px !important;
             right: 6px !important;
             font-size: 8px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(3) {
+          .podium-medal {
             font-size: 25px !important;
             margin-bottom: 7px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(4) {
+          .podium-name {
             font-size: 13px !important;
             min-height: 35px;
             line-height: 1.3 !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(5) {
+          .podium-username {
             font-size: 10px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(6) {
+          .podium-xp {
             margin-top: 10px !important;
             font-size: clamp(13px, 3.6vw, 18px) !important;
-            letter-spacing: -0.4px;
+            letter-spacing: -0.2px;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(7) {
+          .podium-xp-label {
             font-size: 10px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:last-child {
+          .podium-stats {
             margin-top: 10px !important;
             gap: 6px !important;
             font-size: 10px !important;
+            flex-wrap: wrap;
           }
 
           .leaderboard-row {
@@ -1955,12 +1971,17 @@ export default function LeaderboardPage() {
             padding: 14px 5px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(4) {
+          .podium-name {
             font-size: 12px !important;
           }
 
-          .leaderboard-podium > .sq-card > div:nth-of-type(6) {
+          .podium-xp {
             font-size: 12px !important;
+          }
+
+          .podium-stats {
+            gap: 4px !important;
+            font-size: 9px !important;
           }
 
           .leaderboard-row {
