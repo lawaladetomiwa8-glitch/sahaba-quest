@@ -672,9 +672,9 @@ export default function FamilyMemberChallengePage() {
 
             <div className="grid gap-3 mt-7">
               {options.map((option) => {
-                const isSelected = selectedAnswer === option.value;
+                const isSelected = selectedAnswer === option.key;
                 const isCorrect =
-                  answerResult?.correct_answer === option.value;
+                  answerResult?.correct_answer?.trim().toUpperCase() === option.key;
                 const isWrong =
                   Boolean(
                     answerResult &&
@@ -687,7 +687,7 @@ export default function FamilyMemberChallengePage() {
                     key={`${question.id}-${option.key}`}
                     type="button"
                     disabled={submitting || !!answerResult}
-                    onClick={() => void submitAnswer(option.value)}
+                    onClick={() => void submitAnswer(option.key)}
                     className={`w-full text-left rounded-2xl border p-4 transition ${
                       isCorrect
                         ? "border-emerald-500 bg-emerald-50"
@@ -723,7 +723,13 @@ export default function FamilyMemberChallengePage() {
 
                 <p className="text-sm text-slate-700 mt-2">
                   <strong>Correct answer:</strong>{" "}
-                  {answerResult.correct_answer}
+                  {(() => {
+                    const correctKey = answerResult.correct_answer?.trim().toUpperCase();
+                    const correctOption = options.find((option) => option.key === correctKey);
+                    return correctOption
+                      ? `${correctKey}. ${correctOption.value}`
+                      : answerResult.correct_answer;
+                  })()}
                 </p>
 
                 {answerResult.explanation && (
