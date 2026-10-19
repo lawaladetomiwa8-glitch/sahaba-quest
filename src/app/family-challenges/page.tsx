@@ -32,24 +32,6 @@ type FamilyChallengeAttempt = {
   passed: boolean | null;
 };
 
-/*
- * ---------------------------------------------------------
- * CHALLENGES THAT ARE NOT PLAYABLE YET
- * ---------------------------------------------------------
- *
- * These challenges are visible in the Family Challenge Arena,
- * but their question banks are still being prepared.
- */
-
-const COMING_SOON_CHALLENGE_TITLES = new Set([
-  "Women of the Sahaba",
-  "The Ten Promised Paradise",
-  "Companions of Badr",
-  "Ansar vs Muhajirun",
-  "Leaders Among the Sahaba",
-  "The Young Sahaba",
-]);
-
 export default function FamilyChallengesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -212,7 +194,15 @@ export default function FamilyChallengesPage() {
         throw challengeError;
       }
 
-      setChallenges(challengeData || []);
+      // Hide Seven-Day Quest on the frontend only. Its database record
+      // and any existing family attempts remain untouched.
+      const visibleChallenges = (challengeData || []).filter((challenge) => {
+        const normalizedTitle = challenge.title.trim().toLowerCase();
+        return normalizedTitle !== "7-day quest" &&
+          normalizedTitle !== "7 day quest";
+      });
+
+      setChallenges(visibleChallenges);
     } catch (error) {
       console.error("Error loading challenges:", error);
 
@@ -248,10 +238,6 @@ export default function FamilyChallengesPage() {
    * HELPER FUNCTIONS
    * ---------------------------------------------------------
    */
-
-  function isComingSoonChallenge(challenge: Challenge) {
-    return COMING_SOON_CHALLENGE_TITLES.has(challenge.title);
-  }
 
   function getFamilyChallengeAttempt(challengeId: string) {
     return attempts[challengeId];
@@ -332,15 +318,7 @@ export default function FamilyChallengesPage() {
    */
 
   async function handleStartChallenge(challenge: Challenge) {
-    /*
-     * Coming Soon challenges cannot be started.
-     */
-
-    if (isComingSoonChallenge(challenge)) {
-      return;
-    }
-
-    if (!user || !isFamily) {
+if (!user || !isFamily) {
       window.location.href = "/login";
       return;
     }
@@ -656,10 +634,7 @@ export default function FamilyChallengesPage() {
                   challenge.id
                 );
 
-                const isComingSoon = isComingSoonChallenge(
-                  challenge
-                );
-
+                // Active family subscriptions unlock the Family Challenge Arena.
                 const isLocked = false;
 
                 const isCompleted =
@@ -685,11 +660,7 @@ export default function FamilyChallengesPage() {
                   <article
                     key={challenge.id}
                     className={`challenge-card ${
-                      isComingSoon
-                        ? "challenge-coming-soon"
-                        : isLocked
-                          ? "challenge-locked"
-                          : ""
+                      isLocked ? "challenge-locked" : ""
                     } ${
                       isCompleted
                         ? passed
@@ -705,11 +676,7 @@ export default function FamilyChallengesPage() {
                         {challenge.icon || "🏆"}
                       </div>
 
-                      {isComingSoon ? (
-                        <span className="status-badge coming-soon-badge">
-                          ✨ Coming Soon
-                        </span>
-                      ) : isLocked ? (
+                      {isLocked ? (
                         <span className="status-badge premium-badge">
                           👑 Family
                         </span>
@@ -769,28 +736,9 @@ export default function FamilyChallengesPage() {
                       </div>
                     </div>
 
-                    {/* COMING SOON MESSAGE */}
-
-                    {isComingSoon && (
-                      <div className="coming-soon-panel">
-                        <div className="coming-soon-panel-icon">
-                          ✨
-                        </div>
-
-                        <div>
-                          <strong>Questions are being prepared</strong>
-
-                          <span>
-                            This premium challenge will be available
-                            soon.
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
                     {/* IN PROGRESS */}
 
-                    {isInProgress && attempt && !isComingSoon && (
+                    {isInProgress && attempt && (
                       <div className="progress-area">
                         <div className="progress-header">
                           <span>Your progress</span>
@@ -818,7 +766,7 @@ export default function FamilyChallengesPage() {
 
                     {/* COMPLETED RESULT */}
 
-                    {isCompleted && attempt && !isComingSoon && (
+                    {isCompleted && attempt && (
                       <div
                         className={`completed-panel ${
                           passed
@@ -855,7 +803,7 @@ export default function FamilyChallengesPage() {
 
                     {/* RESULT SUMMARY */}
 
-                    {isCompleted && attempt && !isComingSoon && (
+                    {isCompleted && attempt && (
                       <div className="result-summary">
                         <div>
                           <span>Score</span>
@@ -894,16 +842,7 @@ export default function FamilyChallengesPage() {
 
                     {/* ACTION */}
 
-                    {isComingSoon ? (
-                      <button
-                        type="button"
-                        className="challenge-action coming-soon-action"
-                        disabled
-                      >
-                        <span>✨</span>
-                        Coming Soon
-                      </button>
-                    ) : isCompleted && attempt ? (
+                    {isCompleted && attempt ? (
                       /*
                        * Completed challenges cannot be retaken.
                        * This button ONLY opens the saved result.
@@ -1518,24 +1457,6 @@ export default function FamilyChallengesPage() {
           box-shadow: 0 18px 45px rgba(24, 80, 65, 0.09);
         }
 
-        .challenge-coming-soon {
-          border-color: #ddd8c9;
-          background: linear-gradient(
-            180deg,
-            #ffffff,
-            #faf9f4
-          );
-        }
-
-        .challenge-coming-soon:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 14px 38px rgba(80, 73, 50, 0.07);
-        }
-
-        .challenge-coming-soon .challenge-icon {
-          background: #f3f0e5;
-        }
-
         .challenge-locked {
           border-color: #efdfb4;
           background: linear-gradient(
@@ -1625,11 +1546,6 @@ export default function FamilyChallengesPage() {
           color: #8b681f;
         }
 
-        .coming-soon-badge {
-          background: #eeeae0;
-          color: #756b55;
-        }
-
         .challenge-type {
           margin-top: 20px;
           color: #0d8066;
@@ -1674,42 +1590,6 @@ export default function FamilyChallengesPage() {
         }
 
         /* COMING SOON */
-
-        .coming-soon-panel {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-top: 16px;
-          padding: 11px;
-          border: 1px solid #e7e1d3;
-          border-radius: 12px;
-          background: #f8f6ef;
-        }
-
-        .coming-soon-panel-icon {
-          width: 31px;
-          height: 31px;
-          display: grid;
-          place-items: center;
-          flex-shrink: 0;
-          border-radius: 50%;
-          background: #eee9dc;
-          font-size: 14px;
-        }
-
-        .coming-soon-panel strong {
-          display: block;
-          color: #685f4e;
-          font-size: 11px;
-        }
-
-        .coming-soon-panel span {
-          display: block;
-          margin-top: 2px;
-          color: #918873;
-          font-size: 9px;
-          line-height: 1.4;
-        }
 
         /* PROGRESS */
 
