@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { AppNavbar } from "../../components/ui";
@@ -22,7 +23,7 @@ type User = {
   id: string;
 };
 
-type FamilyChallengeAttempt = {
+type ChallengeAttempt = {
   id: string;
   challenge_id: string;
   questions_answered: number;
@@ -32,31 +33,15 @@ type FamilyChallengeAttempt = {
   passed: boolean | null;
 };
 
-/*
- * ---------------------------------------------------------
- * CHALLENGES THAT ARE NOT PLAYABLE YET
- * ---------------------------------------------------------
- *
- * These challenges are visible in the Family Challenge Arena,
- * but their question banks are still being prepared.
- */
+export default function ChallengesPage() {
+  const router = useRouter();
 
-const COMING_SOON_CHALLENGE_TITLES = new Set([
-  "Women of the Sahaba",
-  "The Ten Promised Paradise",
-  "Companions of Badr",
-  "Ansar vs Muhajirun",
-  "Leaders Among the Sahaba",
-  "The Young Sahaba",
-]);
-
-export default function FamilyChallengesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [attempts, setAttempts] = useState<
-    Record<string, FamilyChallengeAttempt>
+    Record<string, ChallengeAttempt>
   >({});
-  const [isFamily, setIsFamily] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [startingChallenge, setStartingChallenge] = useState<string | null>(
@@ -66,7 +51,7 @@ export default function FamilyChallengesPage() {
 
   useEffect(() => {
     loadChallenges();
-  }, []);
+  }, [router]);
 
   async function loadChallenges() {
     setLoading(true);
@@ -89,11 +74,13 @@ export default function FamilyChallengesPage() {
 
       /*
        * ---------------------------------------------------------
-       * VERIFY FAMILY ACCOUNT + ACTIVE FAMILY SUBSCRIPTION
+       * FAMILY ACCOUNT ROUTE PROTECTION
        * ---------------------------------------------------------
+       *
+       * Family users must use the Family Challenge Arena.
+       * Redirect them before loading any Individual challenge data.
        */
-
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("account_type")
         .eq("id", currentUser.id)
@@ -103,22 +90,30 @@ export default function FamilyChallengesPage() {
         throw profileError;
       }
 
-      if (profileData?.account_type !== "family") {
-        window.location.href = "/dashboard";
+      if (profile?.account_type === "family") {
+        router.replace("/family-challenges");
         return;
       }
+
+      /*
+       * ---------------------------------------------------------
+       * CHECK PREMIUM SUBSCRIPTION
+       * ---------------------------------------------------------
+       */
 
       const { data: subscriptionData, error: subscriptionError } =
         await supabase
           .from("subscriptions")
-          .select(`
-            id,
-            status,
-            current_period_end,
-            subscription_plans (
-              plan_type
-            )
-          `)
+          .select(
+            `
+              id,
+              status,
+              current_period_end,
+              subscription_plans (
+                plan_type
+              )
+            `
+          )
           .eq("user_id", currentUser.id)
           .eq("status", "active")
           .order("current_period_end", { ascending: false })
@@ -126,24 +121,30 @@ export default function FamilyChallengesPage() {
           .maybeSingle();
 
       if (subscriptionError) {
-        throw subscriptionError;
+        console.error(
+          "Failed to load subscription:",
+          subscriptionError
+        );
       }
 
-      const planData = Array.isArray(subscriptionData?.subscription_plans)
-        ? subscriptionData?.subscription_plans[0]
-        : subscriptionData?.subscription_plans;
+      let premium = false;
 
-      const hasActiveFamilySubscription =
-        planData?.plan_type === "family" &&
-        !!subscriptionData?.current_period_end &&
-        new Date(subscriptionData.current_period_end).getTime() > Date.now();
+      if (subscriptionData) {
+        const planData = Array.isArray(
+          subscriptionData.subscription_plans
+        )
+          ? subscriptionData.subscription_plans[0]
+          : subscriptionData.subscription_plans;
 
-      if (!hasActiveFamilySubscription) {
-        window.location.href = "/pricing";
-        return;
+        const planType = planData?.plan_type;
+
+        premium =
+          planType === "plus" ||
+          planType === "family" ||
+          planType === "school";
       }
 
-      setIsFamily(true);
+      setIsPremium(premium);
 
       /*
        * ---------------------------------------------------------
@@ -154,7 +155,7 @@ export default function FamilyChallengesPage() {
        */
 
       const { data: attemptData, error: attemptError } = await supabase
-        .from("family_challenge_attempts")
+        .from("challenge_attempts")
         .select(
           `
             id,
@@ -172,7 +173,7 @@ export default function FamilyChallengesPage() {
         console.error("Failed to load attempts:", attemptError);
       }
 
-      const attemptMap: Record<string, FamilyChallengeAttempt> = {};
+      const attemptMap: Record<string, ChallengeAttempt> = {};
 
       (attemptData || []).forEach((attempt) => {
         if (!attemptMap[attempt.challenge_id]) {
@@ -212,7 +213,15 @@ export default function FamilyChallengesPage() {
         throw challengeError;
       }
 
-      setChallenges(challengeData || []);
+      // Hide Seven-Day Quest on the frontend only. Its database record
+      // and any existing attempts remain untouched.
+      const visibleChallenges = (challengeData || []).filter((challenge) => {
+        const normalizedTitle = challenge.title.trim().toLowerCase();
+        return normalizedTitle !== "7-day quest" &&
+          normalizedTitle !== "7 day quest";
+      });
+
+      setChallenges(visibleChallenges);
     } catch (error) {
       console.error("Error loading challenges:", error);
 
@@ -249,15 +258,11 @@ export default function FamilyChallengesPage() {
    * ---------------------------------------------------------
    */
 
-  function isComingSoonChallenge(challenge: Challenge) {
-    return COMING_SOON_CHALLENGE_TITLES.has(challenge.title);
-  }
-
-  function getFamilyChallengeAttempt(challengeId: string) {
+  function getChallengeAttempt(challengeId: string) {
     return attempts[challengeId];
   }
 
-  function getProgressPercentage(attempt: FamilyChallengeAttempt) {
+  function getProgressPercentage(attempt: ChallengeAttempt) {
     const challenge = challenges.find(
       (item) => item.id === attempt.challenge_id
     );
@@ -285,7 +290,7 @@ export default function FamilyChallengesPage() {
    */
 
   function getPassedStatus(
-    attempt: FamilyChallengeAttempt,
+    attempt: ChallengeAttempt,
     challenge: Challenge
   ) {
     if (typeof attempt.passed === "boolean") {
@@ -327,20 +332,12 @@ export default function FamilyChallengesPage() {
 
   /*
    * ---------------------------------------------------------
-   * START FAMILY CHALLENGE
+   * START CHALLENGE
    * ---------------------------------------------------------
    */
 
   async function handleStartChallenge(challenge: Challenge) {
-    /*
-     * Coming Soon challenges cannot be started.
-     */
-
-    if (isComingSoonChallenge(challenge)) {
-      return;
-    }
-
-    if (!user || !isFamily) {
+    if (!user) {
       window.location.href = "/login";
       return;
     }
@@ -362,23 +359,43 @@ export default function FamilyChallengesPage() {
 
     try {
       /*
+       * Premium challenge protection
+       */
+
+      if (challenge.is_premium && !isPremium) {
+        window.location.href = "/pricing";
+        return;
+      }
+
+      /*
        * Start challenge using Supabase RPC
        */
 
-      const { data, error } = await supabase.rpc("start_family_challenge", {
+      const { data, error } = await supabase.rpc("start_challenge", {
         p_challenge_id: challenge.id,
       });
 
       if (error) {
         console.error("Failed to start challenge:", error);
 
+        if (
+          error.message
+            ?.toLowerCase()
+            .includes("premium subscription required")
+        ) {
+          window.location.href = "/pricing";
+          return;
+        }
+
         throw error;
       }
 
-      if (!data?.attempt_id) {
+      if (!data?.success) {
         setErrorMessage(
-          "We couldn't start this Family Challenge. Please try again."
+          data?.message ||
+            "We couldn't start this challenge. Please try again."
         );
+
         return;
       }
 
@@ -412,8 +429,13 @@ export default function FamilyChallengesPage() {
        * send the player to their saved result.
        */
 
-      window.location.href =
-        `/family-challenges/${challenge.id}?attempt=${data.attempt_id}`;
+      if (data.status === "completed") {
+        window.location.href =
+          `/challenges/${challenge.id}/result?attempt=${data.attempt_id}`;
+      } else {
+        window.location.href =
+          `/challenges/${challenge.id}?attempt=${data.attempt_id}`;
+      }
     } catch (error) {
       console.error("Challenge start error:", error);
 
@@ -427,7 +449,7 @@ export default function FamilyChallengesPage() {
 
   /*
    * ---------------------------------------------------------
-   * VIEW SAVED FAMILY RESULT
+   * VIEW SAVED RESULT
    * ---------------------------------------------------------
    */
 
@@ -436,17 +458,17 @@ export default function FamilyChallengesPage() {
     attemptId: string
   ) {
     window.location.href =
-      `/family-challenges/${challengeId}/result?attempt=${attemptId}`;
+      `/challenges/${challengeId}/result?attempt=${attemptId}`;
   }
 
   const completedCount = challenges.filter(
     (challenge) =>
-      getFamilyChallengeAttempt(challenge.id)?.status === "completed"
+      getChallengeAttempt(challenge.id)?.status === "completed"
   ).length;
 
   const inProgressCount = challenges.filter(
     (challenge) =>
-      getFamilyChallengeAttempt(challenge.id)?.status === "in_progress"
+      getChallengeAttempt(challenge.id)?.status === "in_progress"
   ).length;
 
   const timedCount = challenges.filter(
@@ -475,13 +497,13 @@ export default function FamilyChallengesPage() {
           <div className="hero-content">
             <div className="sq-badge">
               <span>🏆</span>
-              Family Challenge Arena
+              Challenge Arena
             </div>
 
             <h1>
-              Challenge your Family knowledge.
+              Test your knowledge.
               <br />
-              <span>Learn together. Grow together.</span>
+              <span>Push yourself further.</span>
             </h1>
 
             <p>
@@ -495,7 +517,7 @@ export default function FamilyChallengesPage() {
                 onClick={scrollToChallenges}
                 className="primary-btn"
               >
-                Explore Family Challenges
+                Explore Challenges
                 <span>→</span>
               </button>
             </div>
@@ -509,8 +531,8 @@ export default function FamilyChallengesPage() {
               <div className="trophy-icon">🏆</div>
 
               <div>
-                <strong>Family Challenge Mode</strong>
-                <span>Learn. Play. Grow together.</span>
+                <strong>Challenge Mode</strong>
+                <span>Learn. Compete. Improve.</span>
               </div>
             </div>
 
@@ -528,7 +550,7 @@ export default function FamilyChallengesPage() {
 
               <div>
                 <strong>Accuracy</strong>
-                <small>Learn together</small>
+                <small>Know your deen</small>
               </div>
             </div>
           </div>
@@ -541,7 +563,7 @@ export default function FamilyChallengesPage() {
             <div className="stat-icon">🏆</div>
 
             <div>
-              <span>Family Challenges</span>
+              <span>Active Challenges</span>
               <strong>{challenges.length}</strong>
             </div>
           </div>
@@ -574,6 +596,31 @@ export default function FamilyChallengesPage() {
           </div>
         </section>
 
+        {/* PREMIUM NOTICE */}
+
+        {!isPremium && (
+          <section className="premium-notice">
+            <div className="premium-icon">👑</div>
+
+            <div className="premium-content">
+              <strong>
+                Unlock the full Challenge Arena
+              </strong>
+
+              <p>
+                Some challenges are reserved for Premium members.
+                Upgrade to access exclusive challenges and more ways
+                to test your knowledge.
+              </p>
+            </div>
+
+            <Link href="/pricing" className="premium-btn">
+              View Premium
+              <span>→</span>
+            </Link>
+          </section>
+        )}
+
         {/* ERROR */}
 
         {errorMessage && (
@@ -604,14 +651,14 @@ export default function FamilyChallengesPage() {
           <div className="section-heading">
             <div>
               <span className="section-kicker">
-                FAMILY CHALLENGE LIBRARY
+                CHALLENGE LIBRARY
               </span>
 
-              <h2>Choose your Family challenge</h2>
+              <h2>Choose your challenge</h2>
 
               <p>
                 Each challenge is designed to test a different part
-                of your Family Sahaba knowledge.
+                of your Sahaba knowledge.
               </p>
             </div>
 
@@ -630,7 +677,7 @@ export default function FamilyChallengesPage() {
               <strong>Loading challenges...</strong>
 
               <p>
-                Preparing your Family Challenge Arena.
+                Preparing your Challenge Arena.
               </p>
             </div>
           ) : challenges.length === 0 ? (
@@ -641,26 +688,23 @@ export default function FamilyChallengesPage() {
 
               <p>
                 New challenges are being prepared. Check back soon,
-                or continue your Family learning journey.
+                or continue learning through the main quiz.
               </p>
 
-              <Link href="/family-dashboard" className="primary-btn">
-                Back to Family Dashboard
+              <Link href="/quiz" className="primary-btn">
+                Play Main Quiz
                 <span>→</span>
               </Link>
             </div>
           ) : (
             <div className="challenge-grid">
               {challenges.map((challenge) => {
-                const attempt = getFamilyChallengeAttempt(
+                const attempt = getChallengeAttempt(
                   challenge.id
                 );
 
-                const isComingSoon = isComingSoonChallenge(
-                  challenge
-                );
-
-                const isLocked = false;
+                const isLocked =
+                  challenge.is_premium && !isPremium;
 
                 const isCompleted =
                   attempt?.status === "completed";
@@ -685,11 +729,7 @@ export default function FamilyChallengesPage() {
                   <article
                     key={challenge.id}
                     className={`challenge-card ${
-                      isComingSoon
-                        ? "challenge-coming-soon"
-                        : isLocked
-                          ? "challenge-locked"
-                          : ""
+                      isLocked ? "challenge-locked" : ""
                     } ${
                       isCompleted
                         ? passed
@@ -705,13 +745,9 @@ export default function FamilyChallengesPage() {
                         {challenge.icon || "🏆"}
                       </div>
 
-                      {isComingSoon ? (
-                        <span className="status-badge coming-soon-badge">
-                          ✨ Coming Soon
-                        </span>
-                      ) : isLocked ? (
+                      {isLocked ? (
                         <span className="status-badge premium-badge">
-                          👑 Family
+                          👑 Premium
                         </span>
                       ) : isInProgress ? (
                         <span className="status-badge progress-badge">
@@ -769,28 +805,9 @@ export default function FamilyChallengesPage() {
                       </div>
                     </div>
 
-                    {/* COMING SOON MESSAGE */}
-
-                    {isComingSoon && (
-                      <div className="coming-soon-panel">
-                        <div className="coming-soon-panel-icon">
-                          ✨
-                        </div>
-
-                        <div>
-                          <strong>Questions are being prepared</strong>
-
-                          <span>
-                            This premium challenge will be available
-                            soon.
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
                     {/* IN PROGRESS */}
 
-                    {isInProgress && attempt && !isComingSoon && (
+                    {isInProgress && attempt && (
                       <div className="progress-area">
                         <div className="progress-header">
                           <span>Your progress</span>
@@ -818,7 +835,7 @@ export default function FamilyChallengesPage() {
 
                     {/* COMPLETED RESULT */}
 
-                    {isCompleted && attempt && !isComingSoon && (
+                    {isCompleted && attempt && (
                       <div
                         className={`completed-panel ${
                           passed
@@ -855,7 +872,7 @@ export default function FamilyChallengesPage() {
 
                     {/* RESULT SUMMARY */}
 
-                    {isCompleted && attempt && !isComingSoon && (
+                    {isCompleted && attempt && (
                       <div className="result-summary">
                         <div>
                           <span>Score</span>
@@ -894,16 +911,7 @@ export default function FamilyChallengesPage() {
 
                     {/* ACTION */}
 
-                    {isComingSoon ? (
-                      <button
-                        type="button"
-                        className="challenge-action coming-soon-action"
-                        disabled
-                      >
-                        <span>✨</span>
-                        Coming Soon
-                      </button>
-                    ) : isCompleted && attempt ? (
+                    {isCompleted && attempt ? (
                       /*
                        * Completed challenges cannot be retaken.
                        * This button ONLY opens the saved result.
@@ -956,7 +964,7 @@ export default function FamilyChallengesPage() {
                         ) : isLocked ? (
                           <>
                             <span>🔒</span>
-                            Family access required
+                            Unlock with Premium
                           </>
                         ) : isInProgress ? (
                           <>
@@ -987,7 +995,7 @@ export default function FamilyChallengesPage() {
             </span>
 
             <h2>
-              Challenge your family in three steps
+              Challenge yourself in three steps
             </h2>
 
             <p>
@@ -1042,24 +1050,24 @@ export default function FamilyChallengesPage() {
         <section className="bottom-cta">
           <div>
             <span className="cta-small">
-              FAMILY JOURNEY
+              KEEP LEARNING
             </span>
 
             <h2>
-              Ready for your next Family Quest?
+              Want to strengthen your knowledge first?
             </h2>
 
             <p>
               Play the main quiz and build your foundation before
-              taking on the Family Challenge Arena.
+              taking on the Challenge Arena.
             </p>
           </div>
 
           <Link
-            href="/family-dashboard"
+            href="/quiz"
             className="cta-button"
           >
-            Back to Family Dashboard
+            Play Main Quiz
             <span>→</span>
           </Link>
         </section>
@@ -1070,7 +1078,7 @@ export default function FamilyChallengesPage() {
           <span>Sahaba Quest</span>
           <span>•</span>
           <span>
-            Learn. Remember. Grow together.
+            Learn. Remember. Compete.
           </span>
         </footer>
       </div>
