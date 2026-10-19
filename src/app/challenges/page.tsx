@@ -33,24 +33,6 @@ type ChallengeAttempt = {
   passed: boolean | null;
 };
 
-/*
- * ---------------------------------------------------------
- * PREMIUM CHALLENGES THAT ARE NOT PLAYABLE YET
- * ---------------------------------------------------------
- *
- * These challenges are visible in the Challenge Arena,
- * but their question banks are still being prepared.
- */
-
-const COMING_SOON_CHALLENGE_TITLES = new Set([
-  "Women of the Sahaba",
-  "The Ten Promised Paradise",
-  "Companions of Badr",
-  "Ansar vs Muhajirun",
-  "Leaders Among the Sahaba",
-  "The Young Sahaba",
-]);
-
 export default function ChallengesPage() {
   const router = useRouter();
 
@@ -231,7 +213,15 @@ export default function ChallengesPage() {
         throw challengeError;
       }
 
-      setChallenges(challengeData || []);
+      // Hide Seven-Day Quest on the frontend only. Its database record
+      // and any existing attempts remain untouched.
+      const visibleChallenges = (challengeData || []).filter((challenge) => {
+        const normalizedTitle = challenge.title.trim().toLowerCase();
+        return normalizedTitle !== "7-day quest" &&
+          normalizedTitle !== "7 day quest";
+      });
+
+      setChallenges(visibleChallenges);
     } catch (error) {
       console.error("Error loading challenges:", error);
 
@@ -267,10 +257,6 @@ export default function ChallengesPage() {
    * HELPER FUNCTIONS
    * ---------------------------------------------------------
    */
-
-  function isComingSoonChallenge(challenge: Challenge) {
-    return COMING_SOON_CHALLENGE_TITLES.has(challenge.title);
-  }
 
   function getChallengeAttempt(challengeId: string) {
     return attempts[challengeId];
@@ -351,14 +337,6 @@ export default function ChallengesPage() {
    */
 
   async function handleStartChallenge(challenge: Challenge) {
-    /*
-     * Coming Soon challenges cannot be started.
-     */
-
-    if (isComingSoonChallenge(challenge)) {
-      return;
-    }
-
     if (!user) {
       window.location.href = "/login";
       return;
@@ -725,14 +703,8 @@ export default function ChallengesPage() {
                   challenge.id
                 );
 
-                const isComingSoon = isComingSoonChallenge(
-                  challenge
-                );
-
                 const isLocked =
-                  challenge.is_premium &&
-                  !isPremium &&
-                  !isComingSoon;
+                  challenge.is_premium && !isPremium;
 
                 const isCompleted =
                   attempt?.status === "completed";
@@ -757,11 +729,7 @@ export default function ChallengesPage() {
                   <article
                     key={challenge.id}
                     className={`challenge-card ${
-                      isComingSoon
-                        ? "challenge-coming-soon"
-                        : isLocked
-                          ? "challenge-locked"
-                          : ""
+                      isLocked ? "challenge-locked" : ""
                     } ${
                       isCompleted
                         ? passed
@@ -777,11 +745,7 @@ export default function ChallengesPage() {
                         {challenge.icon || "🏆"}
                       </div>
 
-                      {isComingSoon ? (
-                        <span className="status-badge coming-soon-badge">
-                          ✨ Coming Soon
-                        </span>
-                      ) : isLocked ? (
+                      {isLocked ? (
                         <span className="status-badge premium-badge">
                           👑 Premium
                         </span>
@@ -841,28 +805,9 @@ export default function ChallengesPage() {
                       </div>
                     </div>
 
-                    {/* COMING SOON MESSAGE */}
-
-                    {isComingSoon && (
-                      <div className="coming-soon-panel">
-                        <div className="coming-soon-panel-icon">
-                          ✨
-                        </div>
-
-                        <div>
-                          <strong>Questions are being prepared</strong>
-
-                          <span>
-                            This premium challenge will be available
-                            soon.
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
                     {/* IN PROGRESS */}
 
-                    {isInProgress && attempt && !isComingSoon && (
+                    {isInProgress && attempt && (
                       <div className="progress-area">
                         <div className="progress-header">
                           <span>Your progress</span>
@@ -890,7 +835,7 @@ export default function ChallengesPage() {
 
                     {/* COMPLETED RESULT */}
 
-                    {isCompleted && attempt && !isComingSoon && (
+                    {isCompleted && attempt && (
                       <div
                         className={`completed-panel ${
                           passed
@@ -927,7 +872,7 @@ export default function ChallengesPage() {
 
                     {/* RESULT SUMMARY */}
 
-                    {isCompleted && attempt && !isComingSoon && (
+                    {isCompleted && attempt && (
                       <div className="result-summary">
                         <div>
                           <span>Score</span>
@@ -966,16 +911,7 @@ export default function ChallengesPage() {
 
                     {/* ACTION */}
 
-                    {isComingSoon ? (
-                      <button
-                        type="button"
-                        className="challenge-action coming-soon-action"
-                        disabled
-                      >
-                        <span>✨</span>
-                        Coming Soon
-                      </button>
-                    ) : isCompleted && attempt ? (
+                    {isCompleted && attempt ? (
                       /*
                        * Completed challenges cannot be retaken.
                        * This button ONLY opens the saved result.
