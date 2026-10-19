@@ -113,8 +113,8 @@ export default function FamilyMemberChallengesPage() {
       // A challenge is OPEN only when it has at least one linked
       // published question.
       //
-      // A challenge with zero published linked questions becomes
-      // COMING SOON and cannot be opened.
+      // Challenges without published linked questions are omitted from
+      // this page so members cannot start an empty challenge.
       // ------------------------------------------------------------
 
       const availableQuestionCounts: Record<string, number> = {};
@@ -160,6 +160,21 @@ export default function FamilyMemberChallengesPage() {
             availableQuestionCounts[challenge.id] || 0,
         }));
 
+      // Show only challenges with at least one published linked question.
+      // Hide 7-Day Quest from this page without changing its database record.
+      const visibleChallenges = challengesWithAvailability.filter((challenge) => {
+        const normalizedTitle = challenge.title
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, " ");
+
+        const isHiddenQuest =
+          normalizedTitle === "7-day quest" ||
+          normalizedTitle === "7 day quest";
+
+        return !isHiddenQuest && challenge.available_question_count > 0;
+      });
+
       // ------------------------------------------------------------
       // LOAD MEMBER ATTEMPTS
       // ------------------------------------------------------------
@@ -179,7 +194,7 @@ export default function FamilyMemberChallengesPage() {
         }
       }
 
-      setChallenges(challengesWithAvailability);
+      setChallenges(visibleChallenges);
       setAttempts(attemptMap);
     } catch (err) {
       console.error("Family Member Challenge library error:", err);
@@ -333,14 +348,9 @@ export default function FamilyMemberChallengesPage() {
             {challenges.map((challenge) => {
               const attempt = attempts[challenge.id];
 
-              const isComingSoon =
-                challenge.available_question_count <= 0;
+              const isInProgress = attempt?.status === "in_progress";
 
-              const isInProgress =
-                !isComingSoon && attempt?.status === "in_progress";
-
-              const isCompleted =
-                !isComingSoon && attempt?.status === "completed";
+              const isCompleted = attempt?.status === "completed";
 
               const percent =
                 attempt && isInProgress
@@ -350,28 +360,14 @@ export default function FamilyMemberChallengesPage() {
               return (
                 <article
                   key={challenge.id}
-                  className={`bg-white rounded-3xl border shadow-sm p-6 flex flex-col ${
-                    isComingSoon
-                      ? "border-slate-200 opacity-90"
-                      : "border-slate-200"
-                  }`}
+                  className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 flex flex-col"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${
-                        isComingSoon
-                          ? "bg-slate-100"
-                          : "bg-emerald-50"
-                      }`}
-                    >
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-3xl">
                       {challenge.icon || "🏆"}
                     </div>
 
-                    {isComingSoon ? (
-                      <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-slate-100 text-slate-500">
-                        COMING SOON
-                      </span>
-                    ) : isCompleted ? (
+                    {isCompleted ? (
                       <span
                         className={`text-xs font-bold px-3 py-1.5 rounded-full ${
                           attempt?.passed
@@ -419,15 +415,6 @@ export default function FamilyMemberChallengesPage() {
                     </div>
                   </div>
 
-                  {isComingSoon && (
-                    <div className="mt-5 rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                      <p className="text-xs text-slate-500 text-center">
-                        Questions are currently being prepared for this
-                        challenge.
-                      </p>
-                    </div>
-                  )}
-
                   {isInProgress && attempt && (
                     <div className="mt-5">
                       <div className="flex justify-between text-xs font-semibold text-slate-500 mb-2">
@@ -450,26 +437,17 @@ export default function FamilyMemberChallengesPage() {
 
                   <button
                     type="button"
-                    disabled={
-                      isComingSoon ||
-                      startingId === challenge.id
-                    }
+                    disabled={startingId === challenge.id}
                     onClick={() => void startChallenge(challenge)}
-                    className={`mt-6 w-full rounded-2xl py-3.5 font-bold transition ${
-                      isComingSoon
-                        ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                        : "bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
-                    }`}
+                    className="mt-6 w-full rounded-2xl py-3.5 font-bold transition bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
                   >
-                    {isComingSoon
-                      ? "Coming Soon"
-                      : startingId === challenge.id
-                        ? "Opening..."
-                        : isInProgress
-                          ? "Resume Challenge →"
-                          : isCompleted
-                            ? "View Result →"
-                            : "Open Challenge →"}
+                    {startingId === challenge.id
+                      ? "Opening..."
+                      : isInProgress
+                        ? "Resume Challenge →"
+                        : isCompleted
+                          ? "View Result →"
+                          : "Open Challenge →"}
                   </button>
                 </article>
               );
