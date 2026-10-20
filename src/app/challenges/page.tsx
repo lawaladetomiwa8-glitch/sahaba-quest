@@ -1381,7 +1381,8 @@ export default function ChallengesPage() {
         }
 
         .premium-content {
-          flex: 1;
+          flex: 1 1 0%;
+          min-width: 0;
         }
 
         .premium-content strong {
@@ -2166,6 +2167,33 @@ export default function ChallengesPage() {
             padding-top: 15px;
           }
 
+          /* Keep the Premium notice text readable on narrow screens. */
+          .premium-notice {
+            display: grid;
+            grid-template-columns: 45px minmax(0, 1fr);
+            align-items: start;
+            column-gap: 12px;
+            row-gap: 14px;
+          }
+
+          .premium-content {
+            min-width: 0;
+            overflow-wrap: break-word;
+          }
+
+          .premium-content strong,
+          .premium-content p {
+            overflow-wrap: break-word;
+            word-break: normal;
+          }
+
+          .premium-btn {
+            grid-column: 1 / -1;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+          }
+
           .hero-card {
             min-height: auto;
             padding: 32px 25px;
@@ -2179,15 +2207,6 @@ export default function ChallengesPage() {
 
           .stats-grid {
             grid-template-columns: repeat(2, 1fr);
-          }
-
-          .premium-notice {
-            align-items: flex-start;
-            flex-wrap: wrap;
-          }
-
-          .premium-btn {
-            width: 100%;
           }
 
           .challenge-grid {
