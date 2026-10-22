@@ -160,8 +160,8 @@ export default function RootLayout({
           id="google-adsense"
           async
           strategy="beforeInteractive"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8407387696701319"
           crossOrigin="anonymous"
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
         />
       </head>
 
