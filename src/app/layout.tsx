@@ -1,5 +1,5 @@
-
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
 import { Analytics } from "@vercel/analytics/next";
@@ -13,10 +13,10 @@ const SITE_DESCRIPTION =
 const SITE_LOGO =
   "https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png";
 
+const ADSENSE_CLIENT_ID = "ca-pub-8407387696701319";
+
 /* =========================================================
    STRUCTURED DATA
-   Helps search engines understand Sahaba Quest,
-   its official website, organisation and logo.
 ========================================================= */
 
 const structuredData = {
@@ -155,6 +155,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          id="google-adsense"
+          async
+          strategy="beforeInteractive"
+          crossOrigin="anonymous"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
+        />
+      </head>
+
       <body>
         <script
           type="application/ld+json"
