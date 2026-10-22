@@ -95,8 +95,12 @@ export const metadata: Metadata = {
     "Islamic learning for madrasas",
   ],
 
-  applicationName: SITE_NAME,
+    applicationName: SITE_NAME,
   category: "education",
+
+  other: {
+    "google-adsense-account": "ca-pub-8407387696701319",
+  },
 
   alternates: {
     canonical: SITE_URL,
