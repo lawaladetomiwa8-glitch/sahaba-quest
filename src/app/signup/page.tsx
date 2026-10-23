@@ -411,12 +411,39 @@ export default function SignupPage() {
             href="/"
             className="success-logo"
             aria-label="Sahaba Quest home"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              alignSelf: "flex-start",
+              gap: "10px",
+              width: "fit-content",
+              maxWidth: "100%",
+              marginBottom: "22px",
+              color: "#075b55",
+              textDecoration: "none",
+              fontSize: "18px",
+              fontWeight: 800,
+              lineHeight: 1.2,
+            }}
           >
             <img
               src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
               alt=""
+              style={{
+                display: "block",
+                width: "42px",
+                height: "42px",
+                minWidth: "42px",
+                maxWidth: "42px",
+                flex: "0 0 42px",
+                objectFit: "contain",
+                borderRadius: "11px",
+                background: "#ffffff",
+              }}
             />
-            <span>Sahaba Quest</span>
+            <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>
+              Sahaba Quest
+            </span>
           </Link>
 
           <div className="success-card">
