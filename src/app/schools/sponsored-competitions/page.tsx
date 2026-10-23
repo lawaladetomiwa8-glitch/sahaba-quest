@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
-import { AppNavbar } from "../../components/ui";
+import { AppNavbar } from "../../../components/ui";
 
 type Competition = {
   id: string;
