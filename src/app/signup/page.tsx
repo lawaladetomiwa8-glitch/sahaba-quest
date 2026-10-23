@@ -414,8 +414,9 @@ export default function SignupPage() {
           >
             <img
               src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
-              alt="Sahaba Quest"
+              alt=""
             />
+            <span>Sahaba Quest</span>
           </Link>
 
           <div className="success-card">
@@ -637,30 +638,32 @@ export default function SignupPage() {
             max-width: 540px;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
           }
 
           .success-logo {
-            width: 54px;
-            height: 54px;
-            margin-bottom: 22px;
-            display: flex;
+            align-self: flex-start;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            border-radius: 16px;
-            background: white;
-            overflow: hidden;
+            gap: 10px;
+            max-width: 100%;
+            margin: 0 0 22px;
+            color: #075b55;
             text-decoration: none;
-            box-shadow:
-              0 10px 25px
-              rgba(8, 118, 109, 0.18);
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.4px;
           }
 
           .success-logo img {
-            width: 100%;
-            height: 100%;
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
             object-fit: contain;
             display: block;
+            border-radius: 11px;
+            background: white;
+            box-shadow: 0 5px 15px rgba(8, 118, 109, 0.12);
           }
 
           .success-card {
@@ -980,11 +983,14 @@ export default function SignupPage() {
 
         <div className="brand-content">
 
-          <div className="brand-logo">
-            <img
-              src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
-              alt="Sahaba Quest"
-            />
+          <div className="brand-lockup">
+            <div className="brand-logo">
+              <img
+                src="https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png"
+                alt=""
+              />
+            </div>
+            <span className="brand-name">Sahaba Quest</span>
           </div>
 
           <span className="brand-badge">
@@ -1504,29 +1510,45 @@ export default function SignupPage() {
           position: relative;
           z-index: 2;
           max-width: 500px;
+          width: 100%;
         }
 
-          .brand-logo {
-            width: 70px;
-            height: 70px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            border:
-              1px solid
-              rgba(255, 255, 255, 0.2);
-            overflow: hidden;
-            margin-bottom: 28px;
-          }
+        .brand-lockup {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          max-width: 100%;
+          margin-bottom: 28px;
+        }
 
-          .brand-logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-          }
+        .brand-logo {
+          width: 48px;
+          height: 48px;
+          flex: 0 0 48px;
+          border-radius: 13px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: white;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          overflow: hidden;
+        }
+
+        .brand-logo img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+        }
+
+        .brand-name {
+          color: #ffffff;
+          font-size: clamp(20px, 2vw, 25px);
+          line-height: 1.2;
+          font-weight: 800;
+          letter-spacing: -0.6px;
+          overflow-wrap: anywhere;
+        }
 
         .brand-badge,
         .sq-badge {
@@ -1999,6 +2021,22 @@ export default function SignupPage() {
 
         @media (max-width: 700px) {
 
+          .brand-lockup {
+            gap: 10px;
+            margin-bottom: 22px;
+          }
+
+          .brand-logo {
+            width: 42px;
+            height: 42px;
+            flex-basis: 42px;
+            border-radius: 11px;
+          }
+
+          .brand-name {
+            font-size: 21px;
+          }
+
           .brand-panel {
             min-height: auto;
             padding:
@@ -2049,6 +2087,10 @@ export default function SignupPage() {
         }
 
         @media (max-width: 420px) {
+
+          .brand-name {
+            font-size: 19px;
+          }
 
           .brand-panel {
             padding:
