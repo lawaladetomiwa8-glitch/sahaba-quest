@@ -158,13 +158,14 @@ export default function SchoolStudentLoginPage() {
               >
                 <Image
                   src={SAHABA_QUEST_LOGO}
-                  alt="Sahaba Quest"
-                  width={220}
-                  height={64}
+                  alt=""
+                  width={56}
+                  height={56}
                   priority
                   unoptimized
                   className="sq-student-logo-image"
                 />
+                <span className="sq-student-brand-name">Sahaba Quest</span>
               </Link>
             </div>
 
@@ -381,16 +382,30 @@ export default function SchoolStudentLoginPage() {
         .sq-student-brand-logo {
           display: inline-flex;
           align-items: center;
+          gap: 12px;
           max-width: 100%;
+          color: #0f766e;
           text-decoration: none;
         }
 
         .sq-student-logo-image {
           display: block;
-          width: min(220px, 100%);
-          height: auto;
+          width: 56px;
+          height: 56px;
+          flex: 0 0 56px;
+          border-radius: 14px;
           object-fit: contain;
-          object-position: left center;
+        }
+
+        .sq-student-brand-name {
+          display: block;
+          min-width: 0;
+          color: #0f766e;
+          font-size: clamp(21px, 4.8vw, 30px);
+          font-weight: 900;
+          line-height: 1.1;
+          letter-spacing: -0.8px;
+          overflow-wrap: anywhere;
         }
 
         .sq-student-brand-kicker {
@@ -714,7 +729,15 @@ export default function SchoolStudentLoginPage() {
           }
 
           .sq-student-mobile-logo .sq-student-logo-image {
-            width: min(190px, 70vw);
+            width: 48px;
+            height: 48px;
+            flex-basis: 48px;
+            border-radius: 12px;
+          }
+
+          .sq-student-brand-name {
+            font-size: clamp(21px, 6vw, 27px);
+            letter-spacing: -0.6px;
           }
         }
 
