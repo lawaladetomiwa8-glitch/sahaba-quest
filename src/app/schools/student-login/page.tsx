@@ -2,7 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+
+const SAHABA_QUEST_LOGO =
+  "https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png";
 
 export default function SchoolStudentLoginPage() {
   const router = useRouter();
@@ -147,8 +151,21 @@ export default function SchoolStudentLoginPage() {
         <section className="sq-student-login-panel">
           <div className="sq-student-login-card">
             <div className="sq-student-mobile-logo">
-              <Link href="/" className="sq-student-brand-logo">
-                Sahaba Quest
+              <Link
+                href="/"
+                className="sq-student-brand-logo"
+                aria-label="Sahaba Quest home"
+              >
+                <Image
+                  src={SAHABA_QUEST_LOGO}
+                  alt=""
+                  width={56}
+                  height={56}
+                  priority
+                  unoptimized
+                  className="sq-student-logo-image"
+                />
+                <span className="sq-student-brand-name">Sahaba Quest</span>
               </Link>
             </div>
 
@@ -363,11 +380,32 @@ export default function SchoolStudentLoginPage() {
         }
 
         .sq-student-brand-logo {
-          display: inline-block;
-          color: var(--white);
-          font-size: 25px;
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          max-width: 100%;
+          color: #0f766e;
+          text-decoration: none;
+        }
+
+        .sq-student-logo-image {
+          display: block;
+          width: 56px;
+          height: 56px;
+          flex: 0 0 56px;
+          border-radius: 14px;
+          object-fit: contain;
+        }
+
+        .sq-student-brand-name {
+          display: block;
+          min-width: 0;
+          color: #0f766e;
+          font-size: clamp(21px, 4.8vw, 30px);
           font-weight: 900;
-          letter-spacing: -0.6px;
+          line-height: 1.1;
+          letter-spacing: -0.8px;
+          overflow-wrap: anywhere;
         }
 
         .sq-student-brand-kicker {
@@ -686,8 +724,20 @@ export default function SchoolStudentLoginPage() {
           }
 
           .sq-student-mobile-logo .sq-student-brand-logo {
-            color: var(--primary);
-            font-size: 22px;
+            width: fit-content;
+            max-width: 100%;
+          }
+
+          .sq-student-mobile-logo .sq-student-logo-image {
+            width: 48px;
+            height: 48px;
+            flex-basis: 48px;
+            border-radius: 12px;
+          }
+
+          .sq-student-brand-name {
+            font-size: clamp(21px, 6vw, 27px);
+            letter-spacing: -0.6px;
           }
         }
 
@@ -706,17 +756,19 @@ export default function SchoolStudentLoginPage() {
           }
 
           .sq-student-login-panel {
-            padding: 28px 18px 24px;
+            padding: max(22px, env(safe-area-inset-top)) 18px
+              max(24px, env(safe-area-inset-bottom));
             align-items: flex-start;
           }
 
           .sq-student-login-card {
+            width: 100%;
             max-width: none;
-            padding-top: 8px;
+            padding-top: 0;
           }
 
           .sq-student-mobile-logo {
-            margin-bottom: 52px;
+            margin-bottom: clamp(28px, 7vh, 44px);
           }
 
           .sq-login-heading h2 {
@@ -733,7 +785,19 @@ export default function SchoolStudentLoginPage() {
           }
 
           .sq-student-login-input {
+            width: 100%;
+            min-width: 0;
             height: 52px;
+            font-size: 16px;
+          }
+
+          .sq-student-login-button {
+            min-height: 54px;
+            padding-inline: 14px;
+          }
+
+          .sq-student-login-note p {
+            overflow-wrap: anywhere;
           }
 
           .sq-student-login-divider {
