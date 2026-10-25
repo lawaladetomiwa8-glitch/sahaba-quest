@@ -158,12 +158,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <head>
         <Script
           id="google-adsense"
           async
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8407387696701319"
           crossOrigin="anonymous"
         />

@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 type AdminUser = {
   user_id: string;
@@ -18,6 +19,7 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+
   const [checking, setChecking] = useState(true);
   const [admin, setAdmin] = useState<AdminUser | null>(null);
 
@@ -27,9 +29,10 @@ export default function AdminLayout({
     async function verifyAdmin() {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (authError || !user) {
         router.replace("/login");
         return;
       }
@@ -81,7 +84,11 @@ export default function AdminLayout({
           }}
         >
           <div style={{ fontSize: 42, marginBottom: 16 }}>🔐</div>
-          <h2 style={{ margin: 0 }}>Verifying admin access...</h2>
+
+          <h2 style={{ margin: 0 }}>
+            Verifying admin access...
+          </h2>
+
           <p className="sq-subtitle">
             Please wait while we verify your permissions.
           </p>
@@ -91,8 +98,21 @@ export default function AdminLayout({
   }
 
   const navItems = [
-    { href: "/admin", label: "Dashboard", icon: "▦" },
-    { href: "/admin/competitions", label: "Competitions", icon: "🏆" },
+    {
+      href: "/admin",
+      label: "Dashboard",
+      icon: "▦",
+    },
+    {
+      href: "/admin/competitions",
+      label: "Competitions",
+      icon: "🏆",
+    },
+    {
+      href: "/admin/sahabah-articles",
+      label: "Sahabah Articles",
+      icon: "📚",
+    },
   ];
 
   return (
@@ -125,9 +145,15 @@ export default function AdminLayout({
         >
           <Link
             href="/admin"
-            style={{ textDecoration: "none", color: "inherit" }}
+            style={{
+              textDecoration: "none",
+              color: "inherit",
+            }}
           >
-            <div style={{ fontWeight: 900, fontSize: 20 }}>Sahaba Quest</div>
+            <div style={{ fontWeight: 900, fontSize: 20 }}>
+              Sahaba Quest
+            </div>
+
             <div
               style={{
                 marginTop: 2,
@@ -166,7 +192,10 @@ export default function AdminLayout({
             <button
               type="button"
               className="sq-button-secondary"
-              style={{ border: "none", cursor: "pointer" }}
+              style={{
+                border: "none",
+                cursor: "pointer",
+              }}
               onClick={async () => {
                 await supabase.auth.signOut();
                 router.replace("/login");
@@ -177,7 +206,8 @@ export default function AdminLayout({
           </div>
         </div>
 
-        <div
+        <nav
+          aria-label="Admin navigation"
           style={{
             maxWidth: 1200,
             margin: "0 auto",
@@ -197,9 +227,12 @@ export default function AdminLayout({
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 style={{
                   textDecoration: "none",
-                  color: active ? "var(--primary)" : "var(--muted)",
+                  color: active
+                    ? "var(--primary)"
+                    : "var(--muted)",
                   background: active
                     ? "var(--primary-light)"
                     : "transparent",
@@ -213,12 +246,15 @@ export default function AdminLayout({
                   whiteSpace: "nowrap",
                 }}
               >
-                <span style={{ marginRight: 6 }}>{item.icon}</span>
+                <span style={{ marginRight: 6 }}>
+                  {item.icon}
+                </span>
+
                 {item.label}
               </Link>
             );
           })}
-        </div>
+        </nav>
       </header>
 
       <div

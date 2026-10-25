@@ -2,342 +2,227 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { sahabahProfiles } from "@/data/sahabah-data";
+import { getPublishedSahabahArticles } from "@/lib/sahabah-articles";
 
-const SITE_URL = "https://sahabaquest.com.ng";
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Sahaba | Learn About the Companions | Sahaba Quest",
+  title: "Sahabah | Sahaba Quest",
   description:
-    "Explore concise, public knowledge profiles about the Sahaba and discover the people, history and lessons behind Sahaba Quest.",
+    "Explore the lives, stories, sacrifices, and legacies of the noble Companions of Prophet Muhammad ﷺ through Sahaba Quest.",
   alternates: {
-    canonical: `${SITE_URL}/sahaba`,
+    canonical: "https://sahabaquest.com.ng/sahaba",
+  },
+  openGraph: {
+    title: "Sahabah | Sahaba Quest",
+    description:
+      "Discover the lives and legacies of the noble Companions of Prophet Muhammad ﷺ.",
+    url: "https://sahabaquest.com.ng/sahaba",
+    siteName: "Sahaba Quest",
+    type: "website",
   },
 };
 
-const structuredData = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "CollectionPage",
-      "@id": `${SITE_URL}/sahaba#collection`,
-      url: `${SITE_URL}/sahaba`,
-      name: "Sahaba | Sahaba Quest",
-      description:
-        "Explore public knowledge profiles about the Companions of the Prophet Muhammad ﷺ.",
-      isPartOf: {
-        "@id": `${SITE_URL}/#website`,
-      },
+export default async function SahabahPage() {
+  let articles: Awaited<
+    ReturnType<typeof getPublishedSahabahArticles>
+  > = [];
+
+  try {
+    articles = await getPublishedSahabahArticles();
+  } catch (error) {
+    // Keep the existing static profiles available if the article
+    // database is temporarily unavailable.
+    console.error("Failed to load published Sahabah articles:", error);
+  }
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Sahabah | Sahaba Quest",
+    description:
+      "Explore the lives and legacies of the noble Companions of Prophet Muhammad ﷺ.",
+    url: "https://sahabaquest.com.ng/sahaba",
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Sahaba Quest",
+      url: "https://sahabaquest.com.ng",
     },
-    {
-      "@type": "BreadcrumbList",
+    mainEntity: {
+      "@type": "ItemList",
       itemListElement: [
-        {
+        ...sahabahProfiles.map((profile, index) => ({
           "@type": "ListItem",
-          position: 1,
-          name: "Home",
-          item: SITE_URL,
-        },
-        {
+          position: index + 1,
+          name: profile.name,
+          url: `https://sahabaquest.com.ng/sahaba/${profile.slug}`,
+        })),
+        ...articles.map((article, index) => ({
           "@type": "ListItem",
-          position: 2,
-          name: "Sahaba",
-          item: `${SITE_URL}/sahaba`,
-        },
+          position: sahabahProfiles.length + index + 1,
+          name: article.title,
+          url: `https://sahabaquest.com.ng/sahaba/${article.slug}`,
+        })),
       ],
     },
-  ],
-};
+  };
 
-export default function SahabaDirectoryPage() {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top left, rgba(204, 251, 241, 0.75), transparent 30%), var(--background)",
-      }}
-    >
-      {/* Navigation */}
-      <header className="sq-nav">
-        <Link href="/" className="sq-logo">
-          Sahaba Quest
-        </Link>
+    <main className="min-h-screen bg-white text-gray-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
+      />
 
-        <Link
-          href="/signup"
-          className="sq-button-primary"
-          style={{
-            minHeight: "42px",
-            padding: "0 16px",
-            fontSize: "13px",
-          }}
-        >
-          Create Account
-        </Link>
-      </header>
+      <section className="bg-teal-800 px-4 py-16 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-teal-200">
+            Learn from their lives
+          </p>
 
-      <section className="sq-page">
-        <div
-          className="sq-container"
-          style={{ maxWidth: "1120px" }}
-        >
-          {/* Breadcrumb */}
-          <nav
-            aria-label="Breadcrumb"
-            style={{
-              fontSize: "13px",
-              color: "var(--muted)",
-              marginBottom: "24px",
-            }}
-          >
-            <Link
-              href="/"
-              style={{
-                color: "var(--primary)",
-                fontWeight: 700,
-              }}
-            >
-              Home
-            </Link>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+            The Noble Sahabah
+          </h1>
 
-            <span aria-hidden="true"> / </span>
-            <span>Sahaba</span>
-          </nav>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-teal-50 sm:text-lg">
+            Discover the stories, character, sacrifices, and contributions
+            of the companions of Prophet Muhammad ﷺ. Explore their lives
+            and learn lessons that continue to guide the Ummah.
+          </p>
+        </div>
+      </section>
 
-          {/* Hero Section */}
-          <section
-            className="sq-card sahaba-hero"
-            style={{
-              padding: "44px",
-              background:
-                "linear-gradient(145deg, #115e59 0%, #0f766e 62%, #149e93 100%)",
-              color: "white",
-              border: "none",
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            <div
-              aria-hidden="true"
-              style={{
-                position: "absolute",
-                width: "300px",
-                height: "300px",
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.06)",
-                right: "-100px",
-                top: "-130px",
-              }}
-            />
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Explore the Companions
+          </h2>
 
-            <div
-              style={{
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 800,
-                  letterSpacing: "1.4px",
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.72)",
-                }}
+          <p className="mt-3 max-w-2xl leading-7 text-gray-600">
+            Read about the lives and legacies of the Sahabah through
+            our profiles and published articles.
+          </p>
+        </div>
+
+        {sahabahProfiles.length === 0 && articles.length === 0 ? (
+          <div className="rounded-xl border border-gray-200 p-8 text-center">
+            <p className="text-gray-600">
+              No Sahabah profiles or articles are available at the moment.
+              Please check back later.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {sahabahProfiles.map((profile) => (
+              <article
+                key={`profile-${profile.slug}`}
+                className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
-                Sahaba Quest Knowledge
-              </div>
+                <div className="flex flex-1 flex-col p-6">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-teal-700">
+                    Sahabah Profile
+                  </p>
 
-              <h1
-                style={{
-                  margin: "14px 0 14px",
-                  fontSize: "clamp(34px, 5vw, 54px)",
-                  lineHeight: 1.05,
-                  letterSpacing: "-1.5px",
-                  fontWeight: 900,
-                }}
-              >
-                Explore the Sahaba.
-              </h1>
+                  <h3 className="mt-3 text-xl font-bold leading-snug">
+                    {profile.name}
+                  </h3>
 
-              <p
-                style={{
-                  maxWidth: "700px",
-                  margin: 0,
-                  fontSize: "16px",
-                  lineHeight: 1.8,
-                  color: "rgba(255,255,255,0.88)",
-                }}
-              >
-                Start with these public knowledge profiles and
-                discover the people whose lives and history form
-                part of the learning experience behind Sahaba Quest.
-              </p>
-            </div>
-          </section>
+                  {profile.title && (
+                    <p className="mt-2 text-sm font-medium text-gray-500">
+                      {profile.title}
+                    </p>
+                  )}
 
-          {/* Sahaba Profiles */}
-          <section style={{ marginTop: "42px" }}>
-            <div className="sahaba-profile-grid">
-              {sahabahProfiles.map((profile) => (
-                <article
-                  key={profile.slug}
-                  className="sq-card"
-                  style={{
-                    padding: "28px",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      justifyContent: "space-between",
-                      gap: "16px",
-                    }}
-                  >
-                    <div>
-                      <span className="sq-badge">
-                        {profile.title}
-                      </span>
-
-                      <h2
-                        style={{
-                          margin: "16px 0 5px",
-                          fontSize: "24px",
-                          lineHeight: 1.2,
-                          fontWeight: 900,
-                        }}
-                      >
-                        {profile.name}
-                      </h2>
-
-                      <div
-                        lang="ar"
-                        dir="rtl"
-                        style={{
-                          color: "var(--muted)",
-                          fontSize: "15px",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {profile.arabicName}
-                      </div>
-                    </div>
-                  </div>
-
-                  <p
-                    style={{
-                      margin: "18px 0 0",
-                      color: "var(--muted)",
-                      fontSize: "14px",
-                      lineHeight: 1.75,
-                      flexGrow: 1,
-                    }}
-                  >
+                  <p className="mt-4 flex-1 text-sm leading-6 text-gray-600">
                     {profile.summary}
                   </p>
 
                   <Link
                     href={`/sahaba/${profile.slug}`}
-                    className="sq-button-secondary"
-                    style={{
-                      display: "inline-flex",
-                      marginTop: "22px",
-                      minHeight: "44px",
-                      alignItems: "center",
-                      alignSelf: "flex-start",
-                    }}
+                    className="mt-6 inline-flex items-center font-semibold text-teal-700 hover:text-teal-900"
                   >
-                    Explore Profile →
+                    Read profile
+                    <span className="ml-2" aria-hidden="true">
+                      →
+                    </span>
                   </Link>
-                </article>
-              ))}
-            </div>
-          </section>
+                </div>
+              </article>
+            ))}
 
-          {/* Call to Action */}
-          <section
-            className="sq-card sahaba-cta"
-            style={{
-              marginTop: "28px",
-              padding: "30px",
-              textAlign: "center",
-              background:
-                "linear-gradient(135deg, var(--primary-light), var(--white))",
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontSize: "24px",
-                fontWeight: 900,
-              }}
-            >
-              Learn through play.
-            </h2>
+            {articles.map((article) => (
+              <article
+                key={`article-${article.id}`}
+                className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+              >
+                {article.cover_image_url && (
+                  <div className="aspect-[16/9] w-full overflow-hidden bg-gray-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={article.cover_image_url}
+                      alt={article.cover_image_alt || article.title}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
 
-            <p
-              className="sq-subtitle"
-              style={{
-                maxWidth: "650px",
-                margin: "10px auto 0",
-              }}
-            >
-              These public pages are the beginning of a growing
-              Sahaba Quest knowledge library. Create an account
-              to continue into quizzes, quests, challenges and
-              progress tracking.
-            </p>
+                <div className="flex flex-1 flex-col p-6">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-teal-700">
+                    {article.category || "Sahabah Article"}
+                  </p>
 
-            <Link
-              href="/signup"
-              className="sq-button-primary"
-              style={{
-                display: "inline-flex",
-                marginTop: "18px",
-              }}
-            >
-              Start Your Journey →
-            </Link>
-          </section>
-        </div>
+                  <h3 className="mt-3 text-xl font-bold leading-snug">
+                    {article.title}
+                  </h3>
+
+                  {article.subtitle && (
+                    <p className="mt-2 text-sm font-medium text-gray-500">
+                      {article.subtitle}
+                    </p>
+                  )}
+
+                  {article.companion_name && (
+                    <p className="mt-3 text-sm text-gray-600">
+                      <span className="font-semibold">Companion:</span>{" "}
+                      {article.companion_name}
+                    </p>
+                  )}
+
+                  <p className="mt-4 flex-1 text-sm leading-6 text-gray-600">
+                    {article.summary}
+                  </p>
+
+                  {article.tags.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {article.tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-800"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <Link
+                    href={`/sahaba/${article.slug}`}
+                    className="mt-6 inline-flex items-center font-semibold text-teal-700 hover:text-teal-900"
+                  >
+                    Read article
+                    <span className="ml-2" aria-hidden="true">
+                      →
+                    </span>
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
-
-      {/* Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replace(
-            /</g,
-            "\\u003c"
-          ),
-        }}
-      />
-
-      {/* Responsive Styles */}
-      <style>{`
-        .sahaba-profile-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 18px;
-        }
-
-        @media (max-width: 700px) {
-          .sahaba-profile-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .sahaba-hero {
-            padding: 28px 22px !important;
-          }
-
-          .sahaba-cta {
-            padding: 24px 20px !important;
-          }
-        }
-      `}</style>
     </main>
   );
 }

@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -5,12 +6,22 @@ import {
   getSahabahProfile,
   sahabahProfiles,
 } from "@/data/sahabah-data";
+import {
+  getPublishedSahabahArticle,
+} from "@/lib/sahabah-articles";
+import ArticleMarkdown from "@/components/ArticleMarkdown";
 
 const SITE_URL = "https://sahabaquest.com.ng";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+type PublishedArticle = NonNullable<
+  Awaited<ReturnType<typeof getPublishedSahabahArticle>>
+>;
 
 export function generateStaticParams() {
   return sahabahProfiles.map((profile) => ({
@@ -24,17 +35,74 @@ export async function generateMetadata({
   const { slug } = await params;
   const profile = getSahabahProfile(slug);
 
-  if (!profile) {
+  if (profile) {
+    const profileUrl = `${SITE_URL}/sahaba/${profile.slug}`;
+
     return {
-      title: "Sahaba | Sahaba Quest",
+      title: `${profile.name} | Sahaba Quest`,
+      description: profile.summary,
+      alternates: {
+        canonical: profileUrl,
+      },
+      openGraph: {
+        title: `${profile.name} | Sahaba Quest`,
+        description: profile.summary,
+        url: profileUrl,
+        siteName: "Sahaba Quest",
+        type: "article",
+      },
     };
   }
 
+  let article: PublishedArticle | null = null;
+
+  try {
+    article = await getPublishedSahabahArticle(slug);
+  } catch (error) {
+    console.error("Failed to load Sahabah article metadata:", error);
+  }
+
+  if (!article) {
+    return {
+      title: "Sahabah Article | Sahaba Quest",
+      robots: {
+        index: false,
+        follow: true,
+      },
+    };
+  }
+
+  const title = article.seo_title?.trim() || article.title;
+  const description =
+    article.seo_description?.trim() || article.summary;
+  const articleUrl = `${SITE_URL}/sahaba/${article.slug}`;
+
   return {
-    title: `${profile.name} | Sahaba Quest`,
-    description: profile.summary,
+    title: `${title} | Sahaba Quest`,
+    description,
     alternates: {
-      canonical: `${SITE_URL}/sahaba/${profile.slug}`,
+      canonical: articleUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: articleUrl,
+      siteName: "Sahaba Quest",
+      type: "article",
+      ...(article.cover_image_url
+        ? {
+            images: [
+              {
+                url: article.cover_image_url,
+                alt: article.cover_image_alt || article.title,
+              },
+            ],
+          }
+        : {}),
+    },
+    robots: {
+      index: true,
+      follow: true,
     },
   };
 }
@@ -45,24 +113,317 @@ export default async function SahabaProfilePage({
   const { slug } = await params;
   const profile = getSahabahProfile(slug);
 
-  if (!profile) {
+  // Keep all four original static profiles and their existing design.
+  if (profile) {
+    const profileUrl = `${SITE_URL}/sahaba/${profile.slug}`;
+
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "@id": `${profileUrl}#webpage`,
+          url: profileUrl,
+          name: `${profile.name} | Sahaba Quest`,
+          description: profile.summary,
+          isPartOf: {
+            "@id": `${SITE_URL}/#website`,
+          },
+        },
+        {
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Home",
+              item: SITE_URL,
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Sahaba",
+              item: `${SITE_URL}/sahaba`,
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: profile.name,
+              item: profileUrl,
+            },
+          ],
+        },
+      ],
+    };
+
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          background:
+            "radial-gradient(circle at top left, rgba(204, 251, 241, 0.75), transparent 30%), var(--background)",
+        }}
+      >
+        <header className="sq-nav">
+          <Link href="/" className="sq-logo">
+            Sahaba Quest
+          </Link>
+
+          <Link
+            href="/signup"
+            className="sq-button-primary"
+            style={{
+              minHeight: "42px",
+              padding: "0 16px",
+              fontSize: "13px",
+            }}
+          >
+            Create Account
+          </Link>
+        </header>
+
+        <section className="sq-page">
+          <div
+            className="sq-container"
+            style={{ maxWidth: "900px" }}
+          >
+            <nav
+              aria-label="Breadcrumb"
+              style={{
+                fontSize: "13px",
+                color: "var(--muted)",
+                marginBottom: "24px",
+              }}
+            >
+              <Link
+                href="/"
+                style={{
+                  color: "var(--primary)",
+                  fontWeight: 700,
+                }}
+              >
+                Home
+              </Link>
+
+              <span aria-hidden="true"> / </span>
+
+              <Link
+                href="/sahaba"
+                style={{
+                  color: "var(--primary)",
+                  fontWeight: 700,
+                }}
+              >
+                Sahaba
+              </Link>
+
+              <span aria-hidden="true"> / </span>
+
+              <span>{profile.name}</span>
+            </nav>
+
+            <article
+              className="sq-card"
+              style={{
+                padding: "42px",
+              }}
+            >
+              <span className="sq-badge">
+                {profile.category}
+              </span>
+
+              <h1
+                style={{
+                  margin: "18px 0 6px",
+                  fontSize: "clamp(34px, 6vw, 56px)",
+                  lineHeight: 1.05,
+                  letterSpacing: "-1.5px",
+                  fontWeight: 900,
+                }}
+              >
+                {profile.name}
+              </h1>
+
+              <div
+                lang="ar"
+                dir="rtl"
+                style={{
+                  color: "var(--muted)",
+                  fontSize: "18px",
+                  fontWeight: 700,
+                }}
+              >
+                {profile.arabicName}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "30px",
+                  padding: "24px",
+                  borderRadius: "18px",
+                  background: "var(--primary-light)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: "20px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Overview
+                </h2>
+
+                <p
+                  style={{
+                    margin: "10px 0 0",
+                    color: "var(--muted)",
+                    fontSize: "15px",
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {profile.summary}
+                </p>
+              </div>
+
+              <section style={{ marginTop: "32px" }}>
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: "22px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Key points
+                </h2>
+
+                <ul
+                  style={{
+                    margin: "16px 0 0",
+                    paddingLeft: "22px",
+                    color: "var(--muted)",
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {profile.highlights.map((highlight) => (
+                    <li
+                      key={highlight}
+                      style={{
+                        marginBottom: "10px",
+                      }}
+                    >
+                      {highlight}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section
+                style={{
+                  marginTop: "32px",
+                  paddingTop: "24px",
+                  borderTop: "1px solid var(--border)",
+                }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    color: "var(--muted-light)",
+                    fontSize: "12px",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Starter profile source: {profile.sourceLabel}.
+                  These pages are intentionally concise and will be
+                  expanded as the Sahaba Quest knowledge library grows.
+                </p>
+              </section>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                  marginTop: "28px",
+                }}
+              >
+                <Link
+                  href="/sahaba"
+                  className="sq-button-secondary"
+                >
+                  ← All Sahaba
+                </Link>
+
+                <Link
+                  href="/signup"
+                  className="sq-button-primary"
+                >
+                  Test Your Knowledge →
+                </Link>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData).replace(
+              /</g,
+              "\\u003c",
+            ),
+          }}
+        />
+      </main>
+    );
+  }
+
+  // For any other slug, load the matching published database article.
+  let article: PublishedArticle | null = null;
+
+  try {
+    article = await getPublishedSahabahArticle(slug);
+  } catch (error) {
+    console.error("Failed to load Sahabah article:", error);
+  }
+
+  if (!article) {
     notFound();
   }
 
-  const profileUrl = `${SITE_URL}/sahaba/${profile.slug}`;
+  const articleUrl = `${SITE_URL}/sahaba/${article.slug}`;
 
-  const structuredData = {
+  const articleStructuredData = {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "WebPage",
-        "@id": `${profileUrl}#webpage`,
-        url: profileUrl,
-        name: `${profile.name} | Sahaba Quest`,
-        description: profile.summary,
-        isPartOf: {
-          "@id": `${SITE_URL}/#website`,
+        "@type": "Article",
+        headline: article.title,
+        description: article.summary,
+        url: articleUrl,
+        mainEntityOfPage: articleUrl,
+        datePublished: article.published_at || undefined,
+        dateModified: article.updated_at || undefined,
+        author: {
+          "@type": "Organization",
+          name: "Sahaba Quest",
         },
+        publisher: {
+          "@type": "Organization",
+          name: "Sahaba Quest",
+          url: SITE_URL,
+        },
+        ...(article.cover_image_url
+          ? {
+              image: [article.cover_image_url],
+            }
+          : {}),
+        ...(article.tags.length
+          ? {
+              keywords: article.tags.join(", "),
+            }
+          : {}),
       },
       {
         "@type": "BreadcrumbList",
@@ -82,8 +443,8 @@ export default async function SahabaProfilePage({
           {
             "@type": "ListItem",
             position: 3,
-            name: profile.name,
-            item: profileUrl,
+            name: article.title,
+            item: articleUrl,
           },
         ],
       },
@@ -98,7 +459,6 @@ export default async function SahabaProfilePage({
           "radial-gradient(circle at top left, rgba(204, 251, 241, 0.75), transparent 30%), var(--background)",
       }}
     >
-      {/* Navigation */}
       <header className="sq-nav">
         <Link href="/" className="sq-logo">
           Sahaba Quest
@@ -122,7 +482,6 @@ export default async function SahabaProfilePage({
           className="sq-container"
           style={{ maxWidth: "900px" }}
         >
-          {/* Breadcrumb */}
           <nav
             aria-label="Breadcrumb"
             style={{
@@ -155,51 +514,60 @@ export default async function SahabaProfilePage({
 
             <span aria-hidden="true"> / </span>
 
-            <span>{profile.name}</span>
+            <span>{article.title}</span>
           </nav>
 
-          {/* Profile */}
           <article
             className="sq-card"
             style={{
-              padding: "42px",
+              padding: "clamp(22px, 5vw, 42px)",
             }}
           >
-            {/* Category */}
             <span className="sq-badge">
-              {profile.category}
+              {article.category || "Sahabah"}
             </span>
 
-            {/* Name */}
             <h1
               style={{
-                margin: "18px 0 6px",
-                fontSize: "clamp(34px, 6vw, 56px)",
-                lineHeight: 1.05,
-                letterSpacing: "-1.5px",
+                margin: "18px 0 0",
+                fontSize: "clamp(32px, 6vw, 52px)",
+                lineHeight: 1.1,
+                letterSpacing: "-1px",
                 fontWeight: 900,
               }}
             >
-              {profile.name}
+              {article.title}
             </h1>
 
-            {/* Arabic Name */}
-            <div
-              lang="ar"
-              dir="rtl"
-              style={{
-                color: "var(--muted)",
-                fontSize: "18px",
-                fontWeight: 700,
-              }}
-            >
-              {profile.arabicName}
-            </div>
+            {article.subtitle && (
+              <p
+                style={{
+                  margin: "14px 0 0",
+                  color: "var(--muted)",
+                  fontSize: "18px",
+                  lineHeight: 1.7,
+                }}
+              >
+                {article.subtitle}
+              </p>
+            )}
 
-            {/* Overview */}
+            {article.companion_name && (
+              <p
+                style={{
+                  marginTop: "16px",
+                  color: "var(--muted)",
+                  fontSize: "14px",
+                }}
+              >
+                <strong>Companion:</strong>{" "}
+                {article.companion_name}
+              </p>
+            )}
+
             <div
               style={{
-                marginTop: "30px",
+                marginTop: "26px",
                 padding: "24px",
                 borderRadius: "18px",
                 background: "var(--primary-light)",
@@ -224,72 +592,136 @@ export default async function SahabaProfilePage({
                   lineHeight: 1.8,
                 }}
               >
-                {profile.summary}
+                {article.summary}
               </p>
             </div>
 
-            {/* Key Points */}
-            <section style={{ marginTop: "32px" }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "22px",
-                  fontWeight: 900,
-                }}
-              >
-                Key points
-              </h2>
+            {article.cover_image_url && (
+              <figure style={{ margin: "28px 0 0" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={article.cover_image_url}
+                  alt={article.cover_image_alt || article.title}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    maxHeight: "520px",
+                    objectFit: "cover",
+                    borderRadius: "18px",
+                  }}
+                />
+              </figure>
+            )}
 
-              <ul
+            {article.tags.length > 0 && (
+              <div
                 style={{
-                  margin: "16px 0 0",
-                  paddingLeft: "22px",
-                  color: "var(--muted)",
-                  lineHeight: 1.8,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                  marginTop: "24px",
                 }}
               >
-                {profile.highlights.map((highlight) => (
-                  <li
-                    key={highlight}
-                    style={{
-                      marginBottom: "10px",
-                    }}
-                  >
-                    {highlight}
-                  </li>
+                {article.tags.map((tag) => (
+                  <span key={tag} className="sq-badge">
+                    {tag}
+                  </span>
                 ))}
-              </ul>
-            </section>
+              </div>
+            )}
 
-            {/* Source */}
             <section
+              className="article-content"
               style={{
-                marginTop: "32px",
-                paddingTop: "24px",
-                borderTop: "1px solid var(--border)",
+                marginTop: "36px",
+                lineHeight: 1.9,
+                overflowWrap: "anywhere",
               }}
             >
-              <p
-                style={{
-                  margin: 0,
-                  color: "var(--muted-light)",
-                  fontSize: "12px",
-                  lineHeight: 1.6,
-                }}
-              >
-                Starter profile source: {profile.sourceLabel}.
-                These pages are intentionally concise and will be
-                expanded as the Sahaba Quest knowledge library grows.
-              </p>
+              <ArticleMarkdown content={article.content} />
             </section>
 
-            {/* Actions */}
+            {article.source_references.length > 0 && (
+              <section
+                style={{
+                  marginTop: "36px",
+                  paddingTop: "28px",
+                  borderTop: "1px solid var(--border)",
+                }}
+              >
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: "22px",
+                    fontWeight: 900,
+                  }}
+                >
+                  Sources and references
+                </h2>
+
+                <ol
+                  style={{
+                    marginTop: "18px",
+                    paddingLeft: "24px",
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {article.source_references.map(
+                    (reference, index) => (
+                      <li
+                        key={`${reference.title}-${index}`}
+                        style={{
+                          marginBottom: "18px",
+                          paddingLeft: "4px",
+                        }}
+                      >
+                        <p style={{ margin: 0, fontWeight: 700 }}>
+                          {reference.title}
+                        </p>
+
+                        {reference.detail && (
+                          <p
+                            style={{
+                              margin: "4px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                            }}
+                          >
+                            {reference.detail}
+                          </p>
+                        )}
+
+                        {reference.url && (
+                          <a
+                            href={reference.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "inline-block",
+                              marginTop: "5px",
+                              color: "var(--primary)",
+                              textDecoration: "underline",
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            View source
+                          </a>
+                        )}
+                      </li>
+                    ),
+                  )}
+                </ol>
+              </section>
+            )}
+
             <div
               style={{
                 display: "flex",
                 flexWrap: "wrap",
                 gap: "12px",
-                marginTop: "28px",
+                marginTop: "32px",
+                paddingTop: "24px",
+                borderTop: "1px solid var(--border)",
               }}
             >
               <Link
@@ -310,13 +742,12 @@ export default async function SahabaProfilePage({
         </div>
       </section>
 
-      {/* Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replace(
+          __html: JSON.stringify(articleStructuredData).replace(
             /</g,
-            "\\u003c"
+            "\\u003c",
           ),
         }}
       />
