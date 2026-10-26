@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import RichTextEditor from "@/components/RichTextEditor";
+import SahabahArticlePreview from "@/components/SahabahArticlePreview";
 import {
   getAdminSahabahArticle,
   updateSahabahArticle,
@@ -89,6 +90,7 @@ export default function EditSahabahArticlePage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -265,6 +267,35 @@ export default function EditSahabahArticlePage() {
           ← All Articles
         </Link>
       </main>
+    );
+  }
+
+  if (showPreview) {
+    const previewReferences: SahabahArticleReference[] = references
+      .filter((reference) => reference.title.trim())
+      .map((reference) => ({
+        title: reference.title.trim(),
+        detail: reference.detail.trim() || undefined,
+        url: reference.url.trim() || null,
+      }));
+
+    return (
+      <SahabahArticlePreview
+        title={title}
+        subtitle={subtitle}
+        companionName={companionName}
+        summary={summary}
+        category={category}
+        tags={tagsText
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean)}
+        coverImageUrl={coverImageUrl}
+        coverImageAlt={coverImageAlt}
+        content={content}
+        references={previewReferences}
+        onBack={() => setShowPreview(false)}
+      />
     );
   }
 
@@ -650,6 +681,19 @@ export default function EditSahabahArticlePage() {
               borderTop: "1px solid var(--border)",
             }}
           >
+            <button
+              type="button"
+              className="sq-button-secondary"
+              disabled={saving || uploading}
+              onClick={() => setShowPreview(true)}
+              style={{
+                cursor: saving || uploading ? "wait" : "pointer",
+                opacity: saving || uploading ? 0.65 : 1,
+              }}
+            >
+              Preview Article
+            </button>
+
             <button
               type="submit"
               className="sq-button-primary"

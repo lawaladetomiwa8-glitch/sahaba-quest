@@ -1,6 +1,7 @@
 
 "use client";
 
+import SahabahArticlePreview from "@/components/SahabahArticlePreview";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -75,6 +76,7 @@ function FormField({
 export default function NewSahabahArticlePage() {
   const router = useRouter();
 
+  const [previewing, setPreviewing] = useState(false);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -195,6 +197,33 @@ export default function NewSahabahArticlePage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (previewing) {
+    return (
+      <SahabahArticlePreview
+        title={title}
+        subtitle={subtitle}
+        companionName={companionName}
+        summary={summary}
+        category={category}
+        tags={tagsText
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean)}
+        coverImageUrl={coverImageUrl}
+        coverImageAlt={coverImageAlt}
+        content={content}
+        references={references
+          .filter((reference) => reference.title.trim())
+          .map((reference) => ({
+            title: reference.title.trim(),
+            detail: reference.detail.trim() || undefined,
+            url: reference.url.trim() || null,
+          }))}
+        onBack={() => setPreviewing(false)}
+      />
+    );
   }
 
   return (
@@ -673,6 +702,16 @@ export default function NewSahabahArticlePage() {
                 : status === "published"
                   ? "Publish Article"
                   : "Save Draft"}
+            </button>
+
+            <button
+              type="button"
+              className="sq-button-secondary"
+              disabled={saving || uploading}
+              onClick={() => setPreviewing(true)}
+              style={{ cursor: "pointer" }}
+            >
+              Preview Article
             </button>
 
             <button
