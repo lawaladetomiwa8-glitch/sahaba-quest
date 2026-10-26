@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     /* =====================================================
        VERIFY SCHOOL ADMIN
-       
+
        school_admins is the source of truth for School Admin
        identity. We deliberately do NOT use profiles.account_type.
     ===================================================== */
@@ -162,7 +163,10 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       ACTIVE SCHOOL SUBSCRIPTION
+       LATEST SCHOOL SUBSCRIPTION
+
+       Include active and expired subscriptions so the
+       dashboard can display the correct status and expiry.
     ===================================================== */
 
     const {
@@ -185,7 +189,11 @@ export async function GET(request: NextRequest) {
         `
       )
       .eq("school_id", school.id)
-      .eq("status", "active")
+      .in("status", ["active", "expired"])
+      .order("current_period_end", {
+        ascending: false,
+        nullsFirst: false,
+      })
       .order("created_at", {
         ascending: false,
       })
@@ -209,10 +217,29 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
+       RESOLVE SUBSCRIPTION STATUS
+
+       Treat an active subscription as expired immediately
+       when its end date has passed, even before cron runs.
+    ===================================================== */
+
+    const subscriptionStatus =
+      subscription &&
+      (
+        subscription.status === "expired" ||
+        (
+          subscription.status === "active" &&
+          subscription.current_period_end !== null &&
+          new Date(
+            subscription.current_period_end
+          ).getTime() <= Date.now()
+        )
+      )
+        ? "expired"
+        : subscription?.status ?? null;
+
+    /* =====================================================
        STUDENT COUNTS
-       
-       We count students from the school itself rather than
-       relying on a stored counter.
     ===================================================== */
 
     const {
@@ -307,7 +334,9 @@ export async function GET(request: NextRequest) {
     ===================================================== */
 
     const seatLimit =
-      subscription?.student_seat_limit ?? 0;
+      subscriptionStatus === "active"
+        ? subscription?.student_seat_limit ?? 0
+        : 0;
 
     const usedSeats = activeStudents ?? 0;
 
@@ -356,7 +385,7 @@ export async function GET(request: NextRequest) {
               subscription.price_per_student,
             total_amount:
               subscription.total_amount,
-            status: subscription.status,
+            status: subscriptionStatus,
             current_period_start:
               subscription.current_period_start,
             current_period_end:

@@ -719,6 +719,17 @@ export default function SchoolDashboardPage() {
 
 
 
+  // Detect expiry from the subscription status or end date so the notice
+  // appears immediately, even before the scheduled expiry job runs.
+  const isSubscriptionExpired =
+    subscription?.status === "expired" ||
+    (
+      !!subscription?.current_period_end &&
+      new Date(subscription.current_period_end).getTime() <= Date.now()
+    );
+
+  const needsRenewal = !subscription || isSubscriptionExpired;
+
   const seatPercentage =
 
     statistics.seat_limit > 0
@@ -866,6 +877,42 @@ export default function SchoolDashboardPage() {
 
 
       <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+        {needsRenewal && (
+          <section
+            role="alert"
+            className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6"
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-amber-900">
+                  {isSubscriptionExpired
+                    ? "School Subscription Expired"
+                    : "School Subscription Required"}
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-amber-800">
+                  {isSubscriptionExpired
+                    ? "Your school's subscription has expired. Students cannot access their learning activities until you renew."
+                    : "Your school has no active subscription. Activate or renew a subscription to restore student access."}
+                </p>
+
+                {subscription?.current_period_end && isSubscriptionExpired && (
+                  <p className="mt-2 text-xs text-amber-800">
+                    Expired on {formatDate(subscription.current_period_end)}
+                  </p>
+                )}
+              </div>
+
+              <Link
+                href="/schools/subscription"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#08745b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#073d32]"
+              >
+                Renew Subscription
+              </Link>
+            </div>
+          </section>
+        )}
 
         {/* =================================================
 
