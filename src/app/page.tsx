@@ -726,11 +726,11 @@ export default function Home() {
 
                 >
 
-                  Know the
+                Learn from the Best of Generations.
 
                   <br />
 
-                  Sahaba.
+                  
 
                 </h1>
 

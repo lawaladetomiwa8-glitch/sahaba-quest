@@ -10,6 +10,7 @@ import {
   getPublishedSahabahArticle,
 } from "@/lib/sahabah-articles";
 import ArticleMarkdown from "@/components/ArticleMarkdown";
+import SahabahArticleEngagement from "@/components/SahabahArticleEngagement";
 
 const SITE_URL = "https://sahabaquest.com.ng";
 
@@ -713,6 +714,12 @@ export default async function SahabaProfilePage({
                 </ol>
               </section>
             )}
+
+            <SahabahArticleEngagement
+              articleId={article.id}
+              articleTitle={article.title}
+              articleUrl={articleUrl}
+            />
 
             <div
               style={{
