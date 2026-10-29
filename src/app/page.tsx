@@ -299,7 +299,7 @@ export default function Home() {
                     gap: "6px",
                   }}
                 >
-                  Go to Dashboard →
+                  Dashboard →
                 </Link>
 
 

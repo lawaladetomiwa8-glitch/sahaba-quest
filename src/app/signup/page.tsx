@@ -1049,10 +1049,6 @@ export default function SignupPage() {
             <span className="brand-name">Sahaba Quest</span>
           </div>
 
-          <span className="brand-badge">
-            LEARN • REMEMBER • COMPETE
-          </span>
-
           <h1>
             Know the Best of Generation
           </h1>
