@@ -1054,7 +1054,7 @@ export default function SignupPage() {
           </span>
 
           <h1>
-            Know the Sahabah.
+            Know the Best of Generation
           </h1>
 
           <p>
@@ -1516,9 +1516,9 @@ export default function SignupPage() {
         .signup-page {
           min-height: 100vh;
           display: grid;
-          grid-template-columns:
-            0.9fr 1.1fr;
+          grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
           background: #f7faf9;
+          align-items: stretch;
         }
 
         /* =================================================
@@ -1528,9 +1528,9 @@ export default function SignupPage() {
         .brand-panel {
           position: relative;
           display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 60px;
+          align-items: flex-start;
+          justify-content: flex-start;
+          padding: clamp(30px, 4.5vh, 48px) clamp(24px, 3.5vw, 48px);
           background:
             linear-gradient(
               145deg,
@@ -1540,6 +1540,7 @@ export default function SignupPage() {
             );
           color: white;
           overflow: hidden;
+          min-width: 0;
         }
 
         .brand-panel::before {
@@ -1573,6 +1574,7 @@ export default function SignupPage() {
           z-index: 2;
           max-width: 500px;
           width: 100%;
+          margin: 0 auto;
         }
 
         .brand-lockup {
@@ -1580,7 +1582,7 @@ export default function SignupPage() {
           align-items: center;
           gap: 12px;
           max-width: 100%;
-          margin-bottom: 28px;
+          margin-bottom: 16px;
         }
 
         .brand-logo {
@@ -1625,6 +1627,10 @@ export default function SignupPage() {
         }
 
         .brand-badge {
+          display: inline-flex;
+          max-width: 100%;
+          flex-wrap: wrap;
+          white-space: normal;
           color: #e5c46a;
           background:
             rgba(229, 196, 106, 0.1);
@@ -1634,12 +1640,13 @@ export default function SignupPage() {
         }
 
         .brand-content h1 {
-          margin:
-            22px 0 14px;
-          font-size:
-            clamp(40px, 4vw, 60px);
-          line-height: 1.02;
-          letter-spacing: -2.5px;
+          max-width: 500px;
+          margin: 18px 0 12px;
+          font-size: clamp(32px, 3.1vw, 48px);
+          line-height: 1.12;
+          letter-spacing: -1.5px;
+          font-weight: 800;
+          overflow-wrap: break-word;
         }
 
         .brand-content > p {
@@ -1653,8 +1660,8 @@ export default function SignupPage() {
 
         .brand-features {
           display: grid;
-          gap: 20px;
-          margin-top: 48px;
+          gap: 16px;
+          margin-top: 30px;
         }
 
         .brand-feature {
@@ -1698,7 +1705,8 @@ export default function SignupPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 50px 30px;
+          min-width: 0;
+          padding: clamp(28px, 4vh, 42px) clamp(22px, 3vw, 42px);
           overflow-y: auto;
         }
 

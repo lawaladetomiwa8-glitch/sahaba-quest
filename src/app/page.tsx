@@ -282,10 +282,24 @@ export default function Home() {
 
               >
 
-                <Link href="/dashboard" className="sq-button-primary">
-
+                <Link
+                  href="/dashboard"
+                  className="sq-button-primary"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    whiteSpace: "nowrap",
+                    width: "100%",
+                    minWidth: 0,
+                    boxSizing: "border-box",
+                    padding: "0 10px",
+                    fontSize: "15px",
+                    lineHeight: 1.2,
+                    gap: "6px",
+                  }}
+                >
                   Go to Dashboard →
-
                 </Link>
 
 
