@@ -714,9 +714,9 @@ export default function LoginPage() {
           </span>
 
           <h1>
-            Know the
+            Connect With Your Role Models.
             <br />
-            Sahabah.
+            
           </h1>
 
           <p>

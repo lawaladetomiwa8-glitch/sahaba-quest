@@ -140,7 +140,8 @@ export default function Home() {
 
           >
 
-            Dashboard →
+            Dashboard
+    
 
           </Link>
 

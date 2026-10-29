@@ -614,34 +614,9 @@ export default function ChallengesPage() {
               </p>
             </div>
 
-            <Link
-              href="/pricing"
-              className="premium-btn"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                alignSelf: "start",
-                justifySelf: "start",
-                width: "fit-content",
-                maxWidth: "100%",
-                minWidth: 0,
-                boxSizing: "border-box",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-                gap: "8px",
-                padding: "10px 16px",
-                fontSize: "14px",
-                lineHeight: 1.2,
-                fontWeight: 800,
-                textDecoration: "none",
-                borderRadius: "13px",
-                background: "#c99428",
-                color: "#ffffff",
-              }}
-            >
-              <span style={{ whiteSpace: "nowrap" }}>View Premium</span>
-              <span aria-hidden="true" style={{ flexShrink: 0 }}>→</span>
+            <Link href="/pricing" className="premium-btn">
+              <span>View Premium</span>
+              <span aria-hidden="true">→</span>
             </Link>
           </section>
         )}
@@ -1380,9 +1355,11 @@ export default function ChallengesPage() {
         /* PREMIUM */
 
         .premium-notice {
-          display: flex;
-          align-items: center;
-          gap: 15px;
+          display: grid;
+          grid-template-columns: 45px minmax(0, 1fr);
+          align-items: start;
+          column-gap: 15px;
+          row-gap: 14px;
           padding: 17px 19px;
           margin-bottom: 30px;
           border: 1px solid #f0dfad;
@@ -1423,13 +1400,40 @@ export default function ChallengesPage() {
         }
 
         .premium-btn {
-          flex-shrink: 0;
+          grid-column: 2;
+          justify-self: start;
+          align-self: start;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: fit-content;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          padding: 10px 16px;
+          border: 0;
+          border-radius: 13px;
           background: #c99428;
-          color: white;
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 800;
+          line-height: 1.2;
+          text-decoration: none;
+          white-space: nowrap;
+          flex-shrink: 0;
+          cursor: pointer;
+          transition: 0.2s ease;
+        }
+
+        .premium-btn > span {
+          display: inline-block;
+          white-space: nowrap;
         }
 
         .premium-btn:hover {
           transform: translateY(-2px);
+          background: #b5821e;
         }
 
         /* ERROR */
@@ -2213,14 +2217,9 @@ export default function ChallengesPage() {
           }
 
           .premium-btn {
-            grid-column: 1 / -1;
+            grid-column: 2;
             justify-self: start;
-            align-self: start;
-            width: fit-content;
             max-width: 100%;
-            min-width: 0;
-            white-space: nowrap;
-            box-sizing: border-box;
           }
 
           .hero-card {
