@@ -1407,16 +1407,16 @@ export default function ChallengesPage() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          width: fit-content;
+          width: max-content;
           max-width: 100%;
-          min-width: 0;
+          min-width: 132px;
           box-sizing: border-box;
-          padding: 10px 16px;
+          padding: 10px 14px;
           border: 0;
           border-radius: 13px;
           background: #c99428;
           color: #ffffff;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 800;
           line-height: 1.2;
           text-decoration: none;
@@ -1429,6 +1429,7 @@ export default function ChallengesPage() {
         .premium-btn > span {
           display: inline-block;
           white-space: nowrap;
+          flex: 0 0 auto;
         }
 
         .premium-btn:hover {
@@ -2217,9 +2218,15 @@ export default function ChallengesPage() {
           }
 
           .premium-btn {
-            grid-column: 2;
+            grid-column: 1 / -1;
             justify-self: start;
+            align-self: start;
+            width: max-content;
+            min-width: 132px;
             max-width: 100%;
+            white-space: nowrap;
+            font-size: 13px;
+            padding: 10px 14px;
           }
 
           .hero-card {

@@ -305,7 +305,7 @@ export default function Home() {
                     gap: "5px",
                   }}
                 >
-                  <span style={{ whiteSpace: "nowrap" }}>Go to Dashboard</span>
+                  <span style={{ whiteSpace: "nowrap" }}>Dashboard</span>
                   <span aria-hidden="true" style={{ flexShrink: 0 }}>→</span>
                 </Link>
 
