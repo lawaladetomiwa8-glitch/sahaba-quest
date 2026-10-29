@@ -3,6 +3,7 @@
 import { FormEvent, ReactNode, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import TurnstileWidget from "../../components/TurnstileWidget";
 
 type PasswordRequirementProps = {
   valid: boolean;
@@ -52,12 +53,17 @@ export default function SignupPage() {
   ====================================================== */
 
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
 
   const [message, setMessage] = useState("");
 
   const [success, setSuccess] = useState(false);
 
   const [resendLoading, setResendLoading] =
+    useState(false);
+
+  const [showResendChallenge, setShowResendChallenge] =
     useState(false);
 
   const [resendMessage, setResendMessage] =
@@ -97,6 +103,12 @@ export default function SignupPage() {
       return;
     }
 
+    if (!captchaToken) {
+      setShowResendChallenge(true);
+      setResendMessage("Please complete the security verification before requesting another confirmation email.");
+      return;
+    }
+
     try {
       setResendLoading(true);
       setResendMessage("");
@@ -105,6 +117,7 @@ export default function SignupPage() {
         await supabase.auth.resend({
           type: "signup",
           email: cleanEmail,
+          options: { captchaToken },
         });
 
       if (error) {
@@ -134,6 +147,7 @@ export default function SignupPage() {
         "Unable to resend the confirmation email. Please try again."
       );
     } finally {
+      setCaptchaResetSignal((signal) => signal + 1);
       setResendLoading(false);
     }
   };
@@ -217,6 +231,11 @@ export default function SignupPage() {
         "Please make sure your password meets all the requirements."
       );
 
+      return;
+    }
+
+    if (!captchaToken) {
+      setMessage("Please complete the security verification before creating your account.");
       return;
     }
 
@@ -312,6 +331,7 @@ export default function SignupPage() {
         password,
 
         options: {
+          captchaToken,
           data: {
             display_name:
               cleanDisplayName,
@@ -389,6 +409,7 @@ export default function SignupPage() {
         "Something went wrong while creating your account. Please try again."
       );
     } finally {
+      setCaptchaResetSignal((signal) => signal + 1);
       setLoading(false);
     }
   };
@@ -558,6 +579,14 @@ export default function SignupPage() {
               </div>
 
             </div>
+
+            {showResendChallenge && (
+              <TurnstileWidget
+                action="signup"
+                resetSignal={captchaResetSignal}
+                onTokenChange={setCaptchaToken}
+              />
+            )}
 
             {resendMessage && (
               <div
@@ -1393,6 +1422,12 @@ export default function SignupPage() {
               </div>
 
             </div>
+
+            <TurnstileWidget
+              action="signup"
+              resetSignal={captchaResetSignal}
+              onTokenChange={setCaptchaToken}
+            />
 
             {/* =================================================
                 FREE ACCOUNT NOTICE

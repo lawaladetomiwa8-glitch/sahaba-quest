@@ -4,12 +4,15 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import TurnstileWidget from "../../components/TurnstileWidget";
 
 export default function LoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
 
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<
@@ -495,6 +498,12 @@ export default function LoginPage() {
       return;
     }
 
+    if (!captchaToken) {
+      setMessageType("error");
+      setMessage("Please complete the security verification before signing in.");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -518,6 +527,7 @@ export default function LoginPage() {
           {
             email: cleanEmail,
             password,
+            options: { captchaToken },
           }
         );
 
@@ -580,6 +590,7 @@ export default function LoginPage() {
           : "Something went wrong while signing in. Please try again."
       );
     } finally {
+      setCaptchaResetSignal((signal) => signal + 1);
       setLoading(false);
     }
   };
@@ -599,6 +610,12 @@ export default function LoginPage() {
         "Please enter your email address first."
       );
 
+      return;
+    }
+
+    if (!captchaToken) {
+      setMessageType("error");
+      setMessage("Please complete the security verification before requesting a password reset.");
       return;
     }
 
@@ -626,6 +643,7 @@ export default function LoginPage() {
           cleanEmail,
           {
             redirectTo,
+            captchaToken,
           }
         );
 
@@ -662,6 +680,7 @@ export default function LoginPage() {
         "Unable to send the password reset email. Please try again."
       );
     } finally {
+      setCaptchaResetSignal((signal) => signal + 1);
       setResetLoading(false);
     }
   };
@@ -894,6 +913,12 @@ export default function LoginPage() {
               </div>
 
             </div>
+
+            <TurnstileWidget
+              action="auth"
+              resetSignal={captchaResetSignal}
+              onTokenChange={setCaptchaToken}
+            />
 
             {/* FORGOT PASSWORD */}
 
