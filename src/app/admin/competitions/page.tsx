@@ -266,12 +266,12 @@ export default function AdminCompetitionsPage() {
 
       <section className="sq-card" style={{ overflow: "hidden" }}>
         {loading ? (
-          <div style={{ padding: 60, textAlign: "center" }}>
+          <div style={{ padding: "clamp(20px, 6vw, 60px)", textAlign: "center" }}>
             <div style={{ fontSize: 38 }}>⏳</div>
             <h3>Loading competitions...</h3>
           </div>
         ) : filteredCompetitions.length === 0 ? (
-          <div style={{ padding: 60, textAlign: "center" }}>
+          <div style={{ padding: "clamp(20px, 6vw, 60px)", textAlign: "center" }}>
             <div style={{ fontSize: 44 }}>🏆</div>
             <h3>
               {competitions.length === 0

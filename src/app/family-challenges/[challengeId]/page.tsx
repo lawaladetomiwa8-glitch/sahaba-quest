@@ -680,12 +680,12 @@ export default function FamilyChallengeGamePage() {
       >
         <AppNavbar />
 
-        <div className="sq-page">
+        <div className="sq-page sq-challenge-game-page">
           <div className="sq-container">
             <div
               className="sq-card"
               style={{
-                padding: "50px",
+                padding: "clamp(18px, 6vw, 50px)",
                 textAlign: "center",
                 color:
                   "var(--muted)",
@@ -717,12 +717,12 @@ export default function FamilyChallengeGamePage() {
       >
         <AppNavbar />
 
-        <div className="sq-page">
+        <div className="sq-page sq-challenge-game-page">
           <div className="sq-container">
             <div
               className="sq-card"
               style={{
-                padding: "40px",
+                padding: "clamp(18px, 5vw, 40px)",
                 textAlign: "center",
               }}
             >
@@ -794,7 +794,7 @@ export default function FamilyChallengeGamePage() {
     >
       <AppNavbar />
 
-      <div className="sq-page">
+      <div className="sq-page sq-challenge-game-page">
         <div
           className="sq-container"
           style={{
@@ -962,7 +962,7 @@ export default function FamilyChallengeGamePage() {
             <section
               className="sq-card"
               style={{
-                padding: "30px",
+                padding: "clamp(16px, 5vw, 30px)",
               }}
             >
               <div

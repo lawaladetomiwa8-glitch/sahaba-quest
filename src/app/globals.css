@@ -1552,6 +1552,100 @@ select {
 
 }
 
+/* ---------------------------------------------------------
+   Mobile overflow and compact game layouts
+--------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  img,
+  video,
+  iframe,
+  canvas {
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  pre {
+    max-width: 100%;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  th,
+  td {
+    overflow-wrap: anywhere;
+  }
+
+  main :where(h1, h2, h3, p, a, span, strong, li) {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 640px) {
+  .sq-challenge-game-page .sq-card {
+    padding: 16px !important;
+  }
+
+  .sq-challenge-game-page .sq-title {
+    font-size: clamp(24px, 7vw, 32px) !important;
+    overflow-wrap: anywhere;
+  }
+
+  .sq-challenge-game-page h2 {
+    font-size: clamp(19px, 5.5vw, 23px) !important;
+  }
+
+  .family-member-leaderboard-page .sq-card {
+    padding: 16px !important;
+  }
+
+  .family-member-rank-row {
+    grid-template-columns: 44px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  .family-member-rank-row > .family-member-rank-xp {
+    grid-column: 2;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0 !important;
+    padding-top: 7px;
+    border-top: 1px solid var(--border);
+    text-align: left !important;
+  }
+
+  .sq-family-member-test-page {
+    padding: 20px 14px !important;
+  }
+
+  .sq-family-member-test-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 25px;
+  }
+
+  .sq-family-member-test-actions button {
+    width: 100%;
+    margin: 0;
+  }
+}
+
 /* Homepage mobile entry points */
 .sq-home-mobile-nav {
   display: none;

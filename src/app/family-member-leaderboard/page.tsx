@@ -152,7 +152,7 @@ export default function FamilyMemberLeaderboardPage() {
 
   return (
     <main
-      className="sq-page"
+      className="sq-page family-member-leaderboard-page"
       style={{
         minHeight: "100vh",
         background:
@@ -393,6 +393,7 @@ export default function FamilyMemberLeaderboardPage() {
                   {leaderboard.map((member) => (
                     <div
                       key={member.member_id}
+                      className="family-member-rank-row"
                       style={{
                         display: "grid",
                         gridTemplateColumns:
@@ -516,6 +517,7 @@ export default function FamilyMemberLeaderboardPage() {
 
                       {/* XP */}
                       <div
+                        className="family-member-rank-xp"
                         style={{
                           textAlign: "right",
                           minWidth: "75px",

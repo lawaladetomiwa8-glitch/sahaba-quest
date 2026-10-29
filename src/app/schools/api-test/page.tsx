@@ -364,9 +364,10 @@ export default function SchoolApiTestPage() {
 
   return (
     <main
+      className="sq-school-api-test-page"
       style={{
         minHeight: "100vh",
-        padding: "40px",
+        padding: "clamp(16px, 4vw, 40px)",
         background: "#f8fafc",
         fontFamily:
           "Arial, Helvetica, sans-serif",

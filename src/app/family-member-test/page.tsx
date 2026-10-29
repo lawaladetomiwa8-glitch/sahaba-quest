@@ -521,6 +521,7 @@ export default function FamilyMemberTestPage() {
 
   return (
     <main
+      className="sq-family-member-test-page"
       style={{
         minHeight: "100vh",
         padding: "40px 20px",
@@ -563,51 +564,50 @@ export default function FamilyMemberTestPage() {
             START TEST BUTTON
         ======================================================== */}
 
-        <button
-          type="button"
-          onClick={runTest}
-          disabled={loading || submitting}
-          style={{
-            padding: "12px 20px",
-            borderRadius: "8px",
-            border: "none",
-            background:
-              loading || submitting
-                ? "#9ca3af"
-                : "#111827",
-            color: "#ffffff",
-            fontWeight: 600,
-            cursor:
-              loading || submitting
-                ? "not-allowed"
-                : "pointer",
-            marginBottom: "25px",
-          }}
-        >
-          {loading
-            ? "Starting Test..."
-            : "Run Family Member Test"}
-        </button>
+        <div className="sq-family-member-test-actions">
+          <button
+            type="button"
+            onClick={runTest}
+            disabled={loading || submitting}
+            style={{
+              padding: "12px 20px",
+              borderRadius: "8px",
+              border: "none",
+              background:
+                loading || submitting
+                  ? "#9ca3af"
+                  : "#111827",
+              color: "#ffffff",
+              fontWeight: 600,
+              cursor:
+                loading || submitting
+                  ? "not-allowed"
+                  : "pointer",
+            }}
+          >
+            {loading
+              ? "Starting Test..."
+              : "Run Family Member Test"}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/family-member-dashboard";
-          }}
-          style={{
-            padding: "12px 20px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            background: "#ffffff",
-            color: "#111827",
-            fontWeight: 600,
-            cursor: "pointer",
-            marginBottom: "25px",
-            marginLeft: "10px",
-          }}
-        >
-          Open Family Member Dashboard
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/family-member-dashboard";
+            }}
+            style={{
+              padding: "12px 20px",
+              borderRadius: "8px",
+              border: "1px solid #d1d5db",
+              background: "#ffffff",
+              color: "#111827",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Open Family Member Dashboard
+          </button>
+        </div>
 
         {/* ========================================================
             STATUS
