@@ -614,9 +614,34 @@ export default function ChallengesPage() {
               </p>
             </div>
 
-            <Link href="/pricing" className="premium-btn">
-              View Premium
-              <span>→</span>
+            <Link
+              href="/pricing"
+              className="premium-btn"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                alignSelf: "start",
+                justifySelf: "start",
+                width: "fit-content",
+                maxWidth: "100%",
+                minWidth: 0,
+                boxSizing: "border-box",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                gap: "8px",
+                padding: "10px 16px",
+                fontSize: "14px",
+                lineHeight: 1.2,
+                fontWeight: 800,
+                textDecoration: "none",
+                borderRadius: "13px",
+                background: "#c99428",
+                color: "#ffffff",
+              }}
+            >
+              <span style={{ whiteSpace: "nowrap" }}>View Premium</span>
+              <span aria-hidden="true" style={{ flexShrink: 0 }}>→</span>
             </Link>
           </section>
         )}
@@ -1398,25 +1423,9 @@ export default function ChallengesPage() {
         }
 
         .premium-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 7px;
-          flex: 0 0 auto;
-          width: fit-content;
-          max-width: 100%;
-          padding: 10px 14px;
-          box-sizing: border-box;
-          white-space: nowrap;
-          line-height: 1.2;
-          font-size: 12px;
+          flex-shrink: 0;
           background: #c99428;
           color: white;
-        }
-
-        .premium-btn span {
-          flex: 0 0 auto;
-          white-space: nowrap;
         }
 
         .premium-btn:hover {
@@ -2204,14 +2213,14 @@ export default function ChallengesPage() {
           }
 
           .premium-btn {
-            grid-column: 2;
+            grid-column: 1 / -1;
             justify-self: start;
+            align-self: start;
             width: fit-content;
             max-width: 100%;
             min-width: 0;
             white-space: nowrap;
-            padding: 10px 13px;
-            font-size: 12px;
+            box-sizing: border-box;
           }
 
           .hero-card {

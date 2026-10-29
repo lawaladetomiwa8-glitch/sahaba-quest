@@ -272,7 +272,7 @@ export default function Home() {
 
                   display: "grid",
 
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
 
                   gap: "12px",
 
@@ -289,17 +289,23 @@ export default function Home() {
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    whiteSpace: "nowrap",
                     width: "100%",
                     minWidth: 0,
+                    maxWidth: "100%",
                     boxSizing: "border-box",
-                    padding: "0 10px",
-                    fontSize: "15px",
+                    whiteSpace: "nowrap",
+                    flexShrink: 1,
+                    padding: "0 8px",
+                    fontSize: "clamp(12px, 3.5vw, 14px)",
                     lineHeight: 1.2,
-                    gap: "6px",
+                    textAlign: "center",
+                    overflowWrap: "normal",
+                    wordBreak: "normal",
+                    gap: "5px",
                   }}
                 >
-                  Dashboard →
+                  <span style={{ whiteSpace: "nowrap" }}>Go to Dashboard</span>
+                  <span aria-hidden="true" style={{ flexShrink: 0 }}>→</span>
                 </Link>
 
 
