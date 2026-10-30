@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
@@ -95,11 +96,11 @@ export const metadata: Metadata = {
     "Islamic learning for madrasas",
   ],
 
-    applicationName: SITE_NAME,
+  applicationName: SITE_NAME,
   category: "education",
 
   other: {
-    "google-adsense-account": "ca-pub-8407387696701319",
+    "google-adsense-account": ADSENSE_CLIENT_ID,
   },
 
   alternates: {
@@ -123,28 +124,46 @@ export const metadata: Metadata = {
     apple: SITE_LOGO,
   },
 
+  /* WHATSAPP, FACEBOOK AND OTHER SOCIAL SHARING PREVIEW */
+
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
     locale: "en_NG",
+
     title: "Sahaba Quest | Islamic Quiz Games & Learning",
+
     description:
       "Discover Islamic quiz games, explore the stories of the Sahaba and Sahabiyat, and learn Islamic history through interactive quests and competitions.",
+
     images: [
       {
         url: SITE_LOGO,
-        alt: "Sahaba Quest Islamic learning platform",
+        width: 1200,
+        height: 630,
+        alt: "Sahaba Quest Official Logo",
+        type: "image/png",
       },
     ],
   },
 
+  /* TWITTER / X SOCIAL SHARING PREVIEW */
+
   twitter: {
     card: "summary_large_image",
+
     title: "Sahaba Quest | Islamic Quiz Games & Learning",
+
     description:
       "Explore Islamic history, play Sahaba quizzes and discover interactive Islamic learning for individuals, families and schools.",
-    images: [SITE_LOGO],
+
+    images: [
+      {
+        url: SITE_LOGO,
+        alt: "Sahaba Quest Official Logo",
+      },
+    ],
   },
 };
 
@@ -164,7 +183,7 @@ export default function RootLayout({
           id="google-adsense"
           async
           strategy="afterInteractive"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8407387696701319"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
           crossOrigin="anonymous"
         />
       </head>
