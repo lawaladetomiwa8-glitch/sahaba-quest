@@ -122,7 +122,7 @@ const primaryButton: React.CSSProperties = {
 
   padding: "11px 16px",
 
-  background: "#111827",
+  background: "#0f766e",
 
   color: "#fff",
 
