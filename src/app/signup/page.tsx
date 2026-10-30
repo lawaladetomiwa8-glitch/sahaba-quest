@@ -1442,7 +1442,7 @@ export default function SignupPage() {
 
                 <p>
                   Everyone starts free. You can
-                  upgrade to Individual or Family
+                  upgrade to Individual, Family or School
                   later from your account.
                 </p>
               </div>

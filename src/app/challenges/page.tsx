@@ -615,7 +615,7 @@ export default function ChallengesPage() {
             </div>
 
             <Link href="/pricing" className="premium-btn">
-              <span>Go Premium</span>
+              <span>Premium</span>
               <span aria-hidden="true">→</span>
             </Link>
           </section>
