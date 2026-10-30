@@ -930,6 +930,11 @@ export default function DashboardPage() {
 
       : "";
 
+  // Format the player's actual XP with thousands separators.
+  const formattedTotalXp = new Intl.NumberFormat("en-US").format(
+    progress.total_xp
+  );
+
   return (
 
     <main
@@ -1552,7 +1557,7 @@ export default function DashboardPage() {
 
             <div className="sq-stat-value">
 
-              {progress.total_xp.toLocaleString()}
+              {formattedTotalXp}
 
             </div>
 
@@ -1994,7 +1999,7 @@ export default function DashboardPage() {
 
               >
 
-                {progress.total_xp}
+                {formattedTotalXp}
 
               </div>
 

@@ -988,9 +988,7 @@ export default function LoginPage() {
           </div>
 
           <div className="security-note">
-            🔒 Your account information is
-            securely handled by Supabase
-            authentication.
+            🔒 Your account information is securely handled with Sahaba Quest.
           </div>
 
         </div>
