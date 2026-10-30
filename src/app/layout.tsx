@@ -1,11 +1,10 @@
-
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
 import { Analytics } from "@vercel/analytics/next";
 
-const SITE_URL = "https://sahabaquest.com.ng";
+const SITE_URL = "https://www.sahabaquest.com.ng";
 const SITE_NAME = "Sahaba Quest";
 
 const SITE_DESCRIPTION =
@@ -59,7 +58,7 @@ const structuredData = {
 };
 
 /* =========================================================
-   GLOBAL SEO METADATA
+   GLOBAL SEO AND SOCIAL-SHARING METADATA
 ========================================================= */
 
 export const metadata: Metadata = {
@@ -124,46 +123,33 @@ export const metadata: Metadata = {
     apple: SITE_LOGO,
   },
 
-  /* WHATSAPP, FACEBOOK AND OTHER SOCIAL SHARING PREVIEW */
+  /* WHATSAPP, FACEBOOK AND OTHER SOCIAL-SHARING PREVIEW */
 
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
     locale: "en_NG",
-
     title: "Sahaba Quest | Islamic Quiz Games & Learning",
-
     description:
       "Discover Islamic quiz games, explore the stories of the Sahaba and Sahabiyat, and learn Islamic history through interactive quests and competitions.",
-
     images: [
       {
         url: SITE_LOGO,
-        width: 1200,
-        height: 630,
         alt: "Sahaba Quest Official Logo",
         type: "image/png",
       },
     ],
   },
 
-  /* TWITTER / X SOCIAL SHARING PREVIEW */
+  /* TWITTER / X SOCIAL-SHARING PREVIEW */
 
   twitter: {
     card: "summary_large_image",
-
     title: "Sahaba Quest | Islamic Quiz Games & Learning",
-
     description:
       "Explore Islamic history, play Sahaba quizzes and discover interactive Islamic learning for individuals, families and schools.",
-
-    images: [
-      {
-        url: SITE_LOGO,
-        alt: "Sahaba Quest Official Logo",
-      },
-    ],
+    images: [SITE_LOGO],
   },
 };
 

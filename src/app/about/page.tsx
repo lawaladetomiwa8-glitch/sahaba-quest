@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-const SITE_URL = "https://sahabaquest.com.ng";
+const SITE_URL = "https://www.sahabaquest.com.ng";
 const SITE_NAME = "Sahaba Quest";
 const SITE_LOGO =
   "https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png";
