@@ -806,6 +806,10 @@ export default function FamilyDashboardPage() {
 
       : "";
 
+  const formattedTotalXp = new Intl.NumberFormat("en-US").format(
+    progress.total_xp
+  );
+
   return (
 
     <main
@@ -1222,7 +1226,7 @@ export default function FamilyDashboardPage() {
 
             <div className="sq-stat-value">
 
-              {progress.total_xp.toLocaleString()}
+              {formattedTotalXp}
 
             </div>
 
@@ -1636,7 +1640,7 @@ export default function FamilyDashboardPage() {
 
               >
 
-                {progress.total_xp}
+                {formattedTotalXp}
 
               </div>
 

@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { sahabahProfiles } from "@/data/sahabah-data";
 import { getPublishedSahabahArticles } from "@/lib/sahabah-articles";
-
+const SITE_LOGO =
+  "https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
