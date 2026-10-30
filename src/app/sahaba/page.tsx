@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { sahabahProfiles } from "@/data/sahabah-data";
 import { getPublishedSahabahArticles } from "@/lib/sahabah-articles";
-const SITE_LOGO =
-  "https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png";
+
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -84,7 +83,7 @@ export default async function SahabahPage() {
           </p>
 
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-            The Noble Sahabah
+            The Noble Sahaba
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-7 text-teal-50 sm:text-lg">
