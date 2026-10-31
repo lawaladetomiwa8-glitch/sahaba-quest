@@ -1287,7 +1287,41 @@ export default function SchoolStudentDashboardPage() {
 
             </article>
 
-
+            <article className="sq-sahaba-stories-card">
+              <div className="sq-sahaba-stories-content">
+                <span className="sq-sahaba-stories-eyebrow">
+                  <Icon name="book" size={14} />
+                  Learn beyond the quiz
+                </span>
+                <h2>Discover the Lives of the Sahaba</h2>
+                <p className="sq-sahaba-stories-caption">
+                  The greatest lessons are found in the lives they lived.
+                </p>
+                <p className="sq-sahaba-stories-description">
+                  Your quest is more than answering questions and earning XP.
+                  Explore the inspiring stories of the men and women who stood
+                  beside Prophet Muhammad ﷺ. Discover their faith, courage,
+                  sacrifices and remarkable contributions—and take lessons
+                  from their lives into your own.
+                </p>
+                <button
+                  type="button"
+                  className="sq-sahaba-stories-button"
+                  onClick={() => router.push("/Sahaba")}
+                  aria-label="Explore stories of the Sahaba"
+                >
+                  Explore Sahaba Stories
+                  <Icon name="arrow" size={16} />
+                </button>
+              </div>
+              <div className="sq-sahaba-stories-art" aria-hidden="true">
+                <div className="sq-sahaba-stories-book">
+                  <Icon name="book" size={42} />
+                </div>
+                <span className="sq-sahaba-stories-star">✦</span>
+                <span className="sq-sahaba-stories-dot" />
+              </div>
+            </article>
 
             <article className="sq-learning-card">
 
@@ -3934,6 +3968,170 @@ function StudentDashboardStyles() {
       .sq-school-activity-copy p { margin: 0; line-height: 1.6; }
       .sq-school-activity-copy > span:not(.sq-section-eyebrow) { color: #66756f; font-size: 13px; }
       .sq-activities-empty { margin: 16px 0 0; color: #66756f; line-height: 1.7; }
+      .sq-sahaba-stories-card {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        min-height: 245px;
+        padding: 28px 30px;
+        border: 1px solid rgba(15, 118, 110, 0.16);
+        border-radius: 19px;
+        color: #ffffff;
+        background:
+          radial-gradient(circle at 88% 18%, rgba(255,255,255,0.13), transparent 23%),
+          linear-gradient(120deg, #115e59 0%, #0f766e 58%, #0b665f 100%);
+        box-shadow: 0 12px 30px rgba(15, 118, 110, 0.12);
+      }
+      .sq-sahaba-stories-content {
+        position: relative;
+        z-index: 1;
+        max-width: 700px;
+      }
+      .sq-sahaba-stories-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #f8df8b;
+        font-size: 10px;
+        font-weight: 850;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      .sq-sahaba-stories-card h2 {
+        margin: 12px 0 0;
+        color: #ffffff;
+        font-size: clamp(22px, 3vw, 29px);
+        line-height: 1.2;
+        letter-spacing: -0.035em;
+        font-weight: 850;
+      }
+      .sq-sahaba-stories-caption {
+        margin: 9px 0 0;
+        color: #f8df8b;
+        font-size: 14px;
+        font-weight: 750;
+        line-height: 1.5;
+      }
+      .sq-sahaba-stories-description {
+        max-width: 650px;
+        margin: 9px 0 0;
+        color: rgba(255,255,255,0.82);
+        font-size: 12px;
+        line-height: 1.75;
+      }
+      .sq-sahaba-stories-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 43px;
+        margin-top: 18px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 11px;
+        color: #115e59;
+        background: #ffffff;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 850;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease;
+      }
+      .sq-sahaba-stories-button:hover {
+        transform: translateY(-1px);
+        background: #f8df8b;
+      }
+      .sq-sahaba-stories-button:focus-visible {
+        outline: 3px solid rgba(255,255,255,0.55);
+        outline-offset: 3px;
+      }
+      .sq-sahaba-stories-art {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 142px;
+        height: 142px;
+        flex: 0 0 142px;
+        margin-right: 12px;
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+      }
+      .sq-sahaba-stories-art::before {
+        position: absolute;
+        inset: 10px;
+        border: 1px dashed rgba(255,255,255,0.25);
+        border-radius: 50%;
+        content: "";
+      }
+      .sq-sahaba-stories-book {
+        display: grid;
+        place-items: center;
+        width: 76px;
+        height: 76px;
+        border-radius: 22px;
+        color: #f8df8b;
+        background: rgba(255,255,255,0.12);
+        transform: rotate(-7deg);
+      }
+      .sq-sahaba-stories-star {
+        position: absolute;
+        top: 10px;
+        right: 16px;
+        color: #f8df8b;
+        font-size: 25px;
+      }
+      .sq-sahaba-stories-dot {
+        position: absolute;
+        bottom: 18px;
+        left: 15px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #f8df8b;
+      }
+      @media (max-width: 640px) {
+        .sq-sahaba-stories-card {
+          align-items: flex-start;
+          padding: 23px 20px;
+        }
+        .sq-sahaba-stories-art {
+          width: 82px;
+          height: 82px;
+          flex-basis: 82px;
+          margin: 8px 0 0;
+        }
+        .sq-sahaba-stories-art::before { inset: 6px; }
+        .sq-sahaba-stories-book {
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
+        }
+        .sq-sahaba-stories-book svg { width: 27px; height: 27px; }
+        .sq-sahaba-stories-star { top: 2px; right: 4px; font-size: 17px; }
+        .sq-sahaba-stories-dot { bottom: 8px; left: 5px; width: 6px; height: 6px; }
+      }
+      @media (max-width: 420px) {
+        .sq-sahaba-stories-card { gap: 10px; }
+        .sq-sahaba-stories-art {
+          width: 58px;
+          height: 58px;
+          flex-basis: 58px;
+          margin-right: 0;
+        }
+        .sq-sahaba-stories-art::before { inset: 4px; }
+        .sq-sahaba-stories-book {
+          width: 36px;
+          height: 36px;
+          border-radius: 11px;
+        }
+        .sq-sahaba-stories-book svg { width: 22px; height: 22px; }
+        .sq-sahaba-stories-star { top: -2px; right: 0; font-size: 14px; }
+      }
       @media (max-width: 640px) { .sq-school-activity-item { align-items: stretch; flex-direction: column; } .sq-school-activity-item button { width: 100%; justify-content: center; } }
     `}</style>
 
