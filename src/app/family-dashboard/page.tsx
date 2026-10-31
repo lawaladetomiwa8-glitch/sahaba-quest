@@ -2312,7 +2312,7 @@ export default function FamilyDashboardPage() {
 
             <a
 
-              href="/family-quest"
+              href="/sahaba"
 
               style={{
 
@@ -2344,7 +2344,7 @@ export default function FamilyDashboardPage() {
 
             >
 
-              {activeQuestSession ? "Continue Family Learning →" : "Start Family Learning →"}
+              {activeQuestSession ? "Continue to Read & Learn →" : "Start to Read & Learn →"}
 
             </a>
 

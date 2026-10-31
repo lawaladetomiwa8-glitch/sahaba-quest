@@ -2633,9 +2633,7 @@ export default function DashboardPage() {
 
               >
 
-                Every question is an
-
-                opportunity to increase
+                Read our articles to increase
 
                 your knowledge and
 
@@ -2651,7 +2649,7 @@ export default function DashboardPage() {
 
             <a
 
-              href="/quiz"
+              href="/sahaba"
 
               style={{
 
