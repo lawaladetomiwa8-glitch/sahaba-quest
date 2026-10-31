@@ -1307,7 +1307,7 @@ export default function SchoolStudentDashboardPage() {
                 <button
                   type="button"
                   className="sq-sahaba-stories-button"
-                  onClick={() => router.push("/Sahaba")}
+                  onClick={() => router.push("/sahaba")}
                   aria-label="Explore stories of the Sahaba"
                 >
                   Explore Sahaba Stories
