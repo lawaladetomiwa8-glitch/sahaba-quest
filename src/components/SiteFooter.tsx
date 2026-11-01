@@ -475,18 +475,22 @@ export default function SiteFooter() {
           <section className="sq-footer-sponsors" aria-label="Sahaba Quest sponsors">
             <div className="sq-footer-sponsors-heading">
               <div className="sq-footer-heading">Proudly Supported By</div>
-              <p>With appreciation to the partners helping us make learning more engaging and accessible.</p>
             </div>
 
             <div className="sq-footer-sponsor-list">
               {FOOTER_SPONSORS.map((sponsor) => (
                 <div className="sq-footer-sponsor-card" key={sponsor.name}>
-                  <img
-                    src={sponsor.logo}
-                    alt={`${sponsor.name} logo`}
-                    loading="lazy"
-                  />
-                  <span>{sponsor.name}</span>
+                  <div className="sq-footer-sponsor-logo">
+                    <img
+                      src={sponsor.logo}
+                      alt={`${sponsor.name} logo`}
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="sq-footer-sponsor-details">
+                    <span className="sq-footer-sponsor-name">{sponsor.name}</span>
+                    <span className="sq-footer-sponsor-label">Project Sponsor</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1138,55 +1142,84 @@ export default function SiteFooter() {
         }
 
         .sq-footer-sponsors-heading .sq-footer-heading {
-          margin-bottom: 7px;
-        }
-
-        .sq-footer-sponsors-heading p {
-          max-width: 330px;
-          margin: 0;
-          color: #c5e7e3;
-          font-size: 12px;
-          line-height: 1.65;
+          margin-bottom: 0;
         }
 
         .sq-footer-sponsor-list {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 360px));
           justify-content: start;
-          gap: 14px;
+          gap: 12px;
           align-items: stretch;
         }
 
         .sq-footer-sponsor-card {
-          min-height: 124px;
+          min-height: 116px;
           width: 100%;
-          padding: 14px 18px;
-          border: 1px solid rgba(191, 245, 237, 0.22);
+          padding: 12px 16px;
+          border: 1px solid rgba(191, 245, 237, 0.2);
           border-radius: 16px;
-          background: rgba(255, 255, 255, 0.96);
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.085),
+            rgba(2, 48, 45, 0.2)
+          );
           display: flex;
           flex-direction: row;
           align-items: center;
           justify-content: flex-start;
-          gap: 18px;
+          gap: 16px;
           text-align: left;
           box-sizing: border-box;
+          box-shadow: 0 8px 22px rgba(0, 28, 26, 0.10);
         }
 
-        .sq-footer-sponsor-card img {
+        .sq-footer-sponsor-logo {
+          flex: 0 0 104px;
+          width: 104px;
+          height: 88px;
+          padding: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-sizing: border-box;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.42);
+          border-radius: 11px;
+          background: rgba(232, 247, 243, 0.96);
+        }
+
+        .sq-footer-sponsor-logo img {
           display: block;
-          flex: 0 0 112px;
-          width: 112px;
-          height: 96px;
+          width: 100%;
+          height: 100%;
           object-fit: contain;
           object-position: center;
         }
 
-        .sq-footer-sponsor-card span {
-          color: #174c47;
-          font-size: 14px;
-          font-weight: 850;
-          line-height: 1.4;
+        .sq-footer-sponsor-details {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+        }
+
+        .sq-footer-sponsor-name {
+          color: #f3fffc;
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+
+        .sq-footer-sponsor-label {
+          color: #a9d9d1;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1.3;
+          letter-spacing: 0.09em;
+          text-transform: uppercase;
         }
 
         .sq-footer-bottom {
@@ -1937,15 +1970,19 @@ export default function SiteFooter() {
           }
 
           .sq-footer-sponsor-card {
-            min-height: 116px;
-            padding: 12px 14px;
-            gap: 14px;
+            min-height: 104px;
+            padding: 10px 12px;
+            gap: 13px;
           }
 
-          .sq-footer-sponsor-card img {
-            flex-basis: 104px;
-            width: 104px;
-            height: 92px;
+          .sq-footer-sponsor-logo {
+            flex-basis: 94px;
+            width: 94px;
+            height: 82px;
+          }
+
+          .sq-footer-sponsor-name {
+            font-size: 14px;
           }
         }
 
