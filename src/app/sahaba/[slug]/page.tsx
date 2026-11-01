@@ -11,6 +11,7 @@ import {
 } from "@/lib/sahabah-articles";
 import ArticleMarkdown from "@/components/ArticleMarkdown";
 import SahabahArticleEngagement from "@/components/SahabahArticleEngagement";
+import SahabahQuizLink from "@/components/SahabahQuizLink";
 
 const SITE_URL = "https://www.sahabaquest.com.ng";
 const SITE_LOGO =
@@ -362,12 +363,7 @@ export default async function SahabaProfilePage({
                   ← All Sahaba
                 </Link>
 
-                <Link
-                  href="/signup"
-                  className="sq-button-primary"
-                >
-                  Test Your Knowledge →
-                </Link>
+                <SahabahQuizLink />
               </div>
             </article>
           </div>
@@ -744,12 +740,7 @@ export default async function SahabaProfilePage({
                 ← All Sahaba
               </Link>
 
-              <Link
-                href="/signup"
-                className="sq-button-primary"
-              >
-                Test Your Knowledge →
-              </Link>
+              <SahabahQuizLink />
             </div>
           </article>
         </div>
