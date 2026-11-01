@@ -99,7 +99,7 @@ const PANELS: Record<
 const FOOTER_SPONSORS = [
   {
     name: "Sheedah's Hub",
-    logo: "https://cdn.phototourl.com/member/2026-11-01-c23f4b5b-7006-4f23-a674-b74417322869.jpg",
+    logo: "https://cdn.phototourl.com/member/2026-11-01-e7dd8abb-8f3b-42fd-a26c-de919cd287b2.jpg",
   },
 ];
 
@@ -1128,10 +1128,10 @@ export default function SiteFooter() {
 
         .sq-footer-sponsors {
           grid-column: 1 / -1;
-          display: grid;
-          grid-template-columns: minmax(0, 0.8fr) minmax(0, 2fr);
-          align-items: center;
-          gap: 22px 30px;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 16px;
           padding: 24px 0 6px;
           border-top: 1px solid rgba(191, 245, 237, 0.18);
           min-width: 0;
@@ -1151,39 +1151,42 @@ export default function SiteFooter() {
 
         .sq-footer-sponsor-list {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 360px));
+          justify-content: start;
           gap: 14px;
           align-items: stretch;
         }
 
         .sq-footer-sponsor-card {
-          min-height: 112px;
+          min-height: 124px;
+          width: 100%;
           padding: 14px 18px;
           border: 1px solid rgba(191, 245, 237, 0.22);
           border-radius: 16px;
           background: rgba(255, 255, 255, 0.96);
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           align-items: center;
-          justify-content: center;
-          gap: 9px;
-          text-align: center;
+          justify-content: flex-start;
+          gap: 18px;
+          text-align: left;
           box-sizing: border-box;
         }
 
         .sq-footer-sponsor-card img {
           display: block;
-          width: 100%;
-          max-width: 170px;
-          height: 62px;
+          flex: 0 0 112px;
+          width: 112px;
+          height: 96px;
           object-fit: contain;
+          object-position: center;
         }
 
         .sq-footer-sponsor-card span {
           color: #174c47;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 850;
-          line-height: 1.35;
+          line-height: 1.4;
         }
 
         .sq-footer-bottom {
@@ -1923,13 +1926,26 @@ export default function SiteFooter() {
 
 
         @media (max-width: 900px) {
-          .sq-footer-sponsors {
-            grid-template-columns: 1fr;
+          .sq-footer-sponsors-heading p {
+            max-width: 520px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .sq-footer-sponsor-list {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .sq-footer-sponsor-card {
+            min-height: 116px;
+            padding: 12px 14px;
             gap: 14px;
           }
 
-          .sq-footer-sponsors-heading p {
-            max-width: 520px;
+          .sq-footer-sponsor-card img {
+            flex-basis: 104px;
+            width: 104px;
+            height: 92px;
           }
         }
 
