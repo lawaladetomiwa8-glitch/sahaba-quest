@@ -7,13 +7,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-/**
- * Sends readers to the quiz that belongs to their current account.
- *
- * School students use the platform's separate student-session token,
- * while Individual and Family users use Supabase authentication and
- * the account_type stored in their profiles row.
- */
 export default function SahabahQuizLink() {
   const router = useRouter();
   const navigationInProgress = useRef(false);
@@ -25,8 +18,7 @@ export default function SahabahQuizLink() {
     navigationInProgress.current = true;
 
     try {
-      // School students do not use the regular Supabase user session.
-      // Their existing student session is stored separately.
+      // 1. Check whether this is an authenticated school student.
       const schoolStudentToken = sessionStorage.getItem(
         "school_student_session_token",
       );
@@ -36,33 +28,34 @@ export default function SahabahQuizLink() {
         return;
       }
 
-      // Check the currently authenticated Supabase user.
+      // 2. Check the existing Supabase session.
       const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      if (authError) {
-        throw authError;
+      if (sessionError) {
+        throw sessionError;
       }
 
-      // Send visitors who are not signed in to the sign-up page.
-      if (!user) {
+      // 3. Visitors without an account or active session go to signup.
+      if (!session) {
         router.push("/signup");
         return;
       }
 
-      // Retrieve the authenticated user's account type.
+      // 4. Retrieve the user's account type.
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("account_type")
-        .eq("id", user.id)
+        .eq("id", session.user.id)
         .maybeSingle();
 
       if (profileError) {
         throw profileError;
       }
 
+      // 5. Direct the user to the appropriate quiz.
       switch (profile?.account_type) {
         case "family":
           router.push("/family-quest");
