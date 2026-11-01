@@ -100,6 +100,8 @@ const FOOTER_SPONSORS = [
   {
     name: "Sheedah's Hub",
     logo: "https://cdn.phototourl.com/member/2026-11-01-e7dd8abb-8f3b-42fd-a26c-de919cd287b2.jpg",
+    whatsapp: "https://wa.me/2348035376600",
+    caption: "Sponsored Competition Sponsor",
   },
 ];
 
@@ -475,11 +477,21 @@ export default function SiteFooter() {
           <section className="sq-footer-sponsors" aria-label="Sahaba Quest sponsors">
             <div className="sq-footer-sponsors-heading">
               <div className="sq-footer-heading">Proudly Supported By</div>
+              <p className="sq-footer-sponsors-caption">
+                These partners support our sponsored competitions.
+              </p>
             </div>
 
             <div className="sq-footer-sponsor-list">
               {FOOTER_SPONSORS.map((sponsor) => (
-                <div className="sq-footer-sponsor-card" key={sponsor.name}>
+                <a
+                  className="sq-footer-sponsor-card"
+                  key={sponsor.name}
+                  href={sponsor.whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Contact ${sponsor.name} on WhatsApp`}
+                >
                   <div className="sq-footer-sponsor-logo">
                     <img
                       src={sponsor.logo}
@@ -489,9 +501,10 @@ export default function SiteFooter() {
                   </div>
                   <div className="sq-footer-sponsor-details">
                     <span className="sq-footer-sponsor-name">{sponsor.name}</span>
-                    <span className="sq-footer-sponsor-label">Project Sponsor</span>
+                    <span className="sq-footer-sponsor-label">{sponsor.caption}</span>
+                    <span className="sq-footer-sponsor-action">Chat on WhatsApp</span>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </section>
@@ -1143,6 +1156,42 @@ export default function SiteFooter() {
 
         .sq-footer-sponsors-heading .sq-footer-heading {
           margin-bottom: 0;
+        }
+
+        .sq-footer-sponsors-caption {
+          margin: 7px 0 0;
+          color: #b7ded7;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
+        .sq-footer-sponsor-card {
+          color: inherit;
+          text-decoration: none;
+          cursor: pointer;
+          transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+        }
+
+        .sq-footer-sponsor-card:hover,
+        .sq-footer-sponsor-card:focus-visible {
+          border-color: rgba(191, 245, 237, 0.48);
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.12),
+            rgba(2, 48, 45, 0.24)
+          );
+          outline: none;
+        }
+
+        .sq-footer-sponsor-card:focus-visible {
+          box-shadow: 0 0 0 3px rgba(183, 222, 215, 0.28);
+        }
+
+        .sq-footer-sponsor-action {
+          color: #d1f5ed;
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.3;
         }
 
         .sq-footer-sponsor-list {
