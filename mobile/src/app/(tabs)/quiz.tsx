@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Button, Card, Heading, Notice, Screen, uiStyles } from '@/components/ui';
+import { Button, Card, FadeIn, Heading, Notice, Screen, uiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
@@ -9,7 +9,7 @@ type AccountType = 'free' | 'individual' | 'family';
 type Question = {
   id: string; level: number; question: string; option_a: string | null; option_b: string | null;
   option_c: string | null; option_d: string | null; explanation: string | null;
-  question_type: 'multiple_choice' | 'fill_blank';
+  question_type: 'multiple_choice' | 'fill_blank' | string | null;
 };
 type Result = {
   is_correct: boolean; timed_out: boolean; correct_answer: string; question_type: 'multiple_choice' | 'fill_blank';
@@ -29,17 +29,42 @@ export default function QuizTab() {
   const [remaining, setRemaining] = useState(30);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [typedAnswer, setTypedAnswer] = useState('');
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const submissionLock = useRef(false);
+  const timerProgress = useRef(new Animated.Value(1)).current;
+  const timerWidth = timerProgress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+
+  const ensureOptions = useCallback(async (questionId: string, candidate: Question) => {
+    let resolved = candidate;
+    let choices = [resolved.option_a, resolved.option_b, resolved.option_c, resolved.option_d]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+    // Some deployed RPC return shapes omit the option columns. The website also
+    // reads the question row directly when resuming, so use that same published
+    // row as a safe fallback instead of rendering an empty multiple-choice card.
+    if (!choices.length && resolved.question_type !== 'fill_blank') {
+      const { data, error } = await supabase.from('questions')
+        .select('id,level,question,option_a,option_b,option_c,option_d,explanation,question_type')
+        .eq('id', questionId).eq('is_published', true).maybeSingle();
+      if (error) throw error;
+      if (data) {
+        resolved = { ...resolved, ...data } as Question;
+        choices = [resolved.option_a, resolved.option_b, resolved.option_c, resolved.option_d]
+          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+      }
+    }
+    return { question: resolved, choices };
+  }, []);
 
   const loadNext = useCallback(async (userId: string, activeSessionId: string) => {
     setMessage('');
     setQuestion(null);
     setResult(null);
     setTypedAnswer('');
+    setSelectedOption(null);
     submissionLock.current = false;
     const { data, error } = await supabase.rpc('get_next_quiz_question', {
       p_user_id: userId,
@@ -47,9 +72,11 @@ export default function QuizTab() {
     });
     if (error) { setMessage(error.message); return; }
     if (!data?.length) { setMessage('You have answered all available questions for this game.'); return; }
-    const next = data[0] as Question;
-    const choices = [next.option_a, next.option_b, next.option_c, next.option_d]
-      .filter((value): value is string => Boolean(value?.trim()));
+    const { question: next, choices } = await ensureOptions(data[0].id, data[0] as Question);
+    if (next.question_type !== 'fill_blank' && !choices.length) {
+      setMessage('Answer choices could not be loaded. Your question timer has not started. Tap retry to reload.');
+      return;
+    }
     for (let index = choices.length - 1; index > 0; index -= 1) {
       const swap = Math.floor(Math.random() * (index + 1));
       [choices[index], choices[swap]] = [choices[swap], choices[index]];
@@ -65,7 +92,7 @@ export default function QuizTab() {
     setLevel(next.level);
     setStartedAt(at.getTime());
     setRemaining(30);
-  }, []);
+  }, [ensureOptions]);
 
   const startGame = useCallback(async () => {
     setLoading(true);
@@ -97,10 +124,15 @@ export default function QuizTab() {
           .select('id, level, question, option_a, option_b, option_c, option_d, explanation, question_type')
           .eq('id', active.current_question_id).eq('is_published', true).maybeSingle();
         if (saved) {
-          const choices = [saved.option_a, saved.option_b, saved.option_c, saved.option_d].filter((v): v is string => Boolean(v?.trim()));
+          const { question: restored, choices } = await ensureOptions(saved.id, saved as Question);
+          if (restored.question_type !== 'fill_blank' && !choices.length) {
+            setMessage('Answer choices could not be loaded. Your question timer has not started. Tap retry to reload.');
+            setLoading(false);
+            return;
+          }
           for (let i = choices.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [choices[i], choices[j]] = [choices[j], choices[i]]; }
           const start = active.current_question_started_at ? new Date(active.current_question_started_at).getTime() : Date.now();
-          setQuestion(saved as Question);
+          setQuestion(restored);
           setOptions(choices);
           setStartedAt(start);
           setRemaining(Math.max(0, 30 - Math.floor((Date.now() - start) / 1000)));
@@ -128,11 +160,11 @@ export default function QuizTab() {
     setLevel(session.level);
     await loadNext(user.id, session.id);
     setLoading(false);
-  }, [loadNext]);
+  }, [ensureOptions, loadNext]);
 
   useEffect(() => { void startGame(); }, [startGame]);
 
-  async function submitAnswer(answer: string | null) {
+  const submitAnswer = useCallback(async (answer: string | null) => {
     if (!question || !sessionId || !startedAt || submissionLock.current) return;
     submissionLock.current = true;
     setBusy(true);
@@ -147,18 +179,24 @@ export default function QuizTab() {
     const raw = Array.isArray(data) ? data[0] : data;
     if (!raw) { setMessage('The quiz server returned no answer result.'); submissionLock.current = false; return; }
     setResult(raw as Result);
+    setSelectedOption(null);
     setQuestionCount((count) => count + 1);
-  }
+  }, [question, sessionId, startedAt]);
 
   useEffect(() => {
-    if (!question || result || loading || busy || !startedAt) return;
+    if (!question || result || loading || busy || !startedAt || (question.question_type !== 'fill_blank' && options.length === 0)) return;
     const timer = setInterval(() => {
       const seconds = Math.max(0, 30 - Math.floor((Date.now() - startedAt) / 1000));
       setRemaining(seconds);
       if (seconds === 0) void submitAnswer(null);
     }, 250);
     return () => clearInterval(timer);
-  }, [question, result, loading, busy, startedAt, remaining]);
+  }, [question, result, loading, busy, startedAt, options.length, submitAnswer]);
+
+  useEffect(() => {
+    if (!question) return;
+    Animated.timing(timerProgress, { toValue: remaining / 30, duration: 260, useNativeDriver: false }).start();
+  }, [remaining, question?.id, timerProgress]);
 
   async function nextQuestion() {
     setResult(null);
@@ -180,24 +218,28 @@ export default function QuizTab() {
     <Notice message={message} />
     {question ? <>
       <View style={styles.meta}><Text style={styles.metaText}>LEVEL {level}</Text><Text style={styles.metaText}>{Math.min(questionCount + 1, 50)} / 50</Text><Text style={[styles.timer, remaining <= 5 && styles.timerUrgent]}>{remaining}s</Text></View>
-      <View style={styles.track}><View style={[styles.progressBar, { width: `${(remaining / 30) * 100}%` }]} /></View>
-      <Card style={styles.questionCard}><Text style={styles.questionText}>{question.question}</Text></Card>
+      <View style={styles.track}><Animated.View style={[styles.progressBar, remaining <= 5 && styles.progressUrgent, { width: timerWidth }]} /></View>
+      <FadeIn key={question.id}><Card style={styles.questionCard}><Text style={styles.questionText}>{question.question}</Text></Card></FadeIn>
       {!result && question.question_type === 'fill_blank' ? <>
         <TextInput value={typedAnswer} onChangeText={setTypedAnswer} placeholder="Type your answer" placeholderTextColor={colors.muted} style={styles.answerInput} editable={!busy} />
         <Button title="Submit answer" onPress={() => void submitAnswer(typedAnswer)} disabled={busy || !typedAnswer.trim()} />
       </> : null}
-      {!result && question.question_type === 'multiple_choice' ? <View style={styles.choices}>{options.map((option, index) => <Pressable key={`${question.id}-${index}`} disabled={busy} onPress={() => void submitAnswer(option)} style={({ pressed }) => [styles.choice, pressed && styles.pressed]}><Text style={styles.choiceLetter}>{String.fromCharCode(65 + index)}</Text><Text style={styles.choiceText}>{option}</Text></Pressable>)}</View> : null}
+      {!result && question.question_type !== 'fill_blank' && options.length > 0 ? <>
+        <View style={styles.choices}>{options.map((option, index) => <Pressable key={`${question.id}-${index}`} accessibilityRole="radio" accessibilityState={{ checked: selectedOption === option, disabled: busy }} disabled={busy} onPress={() => setSelectedOption(option)} style={({ pressed }) => [styles.choice, selectedOption === option && styles.choiceSelected, pressed && styles.pressed]}><Text style={[styles.choiceLetter, selectedOption === option && styles.choiceLetterSelected]}>{String.fromCharCode(65 + index)}</Text><Text style={styles.choiceText}>{option}</Text></Pressable>)}</View>
+        <Button title={busy ? 'Checking your answer…' : 'Submit answer'} disabled={busy || !selectedOption} onPress={() => void submitAnswer(selectedOption)} />
+      </> : null}
       {busy ? <Text style={uiStyles.smallMuted}>Checking your answer…</Text> : null}
       {result ? <>
-        <Card style={result.is_correct ? styles.correctCard : styles.wrongCard}>
+        <FadeIn><Card style={result.is_correct ? styles.correctCard : styles.wrongCard}>
           <Text style={styles.resultTitle}>{result.timed_out ? "Time's up" : result.is_correct ? 'Correct!' : 'Not quite'}</Text>
           <Text style={styles.resultText}>Correct answer: {result.correct_answer}</Text>
           {question.explanation ? <Text style={styles.resultText}>{question.explanation}</Text> : null}
           <Text style={styles.resultText}>+{result.xp_earned} XP · streak {result.current_streak}</Text>
-        </Card>
+        </Card></FadeIn>
         <Button title={result.level_completed ? 'Continue' : 'Next question'} onPress={() => void nextQuestion()} />
       </> : null}
     </> : null}
+    {!question && !loading && message ? <Button title="Retry loading question" secondary onPress={() => void startGame()} /> : null}
     {!question && !loading && !message ? <Button title="Start another game" onPress={() => void startGame()} /> : null}
     <Text style={styles.accountNote}>Playing as a {accountType} account</Text>
   </Screen>;
@@ -211,12 +253,15 @@ const styles = StyleSheet.create({
   timerUrgent: { color: colors.danger },
   track: { height: 6, borderRadius: 5, overflow: 'hidden', backgroundColor: colors.border },
   progressBar: { height: 6, backgroundColor: colors.teal },
+  progressUrgent: { backgroundColor: colors.danger },
   questionCard: { paddingVertical: 25, minHeight: 150, justifyContent: 'center' },
   questionText: { color: colors.ink, fontSize: 21, lineHeight: 30, fontWeight: '800' },
   choices: { gap: 10 },
   choice: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  choiceSelected: { borderColor: colors.teal, backgroundColor: colors.mint, borderWidth: 2 },
   pressed: { backgroundColor: colors.mint },
   choiceLetter: { width: 31, height: 31, lineHeight: 31, borderRadius: 16, overflow: 'hidden', textAlign: 'center', color: colors.teal, backgroundColor: colors.mint, fontWeight: '900' },
+  choiceLetterSelected: { color: '#fff', backgroundColor: colors.teal },
   choiceText: { flex: 1, color: colors.ink, fontSize: 15, lineHeight: 22 },
   answerInput: { minHeight: 54, borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 14, color: colors.ink, fontSize: 16 },
   correctCard: { borderColor: '#B4DEC9', backgroundColor: '#EBF8F0' },

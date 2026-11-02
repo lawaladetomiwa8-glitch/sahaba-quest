@@ -58,6 +58,7 @@ export default function SignUpScreen() {
       password,
       options: {
         captchaToken,
+        emailRedirectTo: 'sahabaquest://auth/callback',
         data: { display_name: cleanName, username: cleanUsername, account_type: 'free' },
       },
     });

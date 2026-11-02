@@ -1,23 +1,78 @@
 import { Redirect, router } from 'expo-router';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { Button, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth-context';
+import { getStudentSession } from '@/lib/secure-sessions';
+import { getFamilyMemberSession } from '@/lib/secure-sessions';
+import { apiRequest } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
+import { LaunchLoader } from '@/components/launch-loader';
 import { colors } from '@/lib/theme';
 
 export default function WelcomeScreen() {
   const { session, loading } = useAuth();
-  if (loading) return <View style={styles.loading}><ActivityIndicator color={colors.teal} /></View>;
+  const [studentSession, setStudentSession] = useState(false);
+  const [checkingStudent, setCheckingStudent] = useState(true);
+  const [accountRoute, setAccountRoute] = useState<'player' | 'family' | 'family-member' | 'school-admin' | 'platform-admin' | null>(null);
+  const [checkingAccount, setCheckingAccount] = useState(false);
+  const [launchComplete, setLaunchComplete] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLaunchComplete(true), 2300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([getStudentSession(), getFamilyMemberSession()]).then(([student, member]) => {
+      if (!active) return;
+      setStudentSession(Boolean(student));
+      setCheckingStudent(false);
+      if (session && !student) {
+        setCheckingAccount(true);
+        void (async () => {
+          const [{ data: { user } }, { data: authData }] = await Promise.all([
+            supabase.auth.getUser(),
+            supabase.auth.getSession(),
+          ]);
+          if (!user) { setAccountRoute('player'); setCheckingAccount(false); return; }
+          if (member) { setAccountRoute('family-member'); setCheckingAccount(false); return; }
+          const { data: profile } = await supabase.from('profiles').select('account_type').eq('id', user.id).maybeSingle();
+          if (profile?.account_type === 'family') { setAccountRoute('family'); setCheckingAccount(false); return; }
+          const { data: admin } = await supabase.from('admin_users').select('role').eq('user_id', user.id).eq('is_active', true).maybeSingle();
+          if (admin) { setAccountRoute('platform-admin'); setCheckingAccount(false); return; }
+          const accessToken = authData.session?.access_token;
+          if (accessToken) {
+            try { await apiRequest('/api/schools/dashboard', { token: accessToken }); setAccountRoute('school-admin'); }
+            catch { setAccountRoute('player'); }
+          } else setAccountRoute('player');
+          setCheckingAccount(false);
+        })();
+      }
+    }).catch(() => { if (active) setCheckingStudent(false); });
+    return () => { active = false; };
+  }, [session]);
+
+  if (!launchComplete || loading || checkingStudent || (session && checkingAccount)) return <LaunchLoader />;
+  if (studentSession) return <Redirect href="/student-home" />;
+  if (session && accountRoute === 'family-member') return <Redirect href="/family-member-home" />;
+  if (session && accountRoute === 'family') return <Redirect href="/family-owner-home" />;
+  if (session && accountRoute === 'school-admin') return <Redirect href="/school-admin-home" />;
+  if (session && accountRoute === 'platform-admin') return <Redirect href="/admin-home" />;
   if (session) return <Redirect href="/(tabs)" />;
 
   return <Screen style={styles.content}>
     <View style={styles.brand}><Image source={require('@/assets/images/icon.png')} style={styles.logo} /><Text style={styles.brandName}>Sahaba Quest</Text></View>
     <View style={styles.hero}>
-      <Text style={styles.eyebrow}>LEARN • PLAY • GROW</Text>
-      <Text style={styles.title}>A brighter way to learn about the Sahaba.</Text>
-      <Text style={styles.body}>Explore stories, answer questions, and build your knowledge one quest at a time.</Text>
+      <Text style={styles.eyebrow}>LEARN • REMEMBER • COMPETE</Text>
+      <Text style={styles.title}>Learn from the Best of Generations.</Text>
+      <Text style={styles.body}>Discover the lives, sacrifices, character, and remarkable stories of the Companions of the Prophet ﷺ.</Text>
       <View style={styles.actions}>
-        <Button title="Sign in" onPress={() => router.push('/sign-in')} />
+        <Button title="Start your journey →" onPress={() => router.push('/account-access')} />
+        <Button title="Explore the Sahaba" secondary onPress={() => router.push('/sahaba')} />
+        <Button title="Schools & Madrasas" secondary onPress={() => router.push('/schools')} />
         <Button title="Create an account" secondary onPress={() => router.push('/sign-up')} />
       </View>
     </View>
@@ -26,7 +81,6 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   content: { flex: 1, justifyContent: 'space-between', paddingTop: 34, paddingBottom: 28 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logo: { width: 40, height: 40, borderRadius: 12 },

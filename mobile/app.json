@@ -16,8 +16,7 @@
       "package": "com.sahabaquest.app",
       "adaptiveIcon": {
         "backgroundColor": "#F5FAF8",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -35,10 +34,12 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite"
+      "expo-secure-store",
+      "expo-document-picker",
+      "expo-sqlite",
+      "expo-sharing"
     ],
     "experiments": {
-      "typedRoutes": true,
       "reactCompiler": true
     }
   }
