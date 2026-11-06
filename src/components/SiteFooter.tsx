@@ -100,7 +100,7 @@ const FOOTER_SPONSORS = [
   {
     name: "Sheedah's Hub",
     logo: "https://cdn.phototourl.com/member/2026-11-01-e7dd8abb-8f3b-42fd-a26c-de919cd287b2.jpg",
-    whatsapp: "https://wa.me/2348035376600",
+    whatsapp: "https://wa.me/2347072645900",
     caption: "Sponsored Competition Sponsor",
   },
 ];

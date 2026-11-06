@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
@@ -42,6 +42,40 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+
+function toDateTimeLocal(value: string) {
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+async function uploadSponsorAsset(
+  file: File,
+  kind: "logo" | "banner",
+  userId: string
+) {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${userId}/${kind}-${Date.now()}-${crypto.randomUUID()}.${safeExtension}`;
+
+  const { error } = await supabase.storage
+    .from("sponsored-assets")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || undefined,
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage
+    .from("sponsored-assets")
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
 export default function CompetitionManagementPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -59,6 +93,26 @@ export default function CompetitionManagementPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [editForm, setEditForm] = useState({
+    sponsor_name: "",
+    sponsor_description: "",
+    sponsor_banner_url: "",
+    sponsor_logo_url: "",
+    title: "",
+    description: "",
+    rules: "",
+    prizes: "",
+    competition_type: "weekly" as "weekly" | "monthly",
+    starts_at: "",
+    ends_at: "",
+    display_order: "0",
+    is_published: false,
+  });
 
   async function loadCompetition() {
     setLoading(true);
@@ -132,6 +186,139 @@ export default function CompetitionManagementPage() {
   useEffect(() => {
     loadCompetition();
   }, [params.id]);
+
+  function beginEditing() {
+    if (!competition) return;
+
+    setEditForm({
+      sponsor_name: competition.sponsor_name || "",
+      sponsor_description: competition.sponsor_description || "",
+      sponsor_banner_url: competition.sponsor_banner_url || "",
+      sponsor_logo_url: competition.sponsor_logo_url || "",
+      title: competition.title || "",
+      description: competition.description || "",
+      rules: competition.rules || "",
+      prizes: competition.prizes || "",
+      competition_type: competition.competition_type,
+      starts_at: toDateTimeLocal(competition.starts_at),
+      ends_at: toDateTimeLocal(competition.ends_at),
+      display_order: String(competition.display_order ?? 0),
+      is_published: competition.is_published,
+    });
+    setBannerFile(null);
+    setLogoFile(null);
+    setEditError("");
+    setEditing(true);
+  }
+
+  function updateEditField(
+    field: keyof typeof editForm,
+    value: string | boolean
+  ) {
+    setEditForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function saveCompetition(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!competition) return;
+    setEditError("");
+
+    if (!editForm.sponsor_name.trim() || !editForm.title.trim()) {
+      setEditError("Please enter both the sponsor name and competition title.");
+      return;
+    }
+
+    if (!editForm.starts_at || !editForm.ends_at) {
+      setEditError("Please provide both the competition start and end dates.");
+      return;
+    }
+
+    const start = new Date(editForm.starts_at);
+    const end = new Date(editForm.ends_at);
+
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime()) ||
+      end <= start
+    ) {
+      setEditError("Please check the competition dates. The end must be after the start.");
+      return;
+    }
+
+    setEditSaving(true);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      const { data: admin, error: adminError } = await supabase
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (adminError || !admin) {
+        setEditError("Your admin access could not be verified. Please sign in again or contact support.");
+        return;
+      }
+
+      let sponsorBannerUrl = editForm.sponsor_banner_url.trim() || null;
+      let sponsorLogoUrl = editForm.sponsor_logo_url.trim() || null;
+
+      if (bannerFile) {
+        sponsorBannerUrl = await uploadSponsorAsset(bannerFile, "banner", user.id);
+      }
+
+      if (logoFile) {
+        sponsorLogoUrl = await uploadSponsorAsset(logoFile, "logo", user.id);
+      }
+
+      const { data, error } = await supabase
+        .from("sponsored_competitions")
+        .update({
+          sponsor_name: editForm.sponsor_name.trim(),
+          sponsor_description: editForm.sponsor_description.trim() || null,
+          sponsor_banner_url: sponsorBannerUrl,
+          sponsor_logo_url: sponsorLogoUrl,
+          title: editForm.title.trim(),
+          description: editForm.description.trim() || null,
+          rules: editForm.rules.trim() || null,
+          prizes: editForm.prizes.trim() || null,
+          competition_type: editForm.competition_type,
+          starts_at: start.toISOString(),
+          ends_at: end.toISOString(),
+          is_published: editForm.is_published,
+          display_order: Number.parseInt(editForm.display_order, 10) || 0,
+        })
+        .eq("id", competition.id)
+        .select(
+          "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published,display_order,created_at"
+        )
+        .single();
+
+      if (error) {
+        console.error("Update competition error:", error);
+        setEditError("We couldn't save your changes. Please try again. If the problem continues, contact support.");
+        return;
+      }
+
+      setCompetition(data as Competition);
+      setEditing(false);
+      setMessage("Competition details updated successfully.");
+    } catch (error) {
+      console.error("Unexpected update competition error:", error);
+      setEditError("Something went wrong while saving the competition. Please try again.");
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   async function togglePublished() {
     if (!competition) return;
@@ -329,6 +516,16 @@ export default function CompetitionManagementPage() {
           >
             <button
               type="button"
+              className="sq-button-primary"
+              onClick={beginEditing}
+              disabled={busy || editSaving}
+              style={{ border: 0, cursor: "pointer" }}
+            >
+              Edit Competition
+            </button>
+
+            <button
+              type="button"
               className="sq-button-secondary"
               onClick={togglePublished}
               disabled={busy}
@@ -357,6 +554,112 @@ export default function CompetitionManagementPage() {
           </div>
         </div>
       </section>
+
+      {editing && (
+        <form onSubmit={saveCompetition} className="sq-card" style={{ padding: 24, marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <h2 style={{ margin: 0 }}>Edit Competition</h2>
+              <p className="sq-subtitle" style={{ marginBottom: 0 }}>
+                Update the competition details. Existing questions, announcements and participant records will not be changed.
+              </p>
+            </div>
+            <button type="button" className="sq-button-secondary" onClick={() => setEditing(false)} disabled={editSaving}>
+              Cancel
+            </button>
+          </div>
+
+          {editError && (
+            <div role="alert" style={{ marginTop: 18, padding: 13, borderRadius: 10, background: "rgba(220, 38, 38, 0.07)", color: "#b42318", fontSize: 13 }}>
+              {editError}
+            </div>
+          )}
+
+          <div className="edit-form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16, marginTop: 22 }}>
+            <label className="edit-field">
+              <span>Sponsor name *</span>
+              <input required value={editForm.sponsor_name} onChange={(e) => updateEditField("sponsor_name", e.target.value)} />
+            </label>
+            <label className="edit-field">
+              <span>Competition title *</span>
+              <input required value={editForm.title} onChange={(e) => updateEditField("title", e.target.value)} />
+            </label>
+            <label className="edit-field">
+              <span>Competition type</span>
+              <select value={editForm.competition_type} onChange={(e) => updateEditField("competition_type", e.target.value as "weekly" | "monthly")}>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+            <label className="edit-field">
+              <span>Display order</span>
+              <input type="number" min="0" value={editForm.display_order} onChange={(e) => updateEditField("display_order", e.target.value)} />
+            </label>
+
+            <label className="edit-field edit-full">
+              <span>Sponsor description</span>
+              <textarea rows={3} value={editForm.sponsor_description} onChange={(e) => updateEditField("sponsor_description", e.target.value)} placeholder="Tell participants about the sponsor." />
+            </label>
+            <label className="edit-field edit-full">
+              <span>Competition description</span>
+              <textarea rows={4} value={editForm.description} onChange={(e) => updateEditField("description", e.target.value)} placeholder="Describe the competition for participants." />
+            </label>
+            <label className="edit-field">
+              <span>Competition rules</span>
+              <textarea rows={7} value={editForm.rules} onChange={(e) => updateEditField("rules", e.target.value)} placeholder="Enter each rule on a new line." />
+            </label>
+            <label className="edit-field">
+              <span>Prizes</span>
+              <textarea rows={7} value={editForm.prizes} onChange={(e) => updateEditField("prizes", e.target.value)} placeholder="Enter prize details." />
+            </label>
+
+            <label className="edit-field">
+              <span>Start date and time</span>
+              <input required type="datetime-local" value={editForm.starts_at} onChange={(e) => updateEditField("starts_at", e.target.value)} />
+            </label>
+            <label className="edit-field">
+              <span>End date and time</span>
+              <input required type="datetime-local" value={editForm.ends_at} onChange={(e) => updateEditField("ends_at", e.target.value)} />
+            </label>
+
+            <label className="edit-field">
+              <span>Sponsor logo URL</span>
+              <input type="url" value={editForm.sponsor_logo_url} onChange={(e) => updateEditField("sponsor_logo_url", e.target.value)} placeholder="https://..." />
+            </label>
+            <label className="edit-field">
+              <span>Replace sponsor logo</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
+            </label>
+            <label className="edit-field edit-full">
+              <span>Sponsor banner URL</span>
+              <input type="url" value={editForm.sponsor_banner_url} onChange={(e) => updateEditField("sponsor_banner_url", e.target.value)} placeholder="https://..." />
+            </label>
+            <label className="edit-field edit-full">
+              <span>Replace sponsor banner</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
+            </label>
+          </div>
+
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 11, marginTop: 20, cursor: "pointer" }}>
+            <input type="checkbox" checked={editForm.is_published} onChange={(e) => updateEditField("is_published", e.target.checked)} style={{ width: 18, height: 18, marginTop: 2 }} />
+            <span>
+              <strong>Publish this competition</strong>
+              <span style={{ display: "block", color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
+                Published competitions are visible on the public sponsored competitions page.
+              </span>
+            </span>
+          </label>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 24 }}>
+            <button type="submit" className="sq-button-primary" disabled={editSaving} style={{ border: 0, cursor: editSaving ? "wait" : "pointer" }}>
+              {editSaving ? "Saving changes..." : "Save Changes"}
+            </button>
+            <button type="button" className="sq-button-secondary" onClick={() => setEditing(false)} disabled={editSaving}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       <section
         style={{
@@ -602,7 +905,55 @@ export default function CompetitionManagementPage() {
       </section>
 
       <style jsx>{`
+        .edit-field {
+          display: flex;
+          flex-direction: column;
+          gap: 7px;
+          min-width: 0;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .edit-field input,
+        .edit-field select,
+        .edit-field textarea {
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 11px 12px;
+          background: var(--background);
+          color: inherit;
+          font: inherit;
+          font-weight: 500;
+          outline: none;
+        }
+
+        .edit-field textarea {
+          resize: vertical;
+          line-height: 1.55;
+        }
+
+        .edit-field input:focus,
+        .edit-field select:focus,
+        .edit-field textarea:focus {
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+        }
+
+        .edit-full {
+          grid-column: 1 / -1;
+        }
+
         @media (max-width: 800px) {
+          .edit-form-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .edit-full {
+            grid-column: auto;
+          }
           .stats-grid {
             grid-template-columns: repeat(2,minmax(0,1fr)) !important;
           }

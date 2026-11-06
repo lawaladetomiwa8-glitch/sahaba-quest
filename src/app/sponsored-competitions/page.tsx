@@ -37,15 +37,32 @@ function statusOf(c: Competition) {
 }
 
 function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date to be announced";
+
   return new Intl.DateTimeFormat("en-NG", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Africa/Lagos",
+  })
+    .format(date)
+    .replace(",", " ·");
 }
 
 function formatHistoryDate(value: string) {
   const date = new Date(value);
-  const day = date.getDate();
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+  const day = Number(
+    new Intl.DateTimeFormat("en-NG", {
+      timeZone: "Africa/Lagos",
+      day: "numeric",
+    }).format(date),
+  );
   const suffix =
     day % 100 >= 11 && day % 100 <= 13
       ? "th"
@@ -60,6 +77,7 @@ function formatHistoryDate(value: string) {
   const monthAndYear = new Intl.DateTimeFormat("en-NG", {
     month: "long",
     year: "numeric",
+    timeZone: "Africa/Lagos",
   }).format(date);
 
   return `${day}${suffix} ${monthAndYear}`;
@@ -574,19 +592,20 @@ export default function SponsoredCompetitionsPage() {
 
       <style jsx>{`
         .sq-sponsored-page {
-          width: 100%;
+          width: min(100% - 48px, 1320px);
           min-width: 0;
-          overflow-x: hidden;
-          padding-bottom: 48px;
+          margin: 0 auto;
+          padding: 24px 0 64px;
+          overflow-x: clip;
         }
 
         .sq-sponsored-hero {
           position: relative;
-          width: calc(100vw - 48px);
-          max-width: 1440px;
+          width: 100%;
+          max-width: none;
           min-height: 400px;
-          margin-left: 50%;
-          transform: translateX(-50%);
+          margin: 0;
+          transform: none;
           overflow: hidden;
           border-radius: 24px;
           padding: clamp(30px, 4vw, 48px);
@@ -1124,8 +1143,10 @@ export default function SponsoredCompetitionsPage() {
 
         .sq-meta-box strong {
           display: block;
-          margin-top: 2px;
+          margin-top: 4px;
           font-size: 12px;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
         }
 
         .sq-featured-actions {
@@ -1327,6 +1348,14 @@ export default function SponsoredCompetitionsPage() {
           font-size: 11px;
         }
 
+        .sq-card-sponsor-description {
+          margin: 10px 0 0;
+          color: var(--muted);
+          font-size: 10px;
+          line-height: 1.55;
+          overflow-wrap: anywhere;
+        }
+
         .sq-card-content h3 {
           margin: 15px 0 7px;
           font-size: 17px;
@@ -1363,8 +1392,10 @@ export default function SponsoredCompetitionsPage() {
 
         .sq-card-meta strong {
           display: block;
-          margin-top: 2px;
+          margin-top: 4px;
           font-size: 10px;
+          line-height: 1.4;
+          overflow-wrap: anywhere;
         }
 
         .sq-card-button {
@@ -1820,6 +1851,10 @@ export default function SponsoredCompetitionsPage() {
         }
 
         @media (max-width: 1050px) {
+          .sq-sponsored-page {
+            width: min(100% - 36px, 1320px);
+          }
+
           .sq-sponsored-hero {
             grid-template-columns: minmax(0, 1fr) minmax(250px, 0.72fr);
             min-height: 380px;
@@ -1863,6 +1898,12 @@ export default function SponsoredCompetitionsPage() {
         }
 
         @media (max-width: 620px) {
+          .sq-sponsored-page {
+            width: calc(100% - 28px);
+            padding-top: 14px;
+            padding-bottom: 40px;
+          }
+
           .sq-sponsored-hero {
             min-height: auto;
             padding: 28px 20px;
@@ -1961,7 +2002,12 @@ export default function SponsoredCompetitionsPage() {
           }
 
           .sq-featured-content {
-            padding: 22px;
+            padding: 20px 16px;
+          }
+
+          .sq-meta-grid,
+          .sq-card-meta {
+            grid-template-columns: 1fr;
           }
 
           .sq-featured-actions {
@@ -2035,7 +2081,7 @@ function FeaturedCompetition({
           {competition.sponsor_logo_url ? (
             <img
               src={competition.sponsor_logo_url}
-              alt=""
+              alt={`${competition.sponsor_name} logo`}
               className="sq-sponsor-logo"
             />
           ) : (
@@ -3036,11 +3082,11 @@ function CompetitionCard({
           {competition.sponsor_logo_url ? (
             <img
               src={competition.sponsor_logo_url}
-              alt=""
+              alt={`${competition.sponsor_name} logo`}
               className="sq-card-logo"
             />
           ) : (
-            <div className="sq-card-logo" />
+            <div className="sq-card-logo" aria-hidden="true" />
           )}
 
           <div>
@@ -3048,6 +3094,12 @@ function CompetitionCard({
             <strong>{competition.sponsor_name}</strong>
           </div>
         </div>
+
+        {competition.sponsor_description && (
+          <p className="sq-card-sponsor-description">
+            {competition.sponsor_description}
+          </p>
+        )}
 
         <h3>{competition.title}</h3>
 
