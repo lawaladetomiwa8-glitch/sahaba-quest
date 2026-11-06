@@ -212,6 +212,13 @@ export default function SponsoredCompetitionsPage() {
   );
 
   const featured = active[0] ?? upcoming[0] ?? null;
+  const nextUpcoming = useMemo(
+    () =>
+      [...upcoming].sort(
+        (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
+      )[0] ?? null,
+    [upcoming],
+  );
   const canParticipate = accountType === "individual" && hasPremium;
 
   function join(c: Competition) {
@@ -290,6 +297,8 @@ export default function SponsoredCompetitionsPage() {
       <AppNavbar />
 
       <main className="sq-sponsored-page">
+      {nextUpcoming && <RegistrationCountdown startsAt={nextUpcoming.starts_at} />}
+
       <section className="sq-sponsored-hero">
         <div className="sq-sponsored-hero-glow sq-glow-one" />
         <div className="sq-sponsored-hero-glow sq-glow-two" />
@@ -497,27 +506,6 @@ export default function SponsoredCompetitionsPage() {
 
           <div className="sq-competition-grid">
             {active.slice(1).map((competition) => (
-              <CompetitionCard
-                key={competition.id}
-                competition={competition}
-                onJoin={join}
-                premium={canParticipate}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {upcoming.length > 0 && (
-        <section className="sq-competition-section" id="sq-upcoming">
-          <SectionTitle
-            kicker="COMING SOON"
-            title="Get ready."
-            subtitle="Keep an eye on the next sponsored competitions and their opening times."
-          />
-
-          <div className="sq-competition-grid">
-            {upcoming.map((competition) => (
               <CompetitionCard
                 key={competition.id}
                 competition={competition}
@@ -1026,48 +1014,7 @@ export default function SponsoredCompetitionsPage() {
           height: 100%;
           object-fit: cover;
           display: block;
-          opacity: 0.72;
-        }
-
-        .sq-featured-media-overlay {
-          position: absolute;
-          inset: 0;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 22px;
-          background: linear-gradient(
-            180deg,
-            rgba(0, 0, 0, 0.08),
-            rgba(0, 0, 0, 0.58)
-          );
-          color: white;
-        }
-
-        .sq-featured-status {
-          align-self: flex-start;
-          padding: 7px 10px;
-          border-radius: 999px;
-          background: rgba(0, 0, 0, 0.28);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(8px);
-          font-size: 10px;
-          font-weight: 900;
-        }
-
-        .sq-featured-media-copy h3 {
-          margin: 0 0 6px;
-          font-size: clamp(28px, 4vw, 48px);
-          line-height: 0.98;
-          letter-spacing: -0.04em;
-        }
-
-        .sq-featured-media-copy p {
-          margin: 0;
-          max-width: 560px;
-          color: rgba(255, 255, 255, 0.78);
-          font-size: 12px;
-          line-height: 1.55;
+          opacity: 1;
         }
 
         .sq-featured-content {
@@ -1110,8 +1057,13 @@ export default function SponsoredCompetitionsPage() {
         .sq-featured-content h3 {
           margin: 0 0 9px;
           font-size: 24px;
-          line-height: 1.05;
+          line-height: 1.15;
           letter-spacing: -0.025em;
+        }
+
+        .sq-featured-content .sq-featured-title {
+          max-width: 620px;
+          overflow-wrap: anywhere;
         }
 
         .sq-featured-content > p {
@@ -2039,6 +1991,74 @@ export default function SponsoredCompetitionsPage() {
   );
 }
 
+
+function RegistrationCountdown({ startsAt }: { startsAt: string }) {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [startsAt]);
+
+  const target = new Date(startsAt).getTime();
+  const remaining = now === null ? null : Math.max(0, target - now);
+  const totalSeconds = remaining === null ? null : Math.floor(remaining / 1000);
+  const days = totalSeconds === null ? "--" : String(Math.floor(totalSeconds / 86400)).padStart(2, "0");
+  const hours = totalSeconds === null ? "--" : String(Math.floor((totalSeconds % 86400) / 3600)).padStart(2, "0");
+  const minutes = totalSeconds === null ? "--" : String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+  const seconds = totalSeconds === null ? "--" : String(totalSeconds % 60).padStart(2, "0");
+  const opened = remaining !== null && remaining <= 0;
+
+  return (
+    <section
+      aria-live="off"
+      aria-label="Competition registration countdown"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        flexWrap: "wrap",
+        margin: "0 0 22px",
+        padding: "12px 16px",
+        border: "1px solid rgba(20, 184, 166, 0.2)",
+        borderRadius: 16,
+        background: "linear-gradient(100deg, rgba(20, 184, 166, 0.09), rgba(20, 184, 166, 0.025))",
+      }}
+    >
+      <div style={{ minWidth: 180, flex: "1 1 220px" }}>
+        <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", color: "var(--primary)", textTransform: "uppercase" }}>
+          {opened ? "Registration is open" : "Next competition registration"}
+        </div>
+        <div style={{ marginTop: 3, fontSize: 13, fontWeight: 750 }}>
+          {opened ? "You can now enter the competition." : "Opening soon — get ready to participate."}
+        </div>
+      </div>
+      {opened ? (
+        <span style={{ color: "var(--primary)", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap" }}>
+          NOW OPEN
+        </span>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {[
+            [days, "Days"],
+            [hours, "Hrs"],
+            [minutes, "Mins"],
+            [seconds, "Secs"],
+          ].map(([value, label]) => (
+            <div key={label} style={{ minWidth: 48, textAlign: "center", padding: "6px 7px", borderRadius: 10, background: "var(--card, #fff)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 17, lineHeight: 1.1, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+              <div style={{ marginTop: 3, fontSize: 9, color: "var(--muted)", fontWeight: 800, textTransform: "uppercase" }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function FeaturedCompetition({
   competition,
   premium,
@@ -2056,36 +2076,20 @@ function FeaturedCompetition({
     <article className="sq-featured-card">
       <div className="sq-featured-media">
         {competition.sponsor_banner_url ? (
-          <img src={competition.sponsor_banner_url} alt="" />
+          <img src={competition.sponsor_banner_url} alt={`${competition.title} competition banner`} />
         ) : null}
-
-        <div className="sq-featured-media-overlay">
-          <span className="sq-featured-status">
-            {status === "live"
-              ? "● LIVE NOW"
-              : `STARTS IN ${getCountdown(competition.starts_at).toUpperCase()}`}
-          </span>
-
-          <div className="sq-featured-media-copy">
-            <h3>{competition.title}</h3>
-            <p>
-              {competition.sponsor_description ||
-                "A special sponsored Sahaba Quest competition."}
-            </p>
-          </div>
-        </div>
       </div>
 
       <div className="sq-featured-content">
         <div className="sq-sponsor-line">
           {competition.sponsor_logo_url ? (
             <img
+              className="sq-sponsor-logo"
               src={competition.sponsor_logo_url}
               alt={`${competition.sponsor_name} logo`}
-              className="sq-sponsor-logo"
             />
           ) : (
-            <div className="sq-sponsor-logo" />
+            <div className="sq-sponsor-logo" aria-hidden="true">🤝</div>
           )}
 
           <div>
@@ -2094,12 +2098,7 @@ function FeaturedCompetition({
           </div>
         </div>
 
-        <h3>{status === "live" ? "Ready to compete?" : "Mark your calendar."}</h3>
-
-        <p>
-          {competition.description ||
-            "Challenge yourself with a special Islamic knowledge competition."}
-        </p>
+        <h3 className="sq-featured-title">{competition.title}</h3>
 
         <div className="sq-meta-grid">
           <div className="sq-meta-box">
@@ -2129,23 +2128,24 @@ function FeaturedCompetition({
         </div>
 
         <div className="sq-featured-actions">
-          <button
-            type="button"
-            className="sq-featured-primary"
-            disabled={status !== "live"}
-            onClick={() => onJoin(competition)}
-            style={{
-              opacity: status === "live" ? 1 : 0.55,
-              cursor: status === "live" ? "pointer" : "not-allowed",
-              border: 0,
-            }}
+          {status === "live" && (
+            <button
+              type="button"
+              className="sq-featured-primary"
+              onClick={() => onJoin(competition)}
+              style={{ border: 0 }}
+            >
+              {premium ? "Join Competition" : "View Access"}
+            </button>
+          )}
+
+          <Link
+            href={`/sponsored-competitions/${competition.id}`}
+            className="sq-featured-secondary"
           >
-            {status === "live"
-              ? premium
-                ? "Join Competition"
-                : "View Access"
-              : "Coming Soon"}
-          </button>
+            <span>View more details</span>
+            <span aria-hidden="true">→</span>
+          </Link>
 
           {status === "live" && !premium && (
             <Link href="/pricing" className="sq-featured-secondary">
@@ -2425,11 +2425,7 @@ function PastCompetitionCard({
       <div className="sq-history-card-content">
         <div className="sq-history-sponsor">
           <div className="sq-history-sponsor-icon" aria-hidden="true">
-            {competition.sponsor_logo_url ? (
-              <img src={competition.sponsor_logo_url} alt="" />
-            ) : (
-              "🤝"
-            )}
+            🤝
           </div>
 
           <div className="sq-history-sponsor-copy">
@@ -3079,15 +3075,7 @@ function CompetitionCard({
 
       <div className="sq-card-content">
         <div className="sq-card-sponsor">
-          {competition.sponsor_logo_url ? (
-            <img
-              src={competition.sponsor_logo_url}
-              alt={`${competition.sponsor_name} logo`}
-              className="sq-card-logo"
-            />
-          ) : (
-            <div className="sq-card-logo" aria-hidden="true" />
-          )}
+          <div className="sq-card-logo" aria-hidden="true">🤝</div>
 
           <div>
             <small>SPONSORED BY</small>

@@ -11,6 +11,12 @@ type Competition = {
   sponsor_description: string | null;
   sponsor_banner_url: string | null;
   sponsor_logo_url: string | null;
+  sponsor_image_url: string | null;
+  sponsor_whatsapp: string | null;
+  sponsor_instagram_url: string | null;
+  sponsor_facebook_url: string | null;
+  sponsor_tiktok_url: string | null;
+  sponsor_website_url: string | null;
   title: string;
   description: string | null;
   rules: string | null;
@@ -52,7 +58,7 @@ function toDateTimeLocal(value: string) {
 
 async function uploadSponsorAsset(
   file: File,
-  kind: "logo" | "banner",
+  kind: "logo" | "banner" | "image",
   userId: string
 ) {
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -98,11 +104,18 @@ export default function CompetitionManagementPage() {
   const [editError, setEditError] = useState("");
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [sponsorImageFile, setSponsorImageFile] = useState<File | null>(null);
   const [editForm, setEditForm] = useState({
     sponsor_name: "",
     sponsor_description: "",
     sponsor_banner_url: "",
     sponsor_logo_url: "",
+    sponsor_image_url: "",
+    sponsor_whatsapp: "",
+    sponsor_instagram_url: "",
+    sponsor_facebook_url: "",
+    sponsor_tiktok_url: "",
+    sponsor_website_url: "",
     title: "",
     description: "",
     rules: "",
@@ -129,7 +142,7 @@ export default function CompetitionManagementPage() {
       supabase
         .from("sponsored_competitions")
         .select(
-          "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published,display_order,created_at"
+          "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,sponsor_image_url,sponsor_whatsapp,sponsor_instagram_url,sponsor_facebook_url,sponsor_tiktok_url,sponsor_website_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published,display_order,created_at"
         )
         .eq("id", id)
         .maybeSingle(),
@@ -195,6 +208,12 @@ export default function CompetitionManagementPage() {
       sponsor_description: competition.sponsor_description || "",
       sponsor_banner_url: competition.sponsor_banner_url || "",
       sponsor_logo_url: competition.sponsor_logo_url || "",
+      sponsor_image_url: competition.sponsor_image_url || "",
+      sponsor_whatsapp: competition.sponsor_whatsapp || "",
+      sponsor_instagram_url: competition.sponsor_instagram_url || "",
+      sponsor_facebook_url: competition.sponsor_facebook_url || "",
+      sponsor_tiktok_url: competition.sponsor_tiktok_url || "",
+      sponsor_website_url: competition.sponsor_website_url || "",
       title: competition.title || "",
       description: competition.description || "",
       rules: competition.rules || "",
@@ -207,6 +226,7 @@ export default function CompetitionManagementPage() {
     });
     setBannerFile(null);
     setLogoFile(null);
+    setSponsorImageFile(null);
     setEditError("");
     setEditing(true);
   }
@@ -271,6 +291,7 @@ export default function CompetitionManagementPage() {
 
       let sponsorBannerUrl = editForm.sponsor_banner_url.trim() || null;
       let sponsorLogoUrl = editForm.sponsor_logo_url.trim() || null;
+      let sponsorImageUrl = editForm.sponsor_image_url.trim() || null;
 
       if (bannerFile) {
         sponsorBannerUrl = await uploadSponsorAsset(bannerFile, "banner", user.id);
@@ -278,6 +299,9 @@ export default function CompetitionManagementPage() {
 
       if (logoFile) {
         sponsorLogoUrl = await uploadSponsorAsset(logoFile, "logo", user.id);
+      }
+      if (sponsorImageFile) {
+        sponsorImageUrl = await uploadSponsorAsset(sponsorImageFile, "image", user.id);
       }
 
       const { data, error } = await supabase
@@ -287,6 +311,12 @@ export default function CompetitionManagementPage() {
           sponsor_description: editForm.sponsor_description.trim() || null,
           sponsor_banner_url: sponsorBannerUrl,
           sponsor_logo_url: sponsorLogoUrl,
+          sponsor_image_url: sponsorImageUrl,
+          sponsor_whatsapp: editForm.sponsor_whatsapp.trim() || null,
+          sponsor_instagram_url: editForm.sponsor_instagram_url.trim() || null,
+          sponsor_facebook_url: editForm.sponsor_facebook_url.trim() || null,
+          sponsor_tiktok_url: editForm.sponsor_tiktok_url.trim() || null,
+          sponsor_website_url: editForm.sponsor_website_url.trim() || null,
           title: editForm.title.trim(),
           description: editForm.description.trim() || null,
           rules: editForm.rules.trim() || null,
@@ -299,7 +329,7 @@ export default function CompetitionManagementPage() {
         })
         .eq("id", competition.id)
         .select(
-          "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published,display_order,created_at"
+          "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,sponsor_image_url,sponsor_whatsapp,sponsor_instagram_url,sponsor_facebook_url,sponsor_tiktok_url,sponsor_website_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published,display_order,created_at"
         )
         .single();
 
@@ -333,7 +363,7 @@ export default function CompetitionManagementPage() {
       })
       .eq("id", competition.id)
       .select(
-        "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published,display_order,created_at"
+        "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,sponsor_image_url,sponsor_whatsapp,sponsor_instagram_url,sponsor_facebook_url,sponsor_tiktok_url,sponsor_website_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published,display_order,created_at"
       )
       .single();
 
@@ -600,6 +630,35 @@ export default function CompetitionManagementPage() {
               <span>Sponsor description</span>
               <textarea rows={3} value={editForm.sponsor_description} onChange={(e) => updateEditField("sponsor_description", e.target.value)} placeholder="Tell participants about the sponsor." />
             </label>
+            <label className="edit-field edit-full">
+              <span>Sponsor profile image URL</span>
+              <input type="url" value={editForm.sponsor_image_url} onChange={(e) => updateEditField("sponsor_image_url", e.target.value)} placeholder="https://..." />
+            </label>
+            <label className="edit-field edit-full">
+              <span>Upload / replace sponsor profile image</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setSponsorImageFile(e.target.files?.[0] || null)} />
+            </label>
+            <label className="edit-field">
+              <span>WhatsApp number</span>
+              <input value={editForm.sponsor_whatsapp} onChange={(e) => updateEditField("sponsor_whatsapp", e.target.value)} placeholder="e.g. 2347070000000" />
+            </label>
+            <label className="edit-field">
+              <span>Instagram URL</span>
+              <input type="url" value={editForm.sponsor_instagram_url} onChange={(e) => updateEditField("sponsor_instagram_url", e.target.value)} placeholder="https://instagram.com/..." />
+            </label>
+            <label className="edit-field">
+              <span>Facebook URL</span>
+              <input type="url" value={editForm.sponsor_facebook_url} onChange={(e) => updateEditField("sponsor_facebook_url", e.target.value)} placeholder="https://facebook.com/..." />
+            </label>
+            <label className="edit-field">
+              <span>TikTok URL</span>
+              <input type="url" value={editForm.sponsor_tiktok_url} onChange={(e) => updateEditField("sponsor_tiktok_url", e.target.value)} placeholder="https://tiktok.com/@..." />
+            </label>
+            <label className="edit-field edit-full">
+              <span>Website URL</span>
+              <input type="url" value={editForm.sponsor_website_url} onChange={(e) => updateEditField("sponsor_website_url", e.target.value)} placeholder="https://..." />
+            </label>
+
             <label className="edit-field edit-full">
               <span>Competition description</span>
               <textarea rows={4} value={editForm.description} onChange={(e) => updateEditField("description", e.target.value)} placeholder="Describe the competition for participants." />

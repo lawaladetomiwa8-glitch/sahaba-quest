@@ -27,7 +27,7 @@ const labelStyle = {
 
 async function uploadSponsorAsset(
   file: File,
-  kind: "logo" | "banner",
+  kind: "logo" | "banner" | "image",
   userId: string
 ) {
   const extension =
@@ -61,6 +61,12 @@ export default function NewCompetitionPage() {
     sponsorDescription: "",
     sponsorBannerUrl: "",
     sponsorLogoUrl: "",
+    sponsorImageUrl: "",
+    sponsorWhatsapp: "",
+    sponsorInstagramUrl: "",
+    sponsorFacebookUrl: "",
+    sponsorTiktokUrl: "",
+    sponsorWebsiteUrl: "",
     title: "",
     description: "",
     rules: "",
@@ -74,6 +80,8 @@ export default function NewCompetitionPage() {
 
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [sponsorImageFile, setSponsorImageFile] = useState<File | null>(null);
+  const [sponsorImagePreview, setSponsorImagePreview] = useState("");
   const [bannerPreview, setBannerPreview] = useState("");
   const [logoPreview, setLogoPreview] = useState("");
 
@@ -167,6 +175,7 @@ export default function NewCompetitionPage() {
 
       let sponsorBannerUrl = form.sponsorBannerUrl.trim() || null;
       let sponsorLogoUrl = form.sponsorLogoUrl.trim() || null;
+      let sponsorImageUrl = form.sponsorImageUrl.trim() || null;
 
       if (bannerFile) {
         sponsorBannerUrl = await uploadSponsorAsset(
@@ -177,11 +186,11 @@ export default function NewCompetitionPage() {
       }
 
       if (logoFile) {
-        sponsorLogoUrl = await uploadSponsorAsset(
-          logoFile,
-          "logo",
-          user.id
-        );
+        sponsorLogoUrl = await uploadSponsorAsset(logoFile, "logo", user.id);
+      }
+
+      if (sponsorImageFile) {
+        sponsorImageUrl = await uploadSponsorAsset(sponsorImageFile, "image", user.id);
       }
 
       const { data, error } = await supabase
@@ -192,6 +201,12 @@ export default function NewCompetitionPage() {
             form.sponsorDescription.trim() || null,
           sponsor_banner_url: sponsorBannerUrl,
           sponsor_logo_url: sponsorLogoUrl,
+          sponsor_image_url: sponsorImageUrl,
+          sponsor_whatsapp: form.sponsorWhatsapp.trim() || null,
+          sponsor_instagram_url: form.sponsorInstagramUrl.trim() || null,
+          sponsor_facebook_url: form.sponsorFacebookUrl.trim() || null,
+          sponsor_tiktok_url: form.sponsorTiktokUrl.trim() || null,
+          sponsor_website_url: form.sponsorWebsiteUrl.trim() || null,
           title: form.title.trim(),
           description: form.description.trim() || null,
           rules: form.rules.trim() || null,
@@ -446,6 +461,45 @@ export default function NewCompetitionPage() {
                   />
                 </div>
               </details>
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={labelStyle}>Sponsor Profile Image</label>
+              <input
+                style={inputStyle}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setSponsorImageFile(file);
+                  setSponsorImagePreview(file ? URL.createObjectURL(file) : "");
+                }}
+              />
+              {sponsorImagePreview && (
+                <img src={sponsorImagePreview} alt="Sponsor profile preview" style={{ marginTop: 10, width: "100%", maxWidth: 320, maxHeight: 180, objectFit: "cover", borderRadius: 10 }} />
+              )}
+              <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 11 }}>Optional photo of the sponsor, store, products or business.</p>
+            </div>
+
+            <div>
+              <label style={labelStyle}>WhatsApp Number</label>
+              <input style={inputStyle} value={form.sponsorWhatsapp} onChange={(e) => updateField("sponsorWhatsapp", e.target.value)} placeholder="e.g. 2347070000000" />
+            </div>
+            <div>
+              <label style={labelStyle}>Instagram URL</label>
+              <input style={inputStyle} type="url" value={form.sponsorInstagramUrl} onChange={(e) => updateField("sponsorInstagramUrl", e.target.value)} placeholder="https://instagram.com/..." />
+            </div>
+            <div>
+              <label style={labelStyle}>Facebook URL</label>
+              <input style={inputStyle} type="url" value={form.sponsorFacebookUrl} onChange={(e) => updateField("sponsorFacebookUrl", e.target.value)} placeholder="https://facebook.com/..." />
+            </div>
+            <div>
+              <label style={labelStyle}>TikTok URL</label>
+              <input style={inputStyle} type="url" value={form.sponsorTiktokUrl} onChange={(e) => updateField("sponsorTiktokUrl", e.target.value)} placeholder="https://tiktok.com/@..." />
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={labelStyle}>Website URL</label>
+              <input style={inputStyle} type="url" value={form.sponsorWebsiteUrl} onChange={(e) => updateField("sponsorWebsiteUrl", e.target.value)} placeholder="https://..." />
             </div>
 
             <div style={{ gridColumn: "1 / -1" }}>

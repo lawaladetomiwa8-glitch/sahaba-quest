@@ -15,6 +15,12 @@ type Competition = {
   sponsor_description: string | null;
   sponsor_banner_url: string | null;
   sponsor_logo_url: string | null;
+  sponsor_image_url: string | null;
+  sponsor_whatsapp: string | null;
+  sponsor_instagram_url: string | null;
+  sponsor_facebook_url: string | null;
+  sponsor_tiktok_url: string | null;
+  sponsor_website_url: string | null;
   title: string;
   description: string | null;
   rules: string | null;
@@ -66,6 +72,79 @@ function formatDate(value: string) {
       timeStyle: "short",
     }
   ).format(new Date(value));
+}
+
+function sponsorWhatsAppUrl(value: string) {
+  const digits = value.replace(/\\D/g, "");
+  return digits ? `https://wa.me/${digits}` : null;
+}
+
+
+function RegistrationCountdown({ startsAt }: { startsAt: string }) {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [startsAt]);
+
+  const target = new Date(startsAt).getTime();
+  const remaining = now === null ? null : Math.max(0, target - now);
+  const totalSeconds = remaining === null ? null : Math.floor(remaining / 1000);
+  const days = totalSeconds === null ? "--" : String(Math.floor(totalSeconds / 86400)).padStart(2, "0");
+  const hours = totalSeconds === null ? "--" : String(Math.floor((totalSeconds % 86400) / 3600)).padStart(2, "0");
+  const minutes = totalSeconds === null ? "--" : String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+  const seconds = totalSeconds === null ? "--" : String(totalSeconds % 60).padStart(2, "0");
+  const opened = remaining !== null && remaining <= 0;
+
+  return (
+    <section
+      aria-live="off"
+      aria-label="Competition registration countdown"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        flexWrap: "wrap",
+        margin: "0 0 22px",
+        padding: "12px 16px",
+        border: "1px solid rgba(20, 184, 166, 0.2)",
+        borderRadius: 16,
+        background: "linear-gradient(100deg, rgba(20, 184, 166, 0.09), rgba(20, 184, 166, 0.025))",
+      }}
+    >
+      <div style={{ minWidth: 180, flex: "1 1 220px" }}>
+        <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", color: "var(--primary)", textTransform: "uppercase" }}>
+          {opened ? "Registration is open" : "Next competition registration"}
+        </div>
+        <div style={{ marginTop: 3, fontSize: 13, fontWeight: 750 }}>
+          {opened ? "You can now enter the competition." : "Opening soon — get ready to participate."}
+        </div>
+      </div>
+      {opened ? (
+        <span style={{ color: "var(--primary)", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap" }}>
+          NOW OPEN
+        </span>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {[
+            [days, "Days"],
+            [hours, "Hrs"],
+            [minutes, "Mins"],
+            [seconds, "Secs"],
+          ].map(([value, label]) => (
+            <div key={label} style={{ minWidth: 48, textAlign: "center", padding: "6px 7px", borderRadius: 10, background: "var(--card, #fff)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 17, lineHeight: 1.1, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+              <div style={{ marginTop: 3, fontSize: 9, color: "var(--muted)", fontWeight: 800, textTransform: "uppercase" }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 export default function SponsoredCompetitionDetailPage() {
@@ -138,7 +217,7 @@ export default function SponsoredCompetitionDetailPage() {
         supabase
           .from("sponsored_competitions")
           .select(
-            "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published"
+            "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,sponsor_image_url,sponsor_whatsapp,sponsor_instagram_url,sponsor_facebook_url,sponsor_tiktok_url,sponsor_website_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published"
           )
           .eq("id", id)
           .maybeSingle(),
@@ -459,7 +538,11 @@ export default function SponsoredCompetitionDetailPage() {
     <>
       <AppNavbar />
 
-      <main>
+      <main style={{ width: "min(100% - 32px, 1100px)", margin: "0 auto", padding: "18px 0 48px" }}>
+        {status === "upcoming" && (
+          <RegistrationCountdown startsAt={competition.starts_at} />
+        )}
+
         <Link
           href="/sponsored-competitions"
         style={{
@@ -479,68 +562,11 @@ export default function SponsoredCompetitionDetailPage() {
           marginTop: 18,
         }}
       >
-        {competition.sponsor_banner_url && (
-          <img
-            src={
-              competition.sponsor_banner_url
-            }
-            alt=""
-            style={{
-              width: "100%",
-              maxHeight: 300,
-              objectFit: "cover",
-              display: "block",
-            }}
-          />
-        )}
-
         <div
           style={{
             padding: 24,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            {competition.sponsor_logo_url && (
-              <img
-                src={
-                  competition.sponsor_logo_url
-                }
-                alt=""
-                style={{
-                  width: 58,
-                  height: 58,
-                  objectFit: "contain",
-                  border:
-                    "1px solid var(--border)",
-                  borderRadius: 10,
-                }}
-              />
-            )}
-
-            <div>
-              <div
-                style={{
-                  fontSize: 10,
-                  color: "var(--muted)",
-                  fontWeight: 900,
-                }}
-              >
-                SPONSORED BY
-              </div>
-
-              <strong>
-                {competition.sponsor_name}
-              </strong>
-            </div>
-          </div>
-
           <div
             style={{
               marginTop: 18,
@@ -909,6 +935,143 @@ export default function SponsoredCompetitionDetailPage() {
         </section>
       )}
 
+      {(competition.sponsor_name ||
+        competition.sponsor_description ||
+        competition.sponsor_image_url ||
+        competition.sponsor_logo_url ||
+        competition.sponsor_whatsapp ||
+        competition.sponsor_instagram_url ||
+        competition.sponsor_facebook_url ||
+        competition.sponsor_tiktok_url ||
+        competition.sponsor_website_url) && (
+        <section
+          className="sq-card"
+          style={{
+            padding: 22,
+            marginTop: 20,
+            border: "1px solid var(--border)",
+          }}
+        >
+          <div
+            style={{
+              color: "var(--muted)",
+              fontSize: 10,
+              fontWeight: 900,
+              letterSpacing: ".14em",
+              textTransform: "uppercase",
+              marginBottom: 12,
+            }}
+          >
+            Official Competition Sponsor
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 18,
+              flexWrap: "wrap",
+            }}
+          >
+            {(competition.sponsor_image_url || competition.sponsor_logo_url) && (
+              <div
+                style={{
+                  width: 112,
+                  height: 112,
+                  flex: "0 0 112px",
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  border: "1px solid var(--border)",
+                  background: "var(--background)",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <img
+                  src={competition.sponsor_image_url || competition.sponsor_logo_url || ""}
+                  alt={`${competition.sponsor_name || "Competition sponsor"} profile`}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+            )}
+
+            <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+              <h2 style={{ margin: "0 0 10px", fontSize: 22 }}>
+                {competition.sponsor_name || "Our Sponsor"}
+              </h2>
+
+              {competition.sponsor_description ? (
+                <p
+                  className="sq-subtitle"
+                  style={{
+                    margin: 0,
+                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {competition.sponsor_description}
+                </p>
+              ) : (
+                <p className="sq-subtitle" style={{ margin: 0 }}>
+                  Thank you to our sponsor for supporting this competition.
+                </p>
+              )}
+
+              {(competition.sponsor_whatsapp ||
+                competition.sponsor_instagram_url ||
+                competition.sponsor_facebook_url ||
+                competition.sponsor_tiktok_url ||
+                competition.sponsor_website_url) && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 9,
+                    marginTop: 16,
+                  }}
+                >
+                  {competition.sponsor_whatsapp && sponsorWhatsAppUrl(competition.sponsor_whatsapp) && (
+                    <a
+                      href={sponsorWhatsAppUrl(competition.sponsor_whatsapp) || undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="sq-button-secondary"
+                      style={{ textDecoration: "none" }}
+                    >
+                      WhatsApp
+                    </a>
+                  )}
+                  {competition.sponsor_instagram_url && (
+                    <a href={competition.sponsor_instagram_url} target="_blank" rel="noopener noreferrer" className="sq-button-secondary" style={{ textDecoration: "none" }}>
+                      Instagram
+                    </a>
+                  )}
+                  {competition.sponsor_facebook_url && (
+                    <a href={competition.sponsor_facebook_url} target="_blank" rel="noopener noreferrer" className="sq-button-secondary" style={{ textDecoration: "none" }}>
+                      Facebook
+                    </a>
+                  )}
+                  {competition.sponsor_tiktok_url && (
+                    <a href={competition.sponsor_tiktok_url} target="_blank" rel="noopener noreferrer" className="sq-button-secondary" style={{ textDecoration: "none" }}>
+                      TikTok
+                    </a>
+                  )}
+                  {competition.sponsor_website_url && (
+                    <a href={competition.sponsor_website_url} target="_blank" rel="noopener noreferrer" className="sq-button-secondary" style={{ textDecoration: "none" }}>
+                      Website
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section
         style={{
           display: "grid",
@@ -969,35 +1132,6 @@ export default function SponsoredCompetitionDetailPage() {
           </p>
         </div>
       </section>
-
-      {competition.sponsor_description && (
-        <section
-          className="sq-card"
-          style={{
-            padding: 22,
-            marginTop: 18,
-          }}
-        >
-          <h2
-            style={{
-              marginTop: 0,
-            }}
-          >
-            About the Sponsor
-          </h2>
-
-          <p
-            className="sq-subtitle"
-            style={{
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {
-              competition.sponsor_description
-            }
-          </p>
-        </section>
-      )}
 
       {announcements.length > 0 && (
         <section
