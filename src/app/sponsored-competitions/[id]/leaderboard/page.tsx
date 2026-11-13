@@ -97,40 +97,6 @@ export default function SponsoredCompetitionLeaderboardPage() {
 
         /*
          * ---------------------------------------------------------
-         * REQUIRE ANSWER REVIEW BEFORE SHOWING LEADERBOARD
-         * ---------------------------------------------------------
-         */
-
-        const {
-          data: reviewGateData,
-          error: reviewGateError,
-        } = await supabase.rpc("get_sponsored_review_gate", {
-          p_competition_id: competitionId,
-        });
-
-        if (reviewGateError) {
-          throw new Error(reviewGateError.message);
-        }
-
-        const reviewGate = Array.isArray(reviewGateData)
-          ? reviewGateData[0]
-          : reviewGateData;
-
-        if (
-          reviewGate?.attempt_id &&
-          ["completed", "expired"].includes(
-            String(reviewGate.attempt_status).toLowerCase()
-          ) &&
-          !reviewGate.review_completed
-        ) {
-          router.replace(
-            `/sponsored-competitions/${competitionId}/review?attempt=${reviewGate.attempt_id}`
-          );
-          return;
-        }
-
-        /*
-         * ---------------------------------------------------------
          * LOAD COMPETITION
          * ---------------------------------------------------------
          */
