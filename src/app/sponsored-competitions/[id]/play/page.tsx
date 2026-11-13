@@ -503,10 +503,10 @@ export default function SponsoredCompetitionPlayPage() {
             }}
           >
             <Link
-              href={`/sponsored-competitions/${competitionId}/leaderboard`}
+              href={`/sponsored-competitions/${competitionId}/review?attempt=${attemptId}`}
               className="sq-button-primary"
             >
-              🏆 View Sponsored Leaderboard
+              📋 Review My Answers
             </Link>
 
             <Link
@@ -582,12 +582,14 @@ export default function SponsoredCompetitionPlayPage() {
               Back to Competition
             </Link>
 
-            <Link
-              href={`/sponsored-competitions/${competitionId}/leaderboard`}
-              className="sq-button-primary"
-            >
-              🏆 View Leaderboard
-            </Link>
+            {attemptId ? (
+              <Link
+                href={`/sponsored-competitions/${competitionId}/review?attempt=${attemptId}`}
+                className="sq-button-primary"
+              >
+                📋 Review My Answers
+              </Link>
+            ) : null}
           </div>
         </div>
       </main>
