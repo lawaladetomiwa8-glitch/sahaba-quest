@@ -111,7 +111,6 @@ export default function SponsoredCompetitionsPage() {
   const router = useRouter();
 
   const [accountType, setAccountType] = useState<AccountType | null>(null);
-  const [hasPremium, setHasPremium] = useState(false);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -130,34 +129,21 @@ export default function SponsoredCompetitionsPage() {
         return;
       }
 
-      const [profileResult, subscriptionResult, competitionResult] =
-        await Promise.all([
-          supabase
-            .from("profiles")
-            .select("account_type")
-            .eq("id", auth.user.id)
-            .maybeSingle(),
+      const [profileResult, competitionResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("account_type")
+          .eq("id", auth.user.id)
+          .maybeSingle(),
 
-          supabase
-            .from("subscriptions")
-            .select(
-              "id,current_period_end,status,subscription_plans!inner(plan_type)"
-            )
-            .eq("user_id", auth.user.id)
-            .eq("status", "active")
-            .eq("subscription_plans.plan_type", "plus")
-            .gt("current_period_end", new Date().toISOString())
-            .limit(1)
-            .maybeSingle(),
-
-          supabase
-            .from("sponsored_competitions")
-            .select(
-              "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published"
-            )
-            .eq("is_published", true)
-            .order("starts_at", { ascending: false }),
-        ]);
+        supabase
+          .from("sponsored_competitions")
+          .select(
+            "id,sponsor_name,sponsor_description,sponsor_banner_url,sponsor_logo_url,title,description,rules,prizes,competition_type,starts_at,ends_at,is_published"
+          )
+          .eq("is_published", true)
+          .order("starts_at", { ascending: false }),
+      ]);
 
       if (!mounted) return;
 
@@ -177,7 +163,6 @@ export default function SponsoredCompetitionsPage() {
       }
 
       setAccountType(type ?? "free");
-      setHasPremium(Boolean(subscriptionResult.data));
 
       if (competitionResult.error) {
         setMessage(competitionResult.error.message);
@@ -219,15 +204,11 @@ export default function SponsoredCompetitionsPage() {
       )[0] ?? null,
     [upcoming],
   );
-  const canParticipate = accountType === "individual" && hasPremium;
+  const canParticipate =
+    accountType === "free" || accountType === "individual";
 
   function join(c: Competition) {
-    if (statusOf(c) !== "live") return;
-
-    if (accountType !== "individual" || !hasPremium) {
-      router.push("/pricing");
-      return;
-    }
+    if (statusOf(c) !== "live" || !canParticipate) return;
 
     router.push(`/sponsored-competitions/${c.id}`);
   }
@@ -328,11 +309,16 @@ export default function SponsoredCompetitionsPage() {
             {active.length > 0 ? (
               <button
                 type="button"
-                className="sq-sponsored-primary"
+                className="sq-sponsored-primary sq-sponsored-primary-live"
                 onClick={() => join(active[0])}
+                aria-label="Join the live sponsored competition now"
               >
-                <span>🏆</span>
-                {canParticipate ? "Enter Live Competition" : "Explore Live Competition"}
+                <span className="sq-live-cta-icon" aria-hidden="true">🏆</span>
+                <span className="sq-live-cta-copy">
+                  <strong>{canParticipate ? "ENTER LIVE COMPETITION" : "EXPLORE LIVE COMPETITION"}</strong>
+                  <small>{canParticipate ? "LIVE NOW · TAP HERE TO JOIN" : "LIVE NOW · VIEW COMPETITION"}</small>
+                </span>
+                <span className="sq-live-cta-arrow" aria-hidden="true">→</span>
               </button>
             ) : upcoming.length > 0 ? (
               <button
@@ -408,19 +394,20 @@ export default function SponsoredCompetitionsPage() {
         </div>
       </section>
 
-      {accountType === "free" && (
+      {(accountType === "free" || accountType === "individual") && (
         <section className="sq-access-banner">
-          <div className="sq-access-icon">✨</div>
+          <div className="sq-access-icon">🏆</div>
           <div className="sq-access-copy">
-            <strong>Explore the competition world.</strong>
+            <strong>Sponsored competitions are open to you.</strong>
             <p>
-              You can view sponsors, competitions, rules and prizes. An active
-              Individual Premium subscription is required to participate.
+              Free and Individual account holders can participate in sponsored
+              competitions at no cost. No Premium upgrade or entry fee is
+              required.
             </p>
           </div>
-          <Link href="/pricing" className="sq-access-button">
-            View Premium
-          </Link>
+          <a href="#how-it-works" className="sq-access-button">
+            How to participate
+          </a>
         </section>
       )}
 
@@ -454,7 +441,6 @@ export default function SponsoredCompetitionsPage() {
 
           <FeaturedCompetition
             competition={featured}
-            premium={canParticipate}
             onJoin={join}
           />
         </section>
@@ -510,7 +496,6 @@ export default function SponsoredCompetitionsPage() {
                 key={competition.id}
                 competition={competition}
                 onJoin={join}
-                premium={canParticipate}
               />
             ))}
           </div>
@@ -701,6 +686,66 @@ export default function SponsoredCompetitionsPage() {
         .sq-sponsored-primary:hover {
           transform: translateY(-2px);
           box-shadow: 0 14px 34px rgba(78, 224, 199, 0.3);
+        }
+
+        .sq-sponsored-primary-live {
+          position: relative;
+          min-height: 66px;
+          min-width: min(100%, 310px);
+          padding: 9px 19px;
+          gap: 13px;
+          border: 2px solid #f6d77a;
+          border-radius: 15px;
+          color: #082b2c;
+          background: linear-gradient(115deg, #ffe49a 0%, #8af0dc 48%, #55d9c7 100%);
+          box-shadow:
+            0 0 0 5px rgba(255, 220, 125, 0.13),
+            0 13px 32px rgba(58, 220, 190, 0.32);
+          text-align: left;
+        }
+
+        .sq-sponsored-primary-live:hover {
+          transform: translateY(-3px) scale(1.015);
+          box-shadow:
+            0 0 0 7px rgba(255, 220, 125, 0.16),
+            0 18px 38px rgba(58, 220, 190, 0.4);
+        }
+
+        .sq-live-cta-icon {
+          width: 42px;
+          height: 42px;
+          flex: 0 0 42px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.55);
+          font-size: 23px;
+        }
+
+        .sq-live-cta-copy {
+          display: grid;
+          gap: 4px;
+          flex: 1;
+        }
+
+        .sq-live-cta-copy strong {
+          font-size: 13px;
+          line-height: 1.15;
+          font-weight: 1000;
+          letter-spacing: 0.025em;
+        }
+
+        .sq-live-cta-copy small {
+          font-size: 9px;
+          line-height: 1.2;
+          font-weight: 950;
+          letter-spacing: 0.11em;
+          color: #15534d;
+        }
+
+        .sq-live-cta-arrow {
+          font-size: 24px;
+          font-weight: 950;
         }
 
         .sq-sponsored-secondary {
@@ -2061,11 +2106,9 @@ function RegistrationCountdown({ startsAt }: { startsAt: string }) {
 
 function FeaturedCompetition({
   competition,
-  premium,
   onJoin,
 }: {
   competition: Competition;
-  premium: boolean;
   onJoin: (competition: Competition) => void;
 }) {
   const status = statusOf(competition);
@@ -2133,9 +2176,11 @@ function FeaturedCompetition({
               type="button"
               className="sq-featured-primary"
               onClick={() => onJoin(competition)}
-              style={{ border: 0 }}
+              aria-label={`Join ${competition.title} competition now`}
             >
-              {premium ? "Join Competition" : "View Access"}
+              <span aria-hidden="true">🏆</span>
+              <span>JOIN COMPETITION NOW</span>
+              <span aria-hidden="true">→</span>
             </button>
           )}
 
@@ -2143,15 +2188,10 @@ function FeaturedCompetition({
             href={`/sponsored-competitions/${competition.id}`}
             className="sq-featured-secondary"
           >
-            <span>View more details</span>
+            <span aria-hidden="true">ⓘ</span>
+            <span>View Competition Details</span>
             <span aria-hidden="true">→</span>
           </Link>
-
-          {status === "live" && !premium && (
-            <Link href="/pricing" className="sq-featured-secondary">
-              Get Premium
-            </Link>
-          )}
         </div>
       </div>
 
@@ -2305,27 +2345,30 @@ function FeaturedCompetition({
 
         .sq-featured-actions {
           display: flex;
-          align-items: center;
-          gap: 9px;
-          margin-top: 18px;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+          margin-top: 20px;
         }
 
         .sq-featured-actions button,
         .sq-featured-actions a {
-          flex: 1;
+          width: 100%;
+          flex: none;
+          box-sizing: border-box;
         }
 
         .sq-featured-primary,
         .sq-featured-secondary {
-          min-height: 44px;
+          min-height: 48px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 0 15px;
-          border-radius: 11px;
-          font-size: 11px;
-          font-weight: 900;
+          gap: 10px;
+          padding: 0 17px;
+          border-radius: 13px;
+          font-size: 12px;
+          font-weight: 950;
           text-decoration: none;
           transition:
             transform 160ms ease,
@@ -2334,16 +2377,23 @@ function FeaturedCompetition({
         }
 
         .sq-featured-primary {
-          border: 1px solid rgba(20, 184, 166, 0.2);
-          color: #063033;
-          background: linear-gradient(135deg, #7bead9, #4fd1c5);
-          box-shadow: 0 9px 22px rgba(20, 184, 166, 0.18);
+          min-height: 60px;
+          border: 2px solid #f4d477;
+          color: #073532;
+          background: linear-gradient(110deg, #ffe49a 0%, #8aefdc 52%, #52d6c4 100%);
+          box-shadow:
+            0 0 0 4px rgba(244, 212, 119, 0.13),
+            0 12px 27px rgba(20, 184, 166, 0.22);
           cursor: pointer;
+          font-size: 14px;
+          letter-spacing: 0.035em;
         }
 
         .sq-featured-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 13px 28px rgba(20, 184, 166, 0.24);
+          box-shadow:
+            0 0 0 6px rgba(244, 212, 119, 0.16),
+            0 16px 32px rgba(20, 184, 166, 0.3);
         }
 
         .sq-featured-primary:disabled {
@@ -2351,14 +2401,18 @@ function FeaturedCompetition({
         }
 
         .sq-featured-secondary {
-          color: var(--primary);
-          border: 1px solid rgba(20, 184, 166, 0.22);
-          background: var(--primary-light);
+          min-height: 46px;
+          color: #14534d;
+          border: 1px solid rgba(20, 184, 166, 0.24);
+          background: linear-gradient(110deg, rgba(20, 184, 166, 0.09), rgba(20, 184, 166, 0.035));
+          box-shadow: 0 5px 14px rgba(8, 47, 50, 0.045);
+          font-size: 11px;
         }
 
         .sq-featured-secondary:hover {
           transform: translateY(-2px);
-          background: rgba(20, 184, 166, 0.14);
+          background: rgba(20, 184, 166, 0.15);
+          box-shadow: 0 9px 20px rgba(8, 47, 50, 0.08);
         }
 
         .sq-sponsor-line {
@@ -3047,11 +3101,9 @@ function SectionTitle({
 function CompetitionCard({
   competition,
   onJoin,
-  premium,
 }: {
   competition: Competition;
   onJoin: (competition: Competition) => void;
-  premium: boolean;
 }) {
   const status = statusOf(competition);
 
@@ -3120,19 +3172,11 @@ function CompetitionCard({
           className="sq-card-button"
         >
           {status === "live"
-            ? premium
-              ? "Join Competition"
-              : "View Access"
+            ? "Join Competition"
             : status === "upcoming"
               ? "Coming Soon"
               : "Competition Ended"}
         </button>
-
-        {status === "live" && !premium && (
-          <p className="sq-card-note">
-            Individual Premium is required to participate.
-          </p>
-        )}
       </div>
     </article>
   );

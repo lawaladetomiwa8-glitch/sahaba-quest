@@ -96,7 +96,7 @@ const PLAN_INFO: Record<
 
       "Access to exclusive Individual competitions",
 
-      "Eligibility for sponsored monthly/weekly competitions when active",
+      "Access to sponsored monthly/weekly competitions when active (also available to Free accounts)",
 
       "Eligibility to compete for 1st, 2nd and 3rd place prizes",
 
@@ -2042,6 +2042,10 @@ export default function PricingPage() {
 
                   "Access to the Free leaderboard experience",
 
+                  "Free access to sponsored competitions when active",
+
+                  "Compete for announced 1st, 2nd and 3rd place prizes without a Premium upgrade",
+
                   "A chance to explore the Sahaba Quest platform before upgrading",
 
                   "Free access forever",
@@ -3094,7 +3098,7 @@ export default function PricingPage() {
 
         {/* =================================================
 
-            INDIVIDUAL COMPETITION NOTICE
+            SPONSORED COMPETITION NOTICE
 
         ================================================== */}
 
@@ -3142,7 +3146,7 @@ export default function PricingPage() {
 
               <span className="sq-badge">
 
-                INDIVIDUAL EXCLUSIVE
+                OPEN TO FREE & INDIVIDUAL ACCOUNTS
 
               </span>
 
@@ -3188,15 +3192,7 @@ export default function PricingPage() {
 
               >
 
-                When a sponsored competition is active,
-
-                Individual subscribers can take part in
-
-                special weekly or monthly challenges,
-
-                compete for the top positions and become
-
-                eligible for the announced prizes.
+                When a sponsored competition is active, users with registered Free and Individual accounts can take part in the sponsored challenge, compete for the top positions and become eligible for the announced prizes. Participation is completely free. No Premium upgrade is required to enter or win.
 
               </p>
 
@@ -3262,15 +3258,15 @@ export default function PricingPage() {
 
               >
 
-                <div>✓ Individual subscribers only</div>
+                <div>✓ Free and Individual accounts can participate</div>
+
+                <div>✓ No Premium upgrade or entry fee required</div>
 
                 <div>✓ Sponsored challenge or quiz</div>
 
                 <div>✓ 1st, 2nd and 3rd place prizes</div>
 
                 <div>✓ Winners announced after the competition</div>
-
-                <div>✓ Free users cannot enter exclusive competitions</div>
 
               </div>
 
