@@ -6,8 +6,23 @@ import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import TurnstileWidget from "../../components/TurnstileWidget";
 
+function getSafeReturnTo(): string {
+  if (typeof window === "undefined") return "";
+
+  const requested = new URLSearchParams(window.location.search).get("redirectTo");
+  if (!requested) return "";
+
+  // Only allow local application paths; reject external and protocol-relative URLs.
+  if (!requested.startsWith("/") || requested.startsWith("//") || requested.includes("\\")) {
+    return "";
+  }
+
+  return requested;
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const [returnTo] = useState<string>(() => getSafeReturnTo());
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -280,7 +295,7 @@ export default function LoginPage() {
       }
 
       if (accountType === "individual" || accountType === "free") {
-        window.location.replace("/dashboard");
+        window.location.replace(returnTo || "/dashboard");
         return;
       }
 
@@ -353,8 +368,9 @@ export default function LoginPage() {
     }
 
     if (accountType === "individual" || accountType === "free") {
-      console.log("[AUTH ROUTING] Individual/free account detected. Redirecting to /dashboard:", user.id);
-      window.location.replace("/dashboard");
+      const destination = returnTo || "/dashboard";
+      console.log("[AUTH ROUTING] Individual/free account detected. Redirecting to:", destination, user.id);
+      window.location.replace(destination);
       return;
     }
 
@@ -981,7 +997,7 @@ export default function LoginPage() {
               Don't have an account?
             </span>
 
-            <Link href="/signup">
+            <Link href={returnTo ? `/signup?redirectTo=${encodeURIComponent(returnTo)}` : "/signup"}>
               Create Account
             </Link>
 

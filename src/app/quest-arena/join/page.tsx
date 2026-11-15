@@ -155,7 +155,7 @@ function JoinCompetitionContent() {
 
       if (!user) {
         const returnPath = `/quest-arena/join?code=${encodeURIComponent(code)}`;
-        router.replace(`/login?redirectTo=${encodeURIComponent(returnPath)}`);
+        router.replace(`/signup?redirectTo=${encodeURIComponent(returnPath)}`);
         return;
       }
 

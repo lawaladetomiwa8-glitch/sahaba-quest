@@ -5,6 +5,20 @@ import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import TurnstileWidget from "../../components/TurnstileWidget";
 
+function getSafeReturnTo(): string {
+  if (typeof window === "undefined") return "";
+
+  const requested = new URLSearchParams(window.location.search).get("redirectTo");
+  if (!requested) return "";
+
+  // Only allow local application paths; reject external and protocol-relative URLs.
+  if (!requested.startsWith("/") || requested.startsWith("//") || requested.includes("\\")) {
+    return "";
+  }
+
+  return requested;
+}
+
 type PasswordRequirementProps = {
   valid: boolean;
   children: ReactNode;
@@ -30,6 +44,7 @@ function PasswordRequirement({
 }
 
 export default function SignupPage() {
+  const [returnTo] = useState<string>(() => getSafeReturnTo());
   /* =====================================================
      FORM STATE
   ====================================================== */
@@ -117,7 +132,12 @@ export default function SignupPage() {
         await supabase.auth.resend({
           type: "signup",
           email: cleanEmail,
-          options: { captchaToken },
+          options: {
+            captchaToken,
+            ...(returnTo && typeof window !== "undefined"
+              ? { emailRedirectTo: `${window.location.origin}${returnTo}` }
+              : {}),
+          },
         });
 
       if (error) {
@@ -332,6 +352,9 @@ export default function SignupPage() {
 
         options: {
           captchaToken,
+          ...(returnTo && typeof window !== "undefined"
+            ? { emailRedirectTo: `${window.location.origin}${returnTo}` }
+            : {}),
           data: {
             display_name:
               cleanDisplayName,
@@ -616,7 +639,7 @@ export default function SignupPage() {
             </button>
 
             <Link
-              href="/login"
+              href={returnTo ? `/login?redirectTo=${encodeURIComponent(returnTo)}` : "/login"}
               className="success-signin-button"
             >
               <span>
