@@ -1365,6 +1365,135 @@ export default function DashboardPage() {
 
         )}
 
+        {/* QUEST ARENA: available to Free and Individual accounts only */}
+        {(profile.account_type === "free" ||
+          profile.account_type === "individual") && (
+          <section
+            className="sq-card"
+            style={{
+              marginTop: "20px",
+              padding: "28px",
+              background:
+                "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)",
+              border: "1px solid rgba(15, 118, 110, 0.14)",
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                right: "-50px",
+                top: "-60px",
+                width: "180px",
+                height: "180px",
+                borderRadius: "50%",
+                background: "var(--primary-light)",
+                opacity: 0.55,
+                pointerEvents: "none",
+              }}
+            />
+
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "24px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "16px",
+                  flex: 1,
+                  minWidth: "260px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "52px",
+                    height: "52px",
+                    flexShrink: 0,
+                    borderRadius: "16px",
+                    background: "var(--primary)",
+                    color: "white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "25px",
+                  }}
+                >
+                  ⚔️
+                </div>
+
+                <div>
+                  <div className="sq-badge">Team Competition</div>
+
+                  <h2
+                    style={{
+                      margin: "10px 0 6px",
+                      fontSize: "24px",
+                      fontWeight: 900,
+                    }}
+                  >
+                    Welcome to Quest Arena
+                  </h2>
+
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "var(--muted)",
+                      fontSize: "14px",
+                      lineHeight: 1.6,
+                      maxWidth: "650px",
+                    }}
+                  >
+                    Create a competition, invite other Sahaba Quest
+                    players, choose your teams and compete through
+                    questions about the lives and contributions of
+                    the Sahaba. Every correct answer earns Arena XP
+                    for your team.
+                  </p>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                      marginTop: "12px",
+                    }}
+                  >
+                    <span className="sq-badge">10 Questions</span>
+                    <span className="sq-badge">30 Seconds Each</span>
+                    <span className="sq-badge">Up to 1,000 Arena XP</span>
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href="/quest-arena"
+                className="sq-button-primary"
+                style={{
+                  minHeight: "48px",
+                  padding: "0 22px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Enter Quest Arena →
+              </a>
+            </div>
+          </section>
+        )}
+
         {/* ACCOUNT TYPE */}
 
         <section

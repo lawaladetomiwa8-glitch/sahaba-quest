@@ -45,6 +45,11 @@ const individualNavigation: NavigationItem[] = [
     icon: "☀",
   },
   {
+    label: "Quest Arena",
+    href: "/quest-arena",
+    icon: "⚔",
+  },
+  {
     label: "Sponsored",
     href: "/sponsored-competitions",
     icon: "🏆",
@@ -369,6 +374,10 @@ export function AppNavbar() {
 
     if (href === "/daily-quest") {
       return pathname === "/daily-quest";
+    }
+
+    if (href === "/quest-arena") {
+      return pathname === "/quest-arena" || pathname.startsWith("/quest-arena/");
     }
 
     if (href === "/sponsored-competitions") {
