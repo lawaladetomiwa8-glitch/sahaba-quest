@@ -146,6 +146,24 @@ function JoinCompetitionContent() {
     setError("");
 
     try {
+      // Check for a local session first. getUser() by itself can return
+      // AuthSessionMissingError for visitors who are not signed in, which
+      // must not prevent the signup redirect from running.
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) throw sessionError;
+
+      if (!session?.user) {
+        const returnPath = `/quest-arena/join?code=${encodeURIComponent(code)}`;
+        router.replace(`/signup?redirectTo=${encodeURIComponent(returnPath)}`);
+        return;
+      }
+
+      // A session exists, so verify the user with Supabase before loading
+      // the invitation preview.
       const {
         data: { user },
         error: authError,
