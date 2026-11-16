@@ -1,5 +1,5 @@
+
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
 import { Analytics } from "@vercel/analytics/next";
@@ -12,8 +12,6 @@ const SITE_DESCRIPTION =
 
 const SITE_LOGO =
   "https://cdn.phototourl.com/member/2026-09-30-957223ee-05a5-4299-9fc6-c4ca9f12695a.png";
-
-const ADSENSE_CLIENT_ID = "ca-pub-8407387696701319";
 
 /* =========================================================
    STRUCTURED DATA
@@ -98,10 +96,6 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   category: "education",
 
-  other: {
-    "google-adsense-account": ADSENSE_CLIENT_ID,
-  },
-
   alternates: {
     canonical: SITE_URL,
   },
@@ -123,8 +117,6 @@ export const metadata: Metadata = {
     apple: SITE_LOGO,
   },
 
-  /* WHATSAPP, FACEBOOK AND OTHER SOCIAL-SHARING PREVIEW */
-
   openGraph: {
     type: "website",
     url: SITE_URL,
@@ -141,8 +133,6 @@ export const metadata: Metadata = {
       },
     ],
   },
-
-  /* TWITTER / X SOCIAL-SHARING PREVIEW */
 
   twitter: {
     card: "summary_large_image",
@@ -164,16 +154,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <head>
-        <Script
-          id="google-adsense"
-          async
-          strategy="afterInteractive"
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
-          crossOrigin="anonymous"
-        />
-      </head>
-
       <body>
         <script
           type="application/ld+json"
