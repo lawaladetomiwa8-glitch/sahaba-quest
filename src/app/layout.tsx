@@ -155,12 +155,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-
       <head>
         {/* HALALSPARK AUTO ADS */}
         <Script
           id="halalspark-auto-ads-homepage"
           src="https://ads.halalspark.co.uk/get-auto-ads-script?websiteId=658aee99-b4b1-4903-a1eb-02b8160af30d&profile=homepage"
+          async
           strategy="beforeInteractive"
         />
       </head>
