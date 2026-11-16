@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -18,6 +18,7 @@ export default function Home() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const manualAdRef = useRef<HTMLDivElement | null>(null);
 
 
 
@@ -46,6 +47,28 @@ export default function Home() {
     };
 
   }, []);
+
+  // Install the HalalSpark manual banner at its exact homepage position.
+  useEffect(() => {
+    const container = manualAdRef.current;
+
+    if (userEmail || !container) {
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src =
+      "https://ads.halalspark.co.uk/get-ad-script-banner?placement_id=98b38a08-0be2-4d71-a33c-af71be626fd8&domain=https://sahabaquest.com.ng&_v=3.0";
+    script.async = true;
+    script.dataset.halalsparkPlacement = "homepage-banner";
+
+    container.appendChild(script);
+
+    return () => {
+      script.remove();
+      container.replaceChildren();
+    };
+  }, [userEmail]);
 
 
 
@@ -1384,7 +1407,20 @@ export default function Home() {
 
           </div>
 
-          
+          {/* HALALSPARK MANUAL BANNER — homepage only */}
+          <div
+            ref={manualAdRef}
+            aria-label="Advertisement"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+              minHeight: "90px",
+              margin: "28px auto 0",
+              overflow: "hidden",
+            }}
+          />
 
           {/* WHAT IS SAHABA QUEST */}
 
