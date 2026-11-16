@@ -1,5 +1,5 @@
 "use client";
-import HalalSparkAutoAds from "@/components/ads/HalalSparkAutoAds";
+
 
 import { useEffect, useState } from "react";
 
@@ -1384,7 +1384,7 @@ export default function Home() {
 
           </div>
 
-          <HalalSparkAutoAds />
+          
 
           {/* WHAT IS SAHABA QUEST */}
 
