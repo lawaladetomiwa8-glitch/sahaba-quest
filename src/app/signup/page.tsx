@@ -441,9 +441,49 @@ export default function SignupPage() {
             "That display name is already in use. Please choose a different display name and try again."
           );
         } else if (isGenericDatabaseSignupError) {
-          setMessage(
-            "We couldn't complete your registration. Your username or display name may already be in use. Please try changing them and submit again. If the problem continues, contact Sahaba Quest support."
+          /*
+           * Supabase Auth can hide a unique-constraint error raised by
+           * the profile-creation trigger behind the generic message
+           * "Database error saving new user". Recheck the names after
+           * that failure so we can identify the duplicate field and
+           * show the user a useful message.
+           */
+          const {
+            data: retryNameCheck,
+            error: retryNameCheckError,
+          } = await supabase.rpc(
+            "check_signup_names",
+            {
+              requested_username: cleanUsername,
+              requested_display_name: cleanDisplayName,
+            }
           );
+
+          const retryNameCheckRow = Array.isArray(retryNameCheck)
+            ? retryNameCheck[0]
+            : retryNameCheck;
+
+          if (
+            !retryNameCheckError &&
+            retryNameCheckRow &&
+            retryNameCheckRow.username_taken === true
+          ) {
+            setMessage(
+              "This username has already been taken. Please choose another username and try again."
+            );
+          } else if (
+            !retryNameCheckError &&
+            retryNameCheckRow &&
+            retryNameCheckRow.display_name_taken === true
+          ) {
+            setMessage(
+              "This display name has already been taken. Please choose another display name and try again."
+            );
+          } else {
+            setMessage(
+              "We couldn't complete your registration. Please try again. If the problem continues, contact Sahaba Quest support."
+            );
+          }
         } else {
           setMessage(
             "We couldn't create your account just now. Please check your details and try again. If the problem continues, contact Sahaba Quest support."
