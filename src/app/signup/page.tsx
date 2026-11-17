@@ -295,48 +295,62 @@ export default function SignupPage() {
         );
 
         setMessage(
-          "Unable to check username availability. Please try again."
+          "We couldn't check your username and display name. Please try again."
         );
 
         setLoading(false);
-
         return;
       }
 
       /* ---------------------------------------------------
-         USERNAME CHECK
+         READ NAME-CHECK RESULT
+
+         check_signup_names returns TABLE(...), so Supabase
+         returns an array containing one result row.
       ---------------------------------------------------- */
 
-      if (nameCheck) {
-        if (
-          nameCheck.username_available ===
-            false ||
-          nameCheck.username_exists ===
-            true
-        ) {
-          setMessage(
-            "That username is already taken."
-          );
+      const nameCheckRow = Array.isArray(nameCheck)
+        ? nameCheck[0]
+        : nameCheck;
 
-          setLoading(false);
+      if (
+        !nameCheckRow ||
+        typeof nameCheckRow.username_taken !== "boolean" ||
+        typeof nameCheckRow.display_name_taken !== "boolean"
+      ) {
+        console.error(
+          "Unexpected check_signup_names response:",
+          nameCheck
+        );
 
-          return;
-        }
+        setMessage(
+          "We couldn't verify your username and display name. Please try again."
+        );
 
-        if (
-          nameCheck.display_name_available ===
-            false ||
-          nameCheck.display_name_exists ===
-            true
-        ) {
-          setMessage(
-            "That display name is already taken."
-          );
+        setLoading(false);
+        return;
+      }
 
-          setLoading(false);
+      /* ---------------------------------------------------
+         USERNAME / DISPLAY NAME CHECK
+      ---------------------------------------------------- */
 
-          return;
-        }
+      if (nameCheckRow.username_taken) {
+        setMessage(
+          "This username is already registered. Kindly choose another username and try again."
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      if (nameCheckRow.display_name_taken) {
+        setMessage(
+          "This display name is already registered. Kindly choose another display name and try again."
+        );
+
+        setLoading(false);
+        return;
       }
 
       /* =================================================
@@ -391,20 +405,48 @@ export default function SignupPage() {
         const errorMessage =
           signupError.message.toLowerCase();
 
-        if (
-          errorMessage.includes(
-            "already registered"
-          ) ||
-          errorMessage.includes(
-            "already exists"
-          )
-        ) {
+        const isUsernameDuplicate =
+          errorMessage.includes("username") &&
+          (errorMessage.includes("already") ||
+            errorMessage.includes("duplicate") ||
+            errorMessage.includes("unique"));
+
+        const isDisplayNameDuplicate =
+          (errorMessage.includes("display_name") ||
+            errorMessage.includes("display name")) &&
+          (errorMessage.includes("already") ||
+            errorMessage.includes("duplicate") ||
+            errorMessage.includes("unique"));
+
+        const isEmailAlreadyRegistered =
+          errorMessage.includes("already registered") ||
+          errorMessage.includes("user already exists") ||
+          errorMessage.includes("email address is already") ||
+          errorMessage.includes("already been registered");
+
+        const isGenericDatabaseSignupError =
+          errorMessage.includes("database error saving new user") ||
+          errorMessage.includes("error saving new user");
+
+        if (isEmailAlreadyRegistered) {
           setMessage(
-            "An account with this email already exists. Please sign in instead."
+            "An account with this email address already exists. Please sign in or use a different email address."
+          );
+        } else if (isUsernameDuplicate) {
+          setMessage(
+            "That username is already in use. Please choose a different username and try again."
+          );
+        } else if (isDisplayNameDuplicate) {
+          setMessage(
+            "That display name is already in use. Please choose a different display name and try again."
+          );
+        } else if (isGenericDatabaseSignupError) {
+          setMessage(
+            "We couldn't complete your registration. Your username or display name may already be in use. Please try changing them and submit again. If the problem continues, contact Sahaba Quest support."
           );
         } else {
           setMessage(
-            signupError.message
+            "We couldn't create your account just now. Please check your details and try again. If the problem continues, contact Sahaba Quest support."
           );
         }
 
