@@ -480,8 +480,14 @@ export default function SignupPage() {
               "This display name has already been taken. Please choose another display name and try again."
             );
           } else {
+            /*
+             * Supabase Auth may return the same generic database error
+             * when the profiles username unique index rejects a duplicate.
+             * In this signup flow, give the user the actionable username
+             * guidance instead of exposing the technical database message.
+             */
             setMessage(
-              "We couldn't complete your registration. Please try again. If the problem continues, contact Sahaba Quest support."
+              "This username may already be taken. Please choose a different username and try again."
             );
           }
         } else {
