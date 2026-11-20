@@ -1,9 +1,0 @@
-{
-  "common": {
-    "home": "Ilé", "dashboard": "Pánẹ́lì ìṣàkóso", "profile": "Àkọ́ọ̀lẹ̀ ẹni", "settings": "Ètò", "login": "Wọlé", "signup": "Ṣí àkọ́ọ̀lẹ̀", "logout": "Jáde", "save": "Fipamọ́", "cancel": "Fagilé", "submit": "Fi sílẹ̀", "continue": "Tẹ̀síwájú", "back": "Padà", "loading": "Ń gbé...", "language": "Èdè", "english": "Gẹ̀ẹ́sì", "arabic": "Lárúbáwá", "yoruba": "Yorùbá", "hausa": "Hausa", "french": "Faransé"
-  },
-  "navigation": {
-    "home": "Ilé", "play": "Ṣeré", "progress": "Ìlọsíwájú", "myProgress": "Ìlọsíwájú mi", "leaderboard": "Àtòjọ àwọn tó ga jù", "familyRanking": "Ìpele ẹbí", "challenges": "Àwọn ìpèníjà", "dailyQuest": "Iṣẹ́ ojoojúmọ́", "questArena": "Agbàdo ìdíje", "sponsored": "Àwọn tó ṣe àtìlẹ́yìn", "pricing": "Owó ìforúkọsílẹ̀", "profile": "Àkọ́ọ̀lẹ̀ ẹni", "members": "Àwọn ọmọ ẹgbẹ́", "switchMember": "Yí ọmọ ẹgbẹ́ padà", "about": "Nípa wa", "quiz": "Ìbéèrè ìdánwò", "competitions": "Àwọn ìdíje", "schools": "Àwọn ilé-ẹ̀kọ́"
-  },
-  "language": { "title": "Yan èdè rẹ", "description": "Yan èdè tí o fẹ́", "updated": "A ti ṣe àtúnṣe èdè rẹ ní àṣeyọrí" }
-}

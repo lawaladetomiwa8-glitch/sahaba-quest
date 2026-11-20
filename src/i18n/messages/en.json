@@ -1,9 +1,0 @@
-{
-  "common": {
-    "home": "Home", "dashboard": "Dashboard", "profile": "Profile", "settings": "Settings", "login": "Login", "signup": "Sign Up", "logout": "Logout", "save": "Save", "cancel": "Cancel", "submit": "Submit", "continue": "Continue", "back": "Back", "loading": "Loading...", "language": "Language", "english": "English", "arabic": "Arabic", "yoruba": "Yoruba", "hausa": "Hausa", "french": "French"
-  },
-  "navigation": {
-    "home": "Home", "play": "Play", "progress": "Progress", "myProgress": "My Progress", "leaderboard": "Leaderboard", "familyRanking": "Family Ranking", "challenges": "Challenges", "dailyQuest": "Daily Quest", "questArena": "Quest Arena", "sponsored": "Sponsored", "pricing": "Pricing", "profile": "Profile", "members": "Members", "switchMember": "Switch Member", "about": "About Us", "quiz": "Quiz", "competitions": "Competitions", "schools": "Schools"
-  },
-  "language": { "title": "Choose your language", "description": "Select your preferred language", "updated": "Language updated successfully" }
-}

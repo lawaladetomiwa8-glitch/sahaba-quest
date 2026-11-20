@@ -1,9 +1,0 @@
-{
-  "common": {
-    "home": "Accueil", "dashboard": "Tableau de bord", "profile": "Profil", "settings": "Paramètres", "login": "Connexion", "signup": "Créer un compte", "logout": "Déconnexion", "save": "Enregistrer", "cancel": "Annuler", "submit": "Envoyer", "continue": "Continuer", "back": "Retour", "loading": "Chargement...", "language": "Langue", "english": "Anglais", "arabic": "Arabe", "yoruba": "Yoruba", "hausa": "Haoussa", "french": "Français"
-  },
-  "navigation": {
-    "home": "Accueil", "play": "Jouer", "progress": "Progression", "myProgress": "Ma progression", "leaderboard": "Classement", "familyRanking": "Classement familial", "challenges": "Défis", "dailyQuest": "Quête quotidienne", "questArena": "Arène des quêtes", "sponsored": "Sponsorisé", "pricing": "Tarifs", "profile": "Profil", "members": "Membres", "switchMember": "Changer de membre", "about": "À propos", "quiz": "Quiz", "competitions": "Compétitions", "schools": "Écoles"
-  },
-  "language": { "title": "Choisissez votre langue", "description": "Sélectionnez votre langue préférée", "updated": "Langue mise à jour avec succès" }
-}
