@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import LanguageSwitcher from "./i18n/LanguageSwitcher";
+import { useLanguage } from "./i18n/LanguageProvider";
 
 type AccountType = "free" | "individual" | "family";
 
@@ -11,6 +13,13 @@ type NavigationItem = {
   label: string;
   href: string;
   icon: string;
+};
+
+const navigationTranslationKeys: Record<string, string> = {
+  Home: "home", Play: "play", Progress: "progress", "My Progress": "myProgress",
+  Leaderboard: "leaderboard", "Family Ranking": "familyRanking", Challenges: "challenges",
+  "Daily Quest": "dailyQuest", "Quest Arena": "questArena", Sponsored: "sponsored",
+  Pricing: "pricing", Profile: "profile", Members: "members", "Switch Member": "switchMember",
 };
 
 const individualNavigation: NavigationItem[] = [
@@ -126,6 +135,46 @@ const familyNavigation: NavigationItem[] = [
 
 export function AppNavbar() {
   const pathname = usePathname();
+  const { locale } = useLanguage();
+
+  const navigationTranslations: Record<string, Record<string, string>> = {
+    en: {
+      home: "Home", play: "Play", progress: "Progress", myProgress: "My Progress",
+      leaderboard: "Leaderboard", familyRanking: "Family Ranking", challenges: "Challenges",
+      dailyQuest: "Daily Quest", questArena: "Quest Arena", sponsored: "Sponsored",
+      pricing: "Pricing", profile: "Profile", members: "Members", switchMember: "Switch Member",
+    },
+    ar: {
+      home: "الرئيسية", play: "ابدأ اللعب", progress: "التقدم", myProgress: "تقدمي",
+      leaderboard: "لوحة المتصدرين", familyRanking: "ترتيب العائلة", challenges: "التحديات",
+      dailyQuest: "المهمة اليومية", questArena: "ساحة التحدي", sponsored: "المسابقات المدعومة",
+      pricing: "الأسعار", profile: "الملف الشخصي", members: "الأعضاء", switchMember: "تبديل العضو",
+    },
+    yo: {
+      home: "Ilé", play: "Ṣeré", progress: "Ìlọsíwájú", myProgress: "Ìlọsíwájú mi",
+      leaderboard: "Àtòjọ àwọn tó ga jù", familyRanking: "Ìpele ẹbí", challenges: "Àwọn ìpèníjà",
+      dailyQuest: "Iṣẹ́ ojoojúmọ́", questArena: "Agbàdo ìdíje", sponsored: "Àwọn tó ṣe àtìlẹ́yìn",
+      pricing: "Owó ìforúkọsílẹ̀", profile: "Àkọ́ọ̀lẹ̀ ẹni", members: "Àwọn ọmọ ẹgbẹ́", switchMember: "Yí ọmọ ẹgbẹ́ padà",
+    },
+    ha: {
+      home: "Gida", play: "Yi wasa", progress: "Ci gaba", myProgress: "Ci gabana",
+      leaderboard: "Jerin masu nasara", familyRanking: "Matsayin iyali", challenges: "Kalubale",
+      dailyQuest: "Aikin yau da kullum", questArena: "Filin gasa", sponsored: "Gasa mai tallafi",
+      pricing: "Farashi", profile: "Bayanan mutum", members: "Mambobi", switchMember: "Canza mamba",
+    },
+    fr: {
+      home: "Accueil", play: "Jouer", progress: "Progression", myProgress: "Ma progression",
+      leaderboard: "Classement", familyRanking: "Classement familial", challenges: "Défis",
+      dailyQuest: "Quête quotidienne", questArena: "Arène des quêtes", sponsored: "Sponsorisé",
+      pricing: "Tarifs", profile: "Profil", members: "Membres", switchMember: "Changer de membre",
+    },
+  };
+
+
+  const translateNavigationLabel = (label: string) => {
+    const key = navigationTranslationKeys[label];
+    return key ? navigationTranslations[locale]?.[key] ?? label : label;
+  };
 
   const [accountType, setAccountType] =
     useState<AccountType | null>(null);
@@ -516,11 +565,13 @@ export function AppNavbar() {
                     : undefined
                 }
               >
-                {item.label}
+                {translateNavigationLabel(item.label)}
               </Link>
             );
           })}
         </div>
+
+        <LanguageSwitcher />
       </nav>
 
       {/* =====================================================
@@ -621,6 +672,8 @@ export function AppNavbar() {
             </span>
           </Link>
 
+          <LanguageSwitcher />
+
           <button
             type="button"
             className="sq-mobile-menu-button"
@@ -674,7 +727,7 @@ export function AppNavbar() {
                   </span>
 
                   <span>
-                    {item.label}
+                    {translateNavigationLabel(item.label)}
                   </span>
                 </Link>
               );

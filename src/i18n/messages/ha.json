@@ -1,0 +1,9 @@
+{
+  "common": {
+    "home": "Gida", "dashboard": "Shafin gudanarwa", "profile": "Bayanan mutum", "settings": "Saituna", "login": "Shiga", "signup": "Ƙirƙiri asusu", "logout": "Fita", "save": "Ajiye", "cancel": "Soke", "submit": "Aika", "continue": "Ci gaba", "back": "Koma baya", "loading": "Ana lodawa...", "language": "Harshe", "english": "Turanci", "arabic": "Larabci", "yoruba": "Yoruba", "hausa": "Hausa", "french": "Faransanci"
+  },
+  "navigation": {
+    "home": "Gida", "play": "Yi wasa", "progress": "Ci gaba", "myProgress": "Ci gabana", "leaderboard": "Jerin masu nasara", "familyRanking": "Matsayin iyali", "challenges": "Kalubale", "dailyQuest": "Aikin yau da kullum", "questArena": "Filin gasa", "sponsored": "Gasa mai tallafi", "pricing": "Farashi", "profile": "Bayanan mutum", "members": "Mambobi", "switchMember": "Canza mamba", "about": "Game da mu", "quiz": "Tambayoyi", "competitions": "Gasa", "schools": "Makarantu"
+  },
+  "language": { "title": "Zaɓi harshenka", "description": "Zaɓi harshen da kake so", "updated": "An sabunta harshe cikin nasara" }
+}

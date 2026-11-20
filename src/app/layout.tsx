@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
 import { Analytics } from "@vercel/analytics/next";
+import LanguageProvider from "@/components/i18n/LanguageProvider";
 
 const SITE_URL = "https://www.sahabaquest.com.ng";
 const SITE_NAME = "Sahaba Quest";
@@ -155,22 +156,24 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body>
-        {/* STRUCTURED DATA */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(structuredData).replace(
-              /</g,
-              "\\u003c"
-            ),
-          }}
-        />
+        <LanguageProvider>
+          {/* STRUCTURED DATA */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(structuredData).replace(
+                /</g,
+                "\\u003c"
+              ),
+            }}
+          />
 
-        {children}
+          {children}
 
-        <SiteFooter />
+          <SiteFooter />
 
-        <Analytics />
+          <Analytics />
+        </LanguageProvider>
       </body>
     </html>
   );

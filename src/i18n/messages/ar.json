@@ -1,0 +1,9 @@
+{
+  "common": {
+    "home": "الرئيسية", "dashboard": "لوحة التحكم", "profile": "الملف الشخصي", "settings": "الإعدادات", "login": "تسجيل الدخول", "signup": "إنشاء حساب", "logout": "تسجيل الخروج", "save": "حفظ", "cancel": "إلغاء", "submit": "إرسال", "continue": "متابعة", "back": "رجوع", "loading": "جارٍ التحميل...", "language": "اللغة", "english": "الإنجليزية", "arabic": "العربية", "yoruba": "اليوروبا", "hausa": "الهوسا", "french": "الفرنسية"
+  },
+  "navigation": {
+    "home": "الرئيسية", "play": "ابدأ اللعب", "progress": "التقدم", "myProgress": "تقدمي", "leaderboard": "لوحة المتصدرين", "familyRanking": "ترتيب العائلة", "challenges": "التحديات", "dailyQuest": "المهمة اليومية", "questArena": "ساحة التحدي", "sponsored": "المسابقات المدعومة", "pricing": "الأسعار", "profile": "الملف الشخصي", "members": "الأعضاء", "switchMember": "تبديل العضو", "about": "من نحن", "quiz": "اختبار", "competitions": "المسابقات", "schools": "المدارس"
+  },
+  "language": { "title": "اختر لغتك", "description": "اختر اللغة المفضلة لديك", "updated": "تم تحديث اللغة بنجاح" }
+}
