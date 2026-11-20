@@ -104,6 +104,70 @@ export default function DashboardPage() {
 
   const router = useRouter();
 
+  const [language, setLanguage] = useState<"en" | "ar" | "fr" | "yo" | "ha">("en");
+  const translations: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "🎮 Continue Quest":"🎮 واصل المهمة", "Free Account":"حساب مجاني", "Individual Account":"حساب فردي", "Family Account":"حساب عائلي", "You're currently using the free Sahaba Quest experience.":"أنت تستخدم تجربة سحابة كويست المجانية حاليًا.", "You're using the Individual Sahaba Quest experience.":"أنت تستخدم تجربة سحابة كويست الفردية.", "You're using the Family Sahaba Quest experience.":"أنت تستخدم تجربة سحابة كويست العائلية.",
+      "Language":"اللغة", "Level":"المستوى", "Assalamu alaikum,":"السلام عليكم،", "Ready to continue your Sahaba journey? Test your knowledge, build your streak, and learn something valuable today.":"هل أنت مستعد لمواصلة رحلتك مع الصحابة؟ اختبر معرفتك، وحافظ على سلسلة إنجازاتك، وتعلّم شيئًا مفيدًا اليوم.", "Continue Quest":"واصل المهمة",
+      "Daily Quest":"المهمة اليومية", "Team Competition":"مسابقة جماعية", "Welcome to Quest Arena":"مرحبًا بك في ساحة التحدي",
+      "Account Type":"نوع الحساب", "Current Level":"المستوى الحالي", "Keep progressing":"واصل التقدم", "Total XP":"إجمالي نقاط الخبرة",
+      "Experience earned":"الخبرة المكتسبة", "Current Streak":"سلسلة الأيام الحالية", "Best":"الأفضل", "Accuracy":"الدقة",
+      "Your Subscription":"اشتراكك", "Your Journey":"رحلتك", "Level questions":"أسئلة المستوى", "Correct answers needed":"الإجابات الصحيحة المطلوبة",
+      "Questions Answered":"الأسئلة المجاب عنها", "Correct Answers":"الإجابات الصحيحة", "Quick Actions":"إجراءات سريعة",
+      "What do you want to do?":"ماذا تريد أن تفعل؟", "Daily reminder":"تذكير يومي", "Start Learning":"ابدأ التعلم", "View Progress":"عرض التقدم", "Explore Plans":"استكشف الخطط", "View Plans":"عرض الخطط",
+      "Enter Quest Arena":"ادخل ساحة التحدي", "Continue Your Daily Quest":"واصل مهمتك اليومية", "Your Daily Quest Awaits":"مهمتك اليومية بانتظارك",
+      "Continue Quest →":"واصل المهمة ←", "Start Today's Quest →":"ابدأ مهمة اليوم ←", "10 Questions":"١٠ أسئلة", "30 Seconds Each":"٣٠ ثانية لكل سؤال",
+      "Up to 1,000 Arena XP":"حتى ١٬٠٠٠ نقطة خبرة في الساحة", "🎮 Play Quiz":"🎮 العب الاختبار", "🏆 Leaderboard":"🏆 لوحة المتصدرين",
+      "🎯 Challenges":"🎯 التحديات", "👤 My Profile":"👤 ملفي الشخصي", "Start Learning →":"ابدأ التعلم ←",
+      "Sahaba Quest Free":"سحابة كويست مجانًا", "Active until":"نشط حتى", "Questions":"أسئلة", "correct":"صحيح",},
+    fr: {
+      "🎮 Continue Quest":"🎮 Continuer la quête", "Free Account":"Compte gratuit", "Individual Account":"Compte individuel", "Family Account":"Compte familial", "You're currently using the free Sahaba Quest experience.":"Vous utilisez actuellement la version gratuite de Sahaba Quest.", "You're using the Individual Sahaba Quest experience.":"Vous utilisez l’expérience individuelle de Sahaba Quest.", "You're using the Family Sahaba Quest experience.":"Vous utilisez l’expérience familiale de Sahaba Quest.",
+      "Language":"Langue", "Level":"Niveau", "Assalamu alaikum,":"Assalamu alaikum,", "Ready to continue your Sahaba journey? Test your knowledge, build your streak, and learn something valuable today.":"Prêt à poursuivre votre parcours avec les Compagnons ? Testez vos connaissances, maintenez votre série et apprenez quelque chose d’utile aujourd’hui.", "Continue Quest":"Continuer la quête",
+      "Daily Quest":"Quête quotidienne", "Team Competition":"Compétition d'équipe", "Welcome to Quest Arena":"Bienvenue dans l'Arène Quest",
+      "Account Type":"Type de compte", "Current Level":"Niveau actuel", "Keep progressing":"Continuez à progresser", "Total XP":"XP totale",
+      "Experience earned":"Expérience gagnée", "Current Streak":"Série actuelle", "Best":"Record", "Accuracy":"Précision",
+      "Your Subscription":"Votre abonnement", "Your Journey":"Votre parcours", "Level questions":"Questions du niveau", "Correct answers needed":"Réponses correctes requises",
+      "Questions Answered":"Questions répondues", "Correct Answers":"Réponses correctes", "Quick Actions":"Actions rapides",
+      "What do you want to do?":"Que souhaitez-vous faire ?", "Daily reminder":"Rappel quotidien", "Start Learning":"Commencer à apprendre", "View Progress":"Voir la progression", "Explore Plans":"Découvrir les offres", "View Plans":"Voir les offres",
+      "Enter Quest Arena":"Entrer dans l'Arène Quest", "Continue Your Daily Quest":"Continuez votre quête quotidienne", "Your Daily Quest Awaits":"Votre quête quotidienne vous attend",
+      "Continue Quest →":"Continuer la quête →", "Start Today's Quest →":"Commencer la quête du jour →", "10 Questions":"10 questions", "30 Seconds Each":"30 secondes chacune",
+      "Up to 1,000 Arena XP":"Jusqu'à 1 000 XP d'arène", "🎮 Play Quiz":"🎮 Jouer au quiz", "🏆 Leaderboard":"🏆 Classement",
+      "🎯 Challenges":"🎯 Défis", "👤 My Profile":"👤 Mon profil", "Start Learning →":"Commencer à apprendre →",
+      "Sahaba Quest Free":"Sahaba Quest gratuit", "Active until":"Actif jusqu'au", "Questions":"Questions", "correct":"correctes"
+    },
+    yo: {
+      "🎮 Continue Quest":"🎮 Tẹ̀síwájú ìpèníjà", "Free Account":"Àkọọ́lẹ̀ ọ̀fẹ́", "Individual Account":"Àkọọ́lẹ̀ ẹni kọọkan", "Family Account":"Àkọọ́lẹ̀ ẹbí", "You're currently using the free Sahaba Quest experience.":"O ń lo Sahaba Quest ọ̀fẹ́ lọ́wọ́lọ́wọ́.", "You're using the Individual Sahaba Quest experience.":"O ń lo Sahaba Quest fún ẹni kọọkan.", "You're using the Family Sahaba Quest experience.":"O ń lo Sahaba Quest fún ẹbí.",
+      "Language":"Èdè", "Level":"Ìpele", "Assalamu alaikum,":"Assalamu alaikum,", "Ready to continue your Sahaba journey? Test your knowledge, build your streak, and learn something valuable today.":"Ṣé o ti ṣetán láti tẹ̀síwájú ìrìnàjò rẹ nípa àwọn Sahaba? Ṣàyẹ̀wò ìmọ̀ rẹ, máa pa àṣà rẹ mọ́, kí o sì kọ́ ohun tó níyelórí lónìí.", "Continue Quest":"Tẹ̀síwájú ìpèníjà",
+      "Daily Quest":"Iṣẹ́ Ojoojúmọ́", "Team Competition":"Ìdíje Ẹgbẹ́", "Welcome to Quest Arena":"Ẹ kú àbọ̀ sí Quest Arena",
+      "Account Type":"Irú Àkọọ́lẹ̀", "Current Level":"Ìpele Lọ́wọ́lọ́wọ́", "Keep progressing":"Máa tẹ̀síwájú", "Total XP":"XP Àpapọ̀",
+      "Experience earned":"Ìrírí tí o jèrè", "Current Streak":"Àkójọpọ̀ ọjọ́ lọwọlọwọ", "Best":"Tó ga jù", "Accuracy":"Ìpéye",
+      "Your Subscription":"Ìforúkọsílẹ̀ rẹ", "Your Journey":"Ìrìnàjò rẹ", "Level questions":"Àwọn ìbéèrè ìpele", "Correct answers needed":"Àwọn ìdáhùn tó tọ́ tí a nílò",
+      "Questions Answered":"Àwọn ìbéèrè tí o dáhùn", "Correct Answers":"Àwọn ìdáhùn tó tọ́", "Quick Actions":"Àwọn ìṣe kíákíá",
+      "What do you want to do?":"Kí ni o fẹ́ ṣe?", "Daily reminder":"Ìrántí ojoojúmọ́", "Start Learning":"Bẹ̀rẹ̀ ẹ̀kọ́", "View Progress":"Wo ìlọsíwájú", "Explore Plans":"Ṣàyẹ̀wò àwọn ètò", "View Plans":"Wo àwọn ètò",
+      "Enter Quest Arena":"Wọ Quest Arena", "Continue Your Daily Quest":"Tẹ̀síwájú iṣẹ́ ojoojúmọ́ rẹ", "Your Daily Quest Awaits":"Iṣẹ́ ojoojúmọ́ rẹ ń dúró de ọ",
+      "Continue Quest →":"Tẹ̀síwájú →", "Start Today's Quest →":"Bẹ̀rẹ̀ iṣẹ́ òní →", "10 Questions":"Ìbéèrè mẹ́wàá", "30 Seconds Each":"Ìṣẹ́jú-àáyá 30 kọ̀ọ̀kan",
+      "Up to 1,000 Arena XP":"Tó tó 1,000 Arena XP", "🎮 Play Quiz":"🎮 Ṣeré Quiz", "🏆 Leaderboard":"🏆 Àtòjọ àwọn tó ga",
+      "🎯 Challenges":"🎯 Àwọn ìpèníjà", "👤 My Profile":"👤 Profaili mi", "Start Learning →":"Bẹ̀rẹ̀ ẹ̀kọ́ →",
+      "Sahaba Quest Free":"Sahaba Quest Ọ̀fẹ́", "Active until":"Ó ṣiṣẹ́ títí di", "Questions":"Ìbéèrè", "correct":"tó tọ́"
+    },
+    ha: {
+      "🎮 Continue Quest":"🎮 Ci gaba da Quest", "Free Account":"Asusun Kyauta", "Individual Account":"Asusun Mutum ɗaya", "Family Account":"Asusun Iyali", "You're currently using the free Sahaba Quest experience.":"Kana amfani da Sahaba Quest kyauta a yanzu.", "You're using the Individual Sahaba Quest experience.":"Kana amfani da Sahaba Quest na mutum ɗaya.", "You're using the Family Sahaba Quest experience.":"Kana amfani da Sahaba Quest na iyali.",
+      "Language":"Harshe", "Level":"Mataki", "Assalamu alaikum,":"Assalamu alaikum,", "Ready to continue your Sahaba journey? Test your knowledge, build your streak, and learn something valuable today.":"Ka shirya ka ci gaba da tafiyarka ta Sahabbai? Gwada iliminka, ka ci gaba da jerin kwanaki, kuma ka koyi abu mai amfani yau.", "Continue Quest":"Ci gaba da Quest",
+      "Daily Quest":"Aikin Kullum", "Team Competition":"Gasar Ƙungiya", "Welcome to Quest Arena":"Barka da zuwa Quest Arena",
+      "Account Type":"Nau'in Asusun", "Current Level":"Matakin Yanzu", "Keep progressing":"Ci gaba da tafiya", "Total XP":"Jimillar XP",
+      "Experience earned":"Ƙwarewar da aka samu", "Current Streak":"Jerin kwanakin yanzu", "Best":"Mafi kyau", "Accuracy":"Daidaito",
+      "Your Subscription":"Biyan kuɗinka", "Your Journey":"Tafiyarka", "Level questions":"Tambayoyin mataki", "Correct answers needed":"Amsoshin da suka dace da ake buƙata",
+      "Questions Answered":"Tambayoyin da aka amsa", "Correct Answers":"Amsoshi da suka dace", "Quick Actions":"Ayyuka masu sauri",
+      "What do you want to do?":"Me kake son yi?", "Daily reminder":"Tunatarwa ta kullum", "Start Learning":"Fara koyo", "View Progress":"Duba ci gaba", "Explore Plans":"Duba tsare-tsare", "View Plans":"Duba tsare-tsare",
+      "Enter Quest Arena":"Shiga Quest Arena", "Continue Your Daily Quest":"Ci gaba da aikin kullum", "Your Daily Quest Awaits":"Aikin yau yana jiran ka",
+      "Continue Quest →":"Ci gaba →", "Start Today's Quest →":"Fara aikin yau →", "10 Questions":"Tambayoyi 10", "30 Seconds Each":"Sakan 30 kowanne",
+      "Up to 1,000 Arena XP":"Har zuwa 1,000 Arena XP", "🎮 Play Quiz":"🎮 Yi Quiz", "🏆 Leaderboard":"🏆 Jadawalin masu gaba",
+      "🎯 Challenges":"🎯 Ƙalubale", "👤 My Profile":"👤 Bayanan martaba", "Start Learning →":"Fara koyo →",
+      "Sahaba Quest Free":"Sahaba Quest kyauta", "Active until":"Yana aiki har", "Questions":"Tambayoyi", "correct":"daidai"
+    }
+  };
+  const t = (text: string) => translations[language]?.[text] || text;
   const [profile, setProfile] =
 
     useState<Profile | null>(null);
@@ -844,11 +908,11 @@ export default function DashboardPage() {
 
   const accountLabel =
 
-    accountLabels[profile.account_type];
+    t(accountLabels[profile.account_type]);
 
   const accountDescription =
 
-    accountDescriptions[profile.account_type];
+    t(accountDescriptions[profile.account_type]);
 
   /*
 
@@ -960,7 +1024,7 @@ export default function DashboardPage() {
     <main
 
       className="sq-page"
-
+      dir={language === "ar" ? "rtl" : "ltr"}
       style={{
 
         minHeight: "100vh",
@@ -991,6 +1055,13 @@ export default function DashboardPage() {
 
           <AppNavbar />
 
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "14px" }}>
+          <label htmlFor="sq-language" style={{ fontSize: "13px", fontWeight: 700, marginRight: "8px", alignSelf: "center" }}>{t("Language")}</label>
+          <select id="sq-language" value={language} onChange={(e) => setLanguage(e.target.value as "en" | "ar" | "fr" | "yo" | "ha")} style={{ padding: "9px 12px", borderRadius: "10px", border: "1px solid var(--border)", background: "white", color: "var(--foreground)", fontWeight: 700 }}>
+            <option value="en">English</option><option value="ar">العربية</option><option value="fr">Français</option><option value="yo">Yorùbá</option><option value="ha">Hausa</option>
+          </select>
         </div>
 
         {/* WELCOME HERO */}
@@ -1071,7 +1142,7 @@ export default function DashboardPage() {
 
               <span className="sq-badge">
 
-                Level {progress.current_level}
+                {t("Level")} {progress.current_level}
 
               </span>
 
@@ -1143,7 +1214,7 @@ export default function DashboardPage() {
 
             >
 
-              Assalamu alaikum,{" "}
+              {t('Assalamu alaikum,')}{" "}
 
               <span
 
@@ -1181,13 +1252,7 @@ export default function DashboardPage() {
 
             >
 
-              Ready to continue your Sahaba
-
-              journey? Test your knowledge,
-
-              build your streak, and learn
-
-              something valuable today.
+              {t("Ready to continue your Sahaba journey? Test your knowledge, build your streak, and learn something valuable today.")}
 
             </p>
 
@@ -1215,7 +1280,7 @@ export default function DashboardPage() {
 
               >
 
-                🎮 Continue Quest
+                {t("🎮 Continue Quest")}
 
               </a>
 
@@ -1227,7 +1292,7 @@ export default function DashboardPage() {
 
               >
 
-                View Progress
+                {t('View Progress')}
 
               </a>
 
@@ -1317,15 +1382,15 @@ export default function DashboardPage() {
 
                 <div>
 
-                  <div className="sq-badge">Daily Quest</div>
+                  <div className="sq-badge">{t('Daily Quest')}</div>
 
                   <h2 style={{ margin: "10px 0 6px", fontSize: "24px", fontWeight: 900 }}>
 
                     {dailyQuest.status === "in_progress"
 
-                      ? "Continue Your Daily Quest"
+                      ? t("Continue Your Daily Quest")
 
-                      : "Your Daily Quest Awaits"}
+                      : t("Your Daily Quest Awaits")}
 
                   </h2>
 
@@ -1375,7 +1440,7 @@ export default function DashboardPage() {
 
               >
 
-                {dailyQuest.status === "in_progress" ? "Continue Quest →" : "Start Today's Quest →"}
+                {dailyQuest.status === "in_progress" ? t("Continue Quest →") : t("Start Today's Quest →")}
 
               </a>
 
@@ -1464,7 +1529,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div>
-                  <div className="sq-badge">Team Competition</div>
+                  <div className="sq-badge">{t('Team Competition')}</div>
 
                   <h2
                     style={{
@@ -1473,7 +1538,7 @@ export default function DashboardPage() {
                       fontWeight: 900,
                     }}
                   >
-                    Welcome to Quest Arena
+                    {t('Welcome to Quest Arena')}
                   </h2>
 
                   <p
@@ -1500,9 +1565,9 @@ export default function DashboardPage() {
                       marginTop: "12px",
                     }}
                   >
-                    <span className="sq-badge">10 Questions</span>
-                    <span className="sq-badge">30 Seconds Each</span>
-                    <span className="sq-badge">Up to 1,000 Arena XP</span>
+                    <span className="sq-badge">{t('10 Questions')}</span>
+                    <span className="sq-badge">{t('30 Seconds Each')}</span>
+                    <span className="sq-badge">{t('Up to 1,000 Arena XP')}</span>
                   </div>
                 </div>
               </div>
@@ -1568,7 +1633,7 @@ export default function DashboardPage() {
 
               <div className="sq-badge">
 
-                Account Type
+                {t('Account Type')}
 
               </div>
 
@@ -1676,7 +1741,7 @@ export default function DashboardPage() {
 
             <div className="sq-stat-label">
 
-              Current Level
+              {t('Current Level')}
 
             </div>
 
@@ -1702,7 +1767,7 @@ export default function DashboardPage() {
 
             >
 
-              Keep progressing
+              {t('Keep progressing')}
 
             </div>
 
@@ -1712,7 +1777,7 @@ export default function DashboardPage() {
 
             <div className="sq-stat-label">
 
-              Total XP
+              {t('Total XP')}
 
             </div>
 
@@ -1736,7 +1801,7 @@ export default function DashboardPage() {
 
             >
 
-              Experience earned
+              {t('Experience earned')}
 
             </div>
 
@@ -1746,7 +1811,7 @@ export default function DashboardPage() {
 
             <div className="sq-stat-label">
 
-              Current Streak
+              {t('Current Streak')}
 
             </div>
 
@@ -1794,7 +1859,7 @@ export default function DashboardPage() {
 
             <div className="sq-stat-label">
 
-              Accuracy
+              {t('Accuracy')}
 
             </div>
 
@@ -1920,7 +1985,7 @@ export default function DashboardPage() {
 
                 <div className="sq-badge">
 
-                  Your Subscription
+                  {t('Your Subscription')}
 
                 </div>
 
@@ -1942,7 +2007,7 @@ export default function DashboardPage() {
 
                     ?.display_name ||
 
-                    "Sahaba Quest Free"}
+                    t("Sahaba Quest Free")}
 
                 </h2>
 
@@ -1990,7 +2055,7 @@ export default function DashboardPage() {
 
                     >
 
-                      Active until{" "}
+                      {t('Active until')}{" "}
 
                       {subscriptionEndDate}
 
@@ -2096,7 +2161,7 @@ export default function DashboardPage() {
 
                 <div className="sq-badge">
 
-                  Your Journey
+                  {t('Your Journey')}
 
                 </div>
 
@@ -2206,7 +2271,7 @@ export default function DashboardPage() {
 
                 >
 
-                  Level questions
+                  {t('Level questions')}
 
                 </span>
 
@@ -2290,7 +2355,7 @@ export default function DashboardPage() {
 
                 >
 
-                  Correct answers needed
+                  {t('Correct answers needed')}
 
                 </span>
 
@@ -2386,7 +2451,7 @@ export default function DashboardPage() {
 
                 >
 
-                  Questions Answered
+                  {t('Questions Answered')}
 
                 </div>
 
@@ -2442,7 +2507,7 @@ export default function DashboardPage() {
 
                 >
 
-                  Correct Answers
+                  {t('Correct Answers')}
 
                 </div>
 
@@ -2486,7 +2551,7 @@ export default function DashboardPage() {
 
             <div className="sq-badge">
 
-              Quick Actions
+              {t('Quick Actions')}
 
             </div>
 
@@ -2504,9 +2569,7 @@ export default function DashboardPage() {
 
             >
 
-              What do you want to
-
-              do?
+              {t("What do you want to do?")}
 
             </h2>
 
@@ -2554,7 +2617,7 @@ export default function DashboardPage() {
 
                 <span>
 
-                  🎮 Play Quiz
+                  {t('🎮 Play Quiz')}
 
                 </span>
 
@@ -2594,7 +2657,7 @@ export default function DashboardPage() {
 
                 <span>
 
-                  🏆 Leaderboard
+                  {t('🏆 Leaderboard')}
 
                 </span>
 
@@ -2632,7 +2695,7 @@ export default function DashboardPage() {
 
                 <span>
 
-                  🎯 Challenges
+                  {t('🎯 Challenges')}
 
                 </span>
 
@@ -2670,7 +2733,7 @@ export default function DashboardPage() {
 
                 <span>
 
-                  👤 My Profile
+                  {t('👤 My Profile')}
 
                 </span>
 
@@ -2754,7 +2817,7 @@ export default function DashboardPage() {
 
               >
 
-                Daily reminder
+                {t('Daily reminder')}
 
               </div>
 
@@ -2838,7 +2901,7 @@ export default function DashboardPage() {
 
             >
 
-              Start Learning →
+              {t("Start Learning →")}
 
             </a>
 
