@@ -78,15 +78,23 @@ export default function QuestArenaCompetitionResultsPage() {
       const teamList = (teamData || []) as Team[];
       setTeams(teamList);
       const rows = Array.isArray(leaderboardData) ? leaderboardData : leaderboardData ? [leaderboardData] : [];
-      setPlayers(rows.map((r: Row, i: number) => ({
-        rank: num(get(r, ["out_rank", "rank", "position"], i + 1)),
-        displayName: String(get(r, ["out_display_name", "display_name"], "Quest Arena player")),
-        username: String(get(r, ["out_username", "username"], "")),
-        teamId: String(get(r, ["out_team_id", "team_id"], "")),
-        teamName: String(get(r, ["out_team_name", "team_name"], "Team")),
-        xp: num(get(r, ["out_total_xp", "total_xp", "xp"], 0)),
-        correct: num(get(r, ["out_correct_answers", "correct_answers"], 0)),
-      })));
+      setPlayers(rows.map((r: Row, i: number) => {
+        // The leaderboard RPC currently returns team_name but not team_id.
+        // Resolve the team ID from the loaded team records using that name.
+        const teamName = String(get(r, ["out_team_name", "team_name"], "Team"));
+        const returnedTeamId = String(get(r, ["out_team_id", "team_id"], ""));
+        const matchedTeam = teamList.find((team) => team.team_name === teamName);
+
+        return {
+          rank: num(get(r, ["out_rank", "rank", "position"], i + 1)),
+          displayName: String(get(r, ["out_display_name", "display_name"], "Quest Arena player")),
+          username: String(get(r, ["out_username", "username"], "")),
+          teamId: returnedTeamId || matchedTeam?.id || "",
+          teamName,
+          xp: num(get(r, ["out_total_xp", "total_xp", "xp"], 0)),
+          correct: num(get(r, ["out_correct_answers", "correct_answers"], 0)),
+        };
+      }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load final competition results.");
     } finally { setLoading(false); setRefreshing(false); }
