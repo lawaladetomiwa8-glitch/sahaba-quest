@@ -683,7 +683,9 @@ export default function QuestArenaCompetitionPage() {
       // Ending manually must also finalize the competition so the final-result
       // route can show a declared winner, draw, or pending result.
       if (action === "end-now") {
-        const { error: finalizeError } = await supabase.rpc("quest_arena_finalize_competition");
+        const { error: finalizeError } = await supabase.rpc("quest_arena_finalize_competition", {
+          p_competition_id: competition.id,
+        });
         if (finalizeError) throw finalizeError;
         router.push(`/quest-arena/competition/${competition.id}/results`);
         return;

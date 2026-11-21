@@ -56,9 +56,9 @@ export default function QuestArenaCompetitionResultsPage() {
       setIsCreator(isOwner);
 
       // Finalize when an organiser closed it or the scheduled end has passed.
-      if (comp.status === "closed" || comp.status === "completed" || Date.now() >= new Date(comp.ends_at).getTime()) {
+      if (isOwner && (comp.status === "closed" || comp.status === "completed" || Date.now() >= new Date(comp.ends_at).getTime())) {
         if (comp.status !== "completed") {
-          const { error: finalizeError } = await supabase.rpc("quest_arena_finalize_competition");
+          const { error: finalizeError } = await supabase.rpc("quest_arena_finalize_competition", { p_competition_id: competitionId });
           if (finalizeError) setFinalizeNotice(`The competition has ended, but finalization is pending: ${finalizeError.message}`);
         }
       }
