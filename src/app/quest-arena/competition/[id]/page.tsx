@@ -679,8 +679,17 @@ export default function QuestArenaCompetitionPage() {
         p_competition_id: competition.id,
       });
       if (actionError) throw actionError;
+
+      // Ending manually must also finalize the competition so the final-result
+      // route can show a declared winner, draw, or pending result.
+      if (action === "end-now") {
+        const { error: finalizeError } = await supabase.rpc("quest_arena_finalize_competition");
+        if (finalizeError) throw finalizeError;
+        router.push(`/quest-arena/competition/${competition.id}/results`);
+        return;
+      }
+
       await loadCompetition(true);
-      // Show a success message after the data refresh.
       setActionSuccess(config.success);
     } catch (actionError) {
       setError(friendlyError(actionError));
@@ -817,6 +826,14 @@ export default function QuestArenaCompetitionPage() {
         </div>
 
 
+
+        {(competition.status === "closed" || competition.status === "completed" || endedByTime) && (
+          <div style={{ margin: "0 0 16px", display: "flex", justifyContent: "center" }}>
+            <Link href={`/quest-arena/competition/${competition.id}/results`} className="sq-button-primary">
+              🏆 View Competition Results
+            </Link>
+          </div>
+        )}
 
         <section className="sq-card" style={{ padding: "clamp(24px, 4vw, 40px)", background: "linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)", position: "relative", overflow: "hidden" }}>
 
