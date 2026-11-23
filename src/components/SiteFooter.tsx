@@ -2,7 +2,7 @@
 
 
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 
 
@@ -163,7 +163,6 @@ export default function SiteFooter() {
 
     <>
 
-      <HalalSparkFooterAd />
 
       <footer className="sq-site-footer">
 
@@ -2207,40 +2206,6 @@ export default function SiteFooter() {
 }
 
 
-
-function HalalSparkFooterAd() {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const script = document.createElement("script");
-    script.src =
-      "https://ads.halalspark.co.uk/get-ad-script-footer?placement_id=b06d13f0-83d4-4a8c-8bc0-c4da8cc4615b&domain=https://sahabaquest.com.ng&_v=3.0";
-    script.async = true;
-
-    container.appendChild(script);
-
-    return () => {
-      container.replaceChildren();
-    };
-  }, []);
-
-  return (
-    <div
-      ref={containerRef}
-      aria-label="Advertisement"
-      style={{
-        width: "100%",
-        minWidth: 0,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    />
-  );
-}
 
 function HowItWorksContent() {
 
