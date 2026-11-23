@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -119,26 +119,6 @@ export default function DashboardPage() {
   const [dailyQuest, setDailyQuest] =
 
     useState<DailyQuestStatus | null>(null);
-
-  // HalalSpark dashboard banner placement.
-  const dashboardAdRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    // Do not load ads on the loading screen or before the player's
-    // dashboard account and progress have been verified.
-    if (!profile || !progress || !dashboardAdRef.current) return;
-
-    const adScript = document.createElement("script");
-    adScript.src =
-      "https://ads.halalspark.co.uk/get-ad-script-banner?placement_id=8675d5a5-1f52-4f20-82c8-d7e8a6fd2c92&domain=https://sahabaquest.com.ng&_v=3.0";
-    adScript.async = true;
-
-    dashboardAdRef.current.appendChild(adScript);
-
-    return () => {
-      adScript.remove();
-    };
-  }, [profile, progress]);
 
   // The quest prompt stays hidden if its status cannot be verified.
 
@@ -1384,18 +1364,6 @@ export default function DashboardPage() {
           </section>
 
         )}
-
-        {/* HALALSPARK DASHBOARD BANNER */}
-        <div
-          ref={dashboardAdRef}
-          aria-label="Advertisement"
-          style={{
-            width: "100%",
-            minHeight: "1px",
-            marginTop: "20px",
-            overflow: "hidden",
-          }}
-        />
 
         {/* QUEST ARENA: available to Free and Individual accounts only */}
         {(profile.account_type === "free" ||

@@ -517,11 +517,7 @@ export default function DailyQuestPage({
                   : "One completed Daily Quest per day. Your XP goes directly to your normal progress."}
               </p>
             </section>
-
-            {/* HalalSpark banner appears only before the quest starts.
-                It is removed as soon as a question is loaded. */}
-            <HalalSparkDailyQuestAd />
-          </>
+</>
         ) : (
           <section>
             <div
@@ -717,43 +713,6 @@ export default function DailyQuestPage({
         )}
       </div>
     </main>
-  );
-}
-
-function HalalSparkDailyQuestAd() {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const script = document.createElement("script");
-    script.src =
-      "https://ads.halalspark.co.uk/get-ad-script-banner?placement_id=54937621-0896-40f3-8726-15ab317ff1ce&domain=https://sahabaquest.com.ng&_v=3.0";
-    script.async = true;
-
-    container.appendChild(script);
-
-    return () => {
-      script.remove();
-      container.replaceChildren();
-    };
-  }, []);
-
-  return (
-    <div
-      ref={containerRef}
-      aria-label="Advertisement"
-      style={{
-        width: "100%",
-        maxWidth: "980px",
-        minHeight: "0",
-        margin: "22px auto 0",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    />
   );
 }
 

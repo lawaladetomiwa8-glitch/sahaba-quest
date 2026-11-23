@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -393,9 +393,6 @@ export default function SponsoredCompetitionsPage() {
           <div className="sq-floating-pill sq-pill-three">🏅 Top 3</div>
         </div>
       </section>
-
-      {/* HalalSpark banner: shown on the competition listing page, not during gameplay. */}
-      <HalalSparkBanner />
 
       {(accountType === "free" || accountType === "individual") && (
         <section className="sq-access-banner">
@@ -2039,41 +2036,6 @@ export default function SponsoredCompetitionsPage() {
   );
 }
 
-
-function HalalSparkBanner() {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const script = document.createElement("script");
-    script.src =
-      "https://ads.halalspark.co.uk/get-ad-script-banner?placement_id=3651f057-5bac-4c7f-910b-7841b273e08c&domain=https://sahabaquest.com.ng&_v=3.0";
-    script.async = true;
-
-    container.appendChild(script);
-
-    return () => {
-      container.replaceChildren();
-    };
-  }, []);
-
-  return (
-    <div
-      ref={containerRef}
-      aria-label="Advertisement"
-      style={{
-        width: "100%",
-        minWidth: 0,
-        marginTop: "22px",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    />
-  );
-}
 
 function RegistrationCountdown({ startsAt }: { startsAt: string }) {
   const [now, setNow] = useState<number | null>(null);
