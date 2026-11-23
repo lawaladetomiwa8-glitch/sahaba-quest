@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
@@ -155,13 +156,16 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <head>
-        {/* GOOGLE GLOBAL TAG */}
+        {/* =================================================
+            MUSLIMAD NETWORK / GOOGLE FLOODLIGHT GLOBAL TAG
+            ================================================= */}
+
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=DC-16361189"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
         />
 
-        <Script id="google-global-tag" strategy="afterInteractive">
+        <Script id="muslimad-global-tag" strategy="beforeInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
