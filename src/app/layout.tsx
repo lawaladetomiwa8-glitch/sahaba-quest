@@ -155,10 +155,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <head>
-        {/* =================================================
-            MUSLIMAD NETWORK / GOOGLE FLOODLIGHT GLOBAL TAG
-            Native scripts directly inside the HTML head
-            ================================================= */}
+        {/* MUSLIMAD NETWORK / GOOGLE FLOODLIGHT GLOBAL TAG */}
 
         <script
           async
@@ -194,6 +191,32 @@ export default function RootLayout({
         <SiteFooter />
 
         <Analytics />
+
+        {/* =================================================
+            MUSLIMAD NETWORK - SITE VERIFICATION EVENT
+            ================================================= */}
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              gtag('event', 'conversion', {
+                'allow_custom_scripts': true,
+                'send_to': 'DC-16361189/manau0/sahab0+standard'
+              });
+            `,
+          }}
+        />
+
+        {/* MUSLIMAD NETWORK - NOSCRIPT VERIFICATION PIXEL */}
+
+        <noscript>
+          <img
+            src="https://ad.doubleclick.net/ddm/activity/src=16361189;type=manau0;cat=sahab0;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;npa=;gdpr=${GDPR};gdpr_consent=${GDPR_CONSENT_755};ord=1?"
+            width="1"
+            height="1"
+            alt=""
+          />
+        </noscript>
       </body>
     </html>
   );
