@@ -516,28 +516,26 @@ export async function GET(
      * -------------------------------------------------------
      */
 
-    const cronSecret =
-      process.env.CRON_SECRET;
+    const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret) {
-      const authorization =
-        request.headers.get(
-          "authorization"
-        );
+    if (!cronSecret) {
+      console.error(
+        "CRON_SECRET is missing. Subscription notification cron is blocked."
+      );
 
-      if (
-        authorization !==
-        `Bearer ${cronSecret}`
-      ) {
-        return NextResponse.json(
-          {
-            error: "Unauthorized",
-          },
-          {
-            status: 401,
-          }
-        );
-      }
+      return NextResponse.json(
+        { error: "Cron authentication is not configured." },
+        { status: 500 }
+      );
+    }
+
+    const authorization = request.headers.get("authorization");
+
+    if (authorization !== `Bearer ${cronSecret}`) {
+      return NextResponse.json(
+        { error: "Unauthorized." },
+        { status: 401 }
+      );
     }
 
     /*
